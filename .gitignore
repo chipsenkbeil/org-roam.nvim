@@ -40,5 +40,5 @@ luac.out
 *.hex
 
 # Vendor files
-vendor/
+vendor/*
 !vendor/.placeholder
