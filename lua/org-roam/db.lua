@@ -92,13 +92,13 @@ end
 ---@param id string
 ---@return org-roam.database.Node|nil #the removed node, or nil if none with id found
 function M:remove(id)
-    -- Disconnect the node from all associated nodes in both directions
-    -- TODO: This is not working fully, so we need to figure out what's wrong!
-    local backlink_ids = self:get_backlinks(id)
-    for _, backlink_id in ipairs(backlink_ids) do
+    -- Find every node pointing to this node, unlink it
+    for backlink_id, _ in pairs(self:get_backlinks(id)) do
         self:unlink(backlink_id, id)
     end
-    self:unlink(id) -- Remove all outbound links from this node to anywhere else
+
+    -- Unlink all outbound links from this node to anywhere else
+    self:unlink(id)
 
     local node = self.__nodes[id]
     self.__nodes[id] = nil
