@@ -14,13 +14,28 @@ describe("db", function()
 
     it("should be able to be loaded from disk", function()
         local db = DB:new()
-        local id = db:insert("test")
+
+        -- We save nodes, edges, and indexes, so create all three
+        local id1 = db:insert("one")
+        local id2 = db:insert("two")
+
+        db:link(id1, id2)
+        db:new_index("first_letter", function(node) return node:sub(1, 1) end)
+        db:reindex()
 
         local path = vim.fn.tempname()
         db:write_to_disk(path)
 
+        -- Load a fresh copy of the database and verify that nodes, edges, and indexes still exist
         local new_db = DB:load_from_disk(path)
-        assert.equals("test", new_db:get(id))
+        assert.equals("one", new_db:get(id1))
+        assert.equals("two", new_db:get(id2))
+        assert.same({ [id2] = 1 }, new_db:get_links(id1))
+        assert.same({ [id1] = 1 }, new_db:get_backlinks(id2))
+        assert.same({ id1 }, new_db:find_by_index("first_letter", "o"))
+        assert.same({ id2 }, new_db:find_by_index("first_letter", "t"))
+
+        -- Delete the database
         os.remove(path)
     end)
 
@@ -204,5 +219,48 @@ describe("db", function()
 
         assert.same({ [id1] = 1 }, db:get_links(id2))
         assert.same({ [id2] = 1 }, db:get_backlinks(id1))
+    end)
+
+    it("should support indexing by node value and looking up nodes by index", function()
+        local db = DB:new()
+            :new_index("starts_with_t", function(node)
+                -- Only index values that start with t
+                if vim.startswith(node, "t") then
+                    return true
+                end
+            end)
+            :new_index("e_cnt", function(node)
+                local cnt = 0
+                for i = 1, #node do
+                    local c = node:sub(i, i)
+                    if c == "e" then
+                        cnt = cnt + 1
+                    end
+                end
+                return cnt
+            end)
+
+        local id1 = db:insert("one")
+        local id2 = db:insert("two")
+        local id3 = db:insert("three")
+
+        -- Look up nodes that start with letter "t"
+        local expected = { id2, id3 }
+        local actual = db:find_by_index("starts_with_t", true)
+        table.sort(expected)
+        table.sort(actual)
+        assert.same(expected, actual)
+
+        -- Look up nodes with "e" based on total count of "e"
+        assert.same({ id3 }, db:find_by_index("e_cnt", 2))
+
+        -- Use function to find matches (much slower)
+        local expected = { id2, id3 }
+        local actual = db:find_by_index("e_cnt", function(cnt)
+            return cnt ~= 1
+        end)
+        table.sort(expected)
+        table.sort(actual)
+        assert.same(expected, actual)
     end)
 end)
