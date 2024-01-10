@@ -16,10 +16,15 @@ local utils = require("org-roam.utils")
 
 ---@alias org-roam.database.Node any
 
+---@alias org-roam.database.Indexer
+---| fun(node:org-roam.database.Node):any given a node, returns a value or multiple values that can be used to retrieve it
+
 ---@class org-roam.Database
 ---@field private __nodes table<string, org-roam.database.Node> collection of nodes indexed by id
 ---@field private __outbound table<string, table<string, boolean>> mapping of node -> node by id
 ---@field private __inbound table<string, table<string, boolean>> mapping of node <- node by id
+---@field private __indexers table<string, org-roam.database.Indexer> table of labels -> indexers to run when inserting or refreshing a node
+---@field private __indexes table<string, table<string, table<string, boolean>>> mapping of some identifier to ids of associated nodes
 local M = {}
 M.__index = M
 
@@ -31,8 +36,21 @@ function M:new()
     instance.__nodes = {}
     instance.__outbound = {}
     instance.__inbound = {}
+    instance.__indexers = {}
+    instance.__indexes = {}
 
     return instance
+end
+
+---Creates a new index with the given name using the provided indexer.
+---@param name string name associated with indexer
+---@param indexer org-roam.database.Indexer function to perform indexing
+---@return org-roam.Database #reference to updated database
+function M:new_index(name, indexer)
+    -- Add the indexer to our internal tracker
+    self.__indexers[name] = indexer
+
+    return self
 end
 
 ---Loads database from disk. Will fail with an assertion error if something goes wrong.
@@ -47,7 +65,11 @@ function M:load_from_disk(path)
     handle:close()
 
     -- Decode the data into Lua and set it as the nodes
-    db.__nodes = assert(vim.mpack.decode(data), "Failed to decode database")
+    local __data = assert(vim.mpack.decode(data), "Failed to decode database")
+    db.__nodes = __data.nodes
+    db.__inbound = __data.inbound
+    db.__outbound = __data.outbound
+    db.__indexes = __data.indexes
 
     return db
 end
@@ -56,7 +78,12 @@ end
 ---@param path string where to store the database
 function M:write_to_disk(path)
     ---@type string
-    local data = assert(vim.mpack.encode(self.__nodes), "Failed to encode database")
+    local data = assert(vim.mpack.encode({
+        nodes = self.__nodes,
+        inbound = self.__inbound,
+        outbound = self.__outbound,
+        indexes = self.__indexes,
+    }), "Failed to encode database")
 
     -- Open the file to create/overwite, write the data, and close the file
     local handle = assert(io.open(path, "wb"), "Failed to open " .. path)
@@ -85,6 +112,11 @@ function M:insert(node, opts)
     self.__outbound[id] = {}
     self.__inbound[id] = {}
 
+    -- Do any pending indexing of the node
+    self:reindex({
+        nodes = { id }
+    })
+
     return id
 end
 
@@ -99,6 +131,12 @@ function M:remove(id)
 
     -- Unlink all outbound links from this node to anywhere else
     self:unlink(id)
+
+    -- Remove existing indexes for node before deleting it
+    self:reindex({
+        nodes = { id },
+        remove = true,
+    })
 
     local node = self.__nodes[id]
     self.__nodes[id] = nil
@@ -124,6 +162,107 @@ function M:get_many(...)
     end
 
     return nodes
+end
+
+---Retrieves ids of nodes from the database by some index.
+---@param name string name of the index
+---@param cmp boolean|integer|string|fun(value:boolean|integer|string):boolean
+---@return string[] #ids of nodes that matched by index
+function M:find_by_index(name, cmp)
+    ---@type string[]
+    local ids = {}
+
+    local tbl = self.__indexes[name]
+
+    -- If cmp is a boolean/integer/string, we do a lookup,
+    -- otherwise if it is a function we iterate through keys
+    if type(cmp) == "boolean" or type(cmp) == "number" or type(cmp) == "string" then
+        local map = tbl[cmp]
+        if map ~= nil then
+            ids = vim.tbl_keys(map)
+        end
+    elseif type(cmp) == "function" then
+        for key, value in pairs(tbl) do
+            if cmp(key) then
+                for _, id in ipairs(vim.tbl_keys(value)) do
+                    table.insert(ids, id)
+                end
+            end
+        end
+    end
+
+    return ids
+end
+
+---Reindexes the database using the current indexers.
+---
+---Takes optional list of ids of nodes to index, otherwise re-indexes all nodes.
+---Takes optional list of names of indexers to use, otherwise uses all indexers.
+---Takes optional flag `remove`, which if true will not reindex but instead remove indexes for nodes.
+---
+---@param opts? {nodes?:string[], indexes?:string[], remove?:boolean}
+---@return org-roam.Database #reference to updated database
+function M:reindex(opts)
+    opts = opts or {}
+    local ids = opts.nodes or {}
+    local indexes = opts.indexes or {}
+    local should_remove = opts.remove == true
+
+    if #ids == 0 then
+        ids = vim.tbl_keys(self.__nodes)
+    end
+
+    if #indexes == 0 then
+        indexes = vim.tbl_keys(self.__indexers)
+    end
+
+    for _, name in ipairs(indexes) do
+        local indexer = assert(self.__indexers[name], "Invalid index: " .. name)
+
+        -- Create an empty index if it doesn't exist yet
+        if type(self.__indexes[name]) == "nil" then
+            self.__indexes[name] = {}
+        end
+
+        -- For each node, we calculate values using the indexer
+        for _, id in ipairs(ids) do
+            local node = self:get(id)
+            if type(node) ~= "nil" then
+                local result = indexer(node)
+
+                if type(result) == "number" then
+                    ---@type number[]
+                    result = { result }
+                elseif type(result) == "string" then
+                    ---@type string[]
+                    result = { result }
+                elseif type(result) == "boolean" then
+                    ---@type boolean[]
+                    result = { result }
+                elseif type(result) ~= "table" then
+                    ---@type string[]
+                    result = {}
+                end
+
+                -- For each value, we cache a pointer to the node's id
+                for _, value in ipairs(result) do
+                    if type(self.__indexes[name][value]) == "nil" then
+                        -- Create empty cache for value if doesn't exist yet
+                        self.__indexes[name][value] = {}
+                    end
+
+                    -- Store the node's id in the lookup cache
+                    if not should_remove then
+                        self.__indexes[name][value][id] = true
+                    else
+                        self.__indexes[name][value][id] = nil
+                    end
+                end
+            end
+        end
+    end
+
+    return self
 end
 
 ---@private
