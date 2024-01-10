@@ -1,8 +1,8 @@
-describe("db", function()
-    local DB = require("org-roam.db")
+describe("database", function()
+    local Database = require("org-roam.database")
 
     it("should be able to persist to disk", function()
-        local db = DB:new()
+        local db = Database:new()
 
         local path = vim.fn.tempname()
         db:write_to_disk(path)
@@ -13,7 +13,7 @@ describe("db", function()
     end)
 
     it("should be able to be loaded from disk", function()
-        local db = DB:new()
+        local db = Database:new()
 
         -- We save nodes, edges, and indexes, so create all three
         local id1 = db:insert("one")
@@ -27,7 +27,7 @@ describe("db", function()
         db:write_to_disk(path)
 
         -- Load a fresh copy of the database and verify that nodes, edges, and indexes still exist
-        local new_db = DB:load_from_disk(path)
+        local new_db = Database:load_from_disk(path)
         assert.equals("one", new_db:get(id1))
         assert.equals("two", new_db:get(id2))
         assert.same({ [id2] = 1 }, new_db:get_links(id1))
@@ -40,13 +40,13 @@ describe("db", function()
     end)
 
     it("should support inserting new, unlinked nodes", function()
-        local db = DB:new()
+        local db = Database:new()
         local id = db:insert("test")
         assert.equals("test", db:get(id))
     end)
 
     it("should support removing unlinked nodes", function()
-        local db = DB:new()
+        local db = Database:new()
         local id = db:insert("test")
 
         assert.equals("test", db:remove(id))
@@ -54,7 +54,7 @@ describe("db", function()
     end)
 
     it("should support removing nodes with outbound links", function()
-        local db = DB:new()
+        local db = Database:new()
         local id1 = db:insert("one")
         local id2 = db:insert("two")
         local id3 = db:insert("three")
@@ -76,7 +76,7 @@ describe("db", function()
     end)
 
     it("should support removing nodes with inbound links", function()
-        local db = DB:new()
+        local db = Database:new()
         local id1 = db:insert("one")
         local id2 = db:insert("two")
         local id3 = db:insert("three")
@@ -98,7 +98,7 @@ describe("db", function()
     end)
 
     it("should support removing nodes with outbound and inbound links", function()
-        local db = DB:new()
+        local db = Database:new()
         local id1 = db:insert("one")
         local id2 = db:insert("two")
         local id3 = db:insert("three")
@@ -118,13 +118,13 @@ describe("db", function()
     end)
 
     it("should support retrieving a node by its id", function()
-        local db = DB:new()
+        local db = Database:new()
         local id = db:insert("test")
         assert.equals("test", db:get(id))
     end)
 
     it("should support retrieving many nodes by their ids", function()
-        local db = DB:new()
+        local db = Database:new()
         local id1 = db:insert("one")
         local id2 = db:insert("two")
         local id3 = db:insert("three")
@@ -136,7 +136,7 @@ describe("db", function()
     end)
 
     it("should support getting ids of nodes linked to by a node", function()
-        local db = DB:new()
+        local db = Database:new()
         local id1 = db:insert("one")
         local id2 = db:insert("two")
         local id3 = db:insert("three")
@@ -149,7 +149,7 @@ describe("db", function()
     end)
 
     it("should support getting ids of nodes linked to by a node indirectly", function()
-        local db = DB:new()
+        local db = Database:new()
         local id1 = db:insert("one")
         local id2 = db:insert("two")
         local id3 = db:insert("three")
@@ -165,7 +165,7 @@ describe("db", function()
     end)
 
     it("should support getting ids of nodes linking to a node", function()
-        local db = DB:new()
+        local db = Database:new()
         local id1 = db:insert("one")
         local id2 = db:insert("two")
         local id3 = db:insert("three")
@@ -178,7 +178,7 @@ describe("db", function()
     end)
 
     it("should support getting ids of nodes linking to a node indirectly", function()
-        local db = DB:new()
+        local db = Database:new()
         local id1 = db:insert("one")
         local id2 = db:insert("two")
         local id3 = db:insert("three")
@@ -193,7 +193,7 @@ describe("db", function()
     end)
 
     it("should support linking one node to another (a -> b)", function()
-        local db = DB:new()
+        local db = Database:new()
         local id1 = db:insert("one")
         local id2 = db:insert("two")
 
@@ -203,7 +203,7 @@ describe("db", function()
     end)
 
     it("should support unlinking one node from another (a -> b)", function()
-        local db = DB:new()
+        local db = Database:new()
         local id1 = db:insert("one")
         local id2 = db:insert("two")
 
@@ -222,7 +222,7 @@ describe("db", function()
     end)
 
     it("should support indexing by node value and looking up nodes by index", function()
-        local db = DB:new()
+        local db = Database:new()
             :new_index("starts_with_t", function(node)
                 -- Only index values that start with t
                 if vim.startswith(node, "t") then
@@ -238,6 +238,14 @@ describe("db", function()
                     end
                 end
                 return cnt
+            end)
+            :new_index("char", function(node)
+                local chars = {}
+                for i = 1, #node do
+                    local c = node:sub(i, i)
+                    chars[c] = true
+                end
+                return vim.tbl_keys(chars)
             end)
 
         local id1 = db:insert("one")
@@ -259,6 +267,13 @@ describe("db", function()
         local actual = db:find_by_index("e_cnt", function(cnt)
             return cnt ~= 1
         end)
+        table.sort(expected)
+        table.sort(actual)
+        assert.same(expected, actual)
+
+        -- Indexer returning array results in an index per item
+        local expected = { id1, id2 }
+        local actual = db:find_by_index("char", "o")
         table.sort(expected)
         table.sort(actual)
         assert.same(expected, actual)
