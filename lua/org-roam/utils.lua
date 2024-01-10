@@ -4,6 +4,7 @@
 -- Contains utility functions to use throughout the codebase. Internal-only.
 -------------------------------------------------------------------------------
 
+---@class org-roam.Utils
 local M = {}
 
 ---@param m integer
