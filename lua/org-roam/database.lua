@@ -1,18 +1,10 @@
 local utils = require("org-roam.utils")
 
 -------------------------------------------------------------------------------
--- DB.LUA
+-- DATABASE.LUA
 --
 -- Core database to keep track of org-roam nodes.
 -------------------------------------------------------------------------------
-
----@class org-roam.Node
----@field title string the title of the org-roam note.
----@field file string the file name where the note is stored.
----@field id string the unique identifier for the note.
----@field level number the heading level of the note in the org-mode file.
----@field tags string[] a list of tags associated with the note.
----@field linked org-roam.Node[] a list of linked notes (references) within the note.
 
 ---@alias org-roam.database.Node any
 
