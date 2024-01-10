@@ -93,10 +93,12 @@ end
 ---@return org-roam.database.Node|nil #the removed node, or nil if none with id found
 function M:remove(id)
     -- Disconnect the node from all associated nodes in both directions
-    local ids = self:unlink(id)
-    for _, rev_id in ipairs(ids) do
-        self:unlink(rev_id, id)
+    -- TODO: This is not working fully, so we need to figure out what's wrong!
+    local backlink_ids = self:get_backlinks(id)
+    for _, backlink_id in ipairs(backlink_ids) do
+        self:unlink(backlink_id, id)
     end
+    self:unlink(id) -- Remove all outbound links from this node to anywhere else
 
     local node = self.__nodes[id]
     self.__nodes[id] = nil
@@ -151,10 +153,8 @@ function M:__get_links_in_direction(opts)
     -- Populate initial list of node ids to traverse
     local ids = vim.tbl_keys(edges[root_id])
 
-    local step = 0
-    while step < max_depth do
-        step = step + 1
-
+    local step = 1
+    while step <= max_depth do
         local step_ids = ids
         ids = {}
 
@@ -166,11 +166,13 @@ function M:__get_links_in_direction(opts)
 
                 -- Add all of the outbound edges of that node to the list
                 -- to traverse in the next step
-                for _, edge_id in ipairs(edges[step_id]) do
+                for edge_id, _ in pairs(edges[step_id]) do
                     table.insert(ids, edge_id)
                 end
             end
         end
+
+        step = step + 1
     end
 
     return nodes
@@ -178,18 +180,20 @@ end
 
 ---Retrieves ids of nodes linked to by the node with the specified id.
 ---@param id string
----@param n? integer optional count of steps removed from node (default 1)
+---@param opts? {max_depth?:integer} # max_depth indicates how many nodes away to look (default 1)
 ---@return table<string, integer> #ids of found nodes mapped to the total steps away from specified node
-function M:get_links(id, n)
-    return self:__get_links_in_direction({ root = id, max_depth = n, direction = "outbound" })
+function M:get_links(id, opts)
+    opts = opts or {}
+    return self:__get_links_in_direction({ root = id, max_depth = opts.max_depth, direction = "outbound" })
 end
 
 ---Retrieves ids of nodes that link to the node with the specified id.
 ---@param id string
----@param n? integer optional count of steps removed from node (default 1)
+---@param opts? {max_depth?:integer} # max_depth indicates how many nodes away to look (default 1)
 ---@return table<string, integer> #ids of found nodes mapped to the total steps away from specified node
-function M:get_backlinks(id, n)
-    return self:__get_links_in_direction({ root = id, max_depth = n, direction = "inbound" })
+function M:get_backlinks(id, opts)
+    opts = opts or {}
+    return self:__get_links_in_direction({ root = id, max_depth = opts.max_depth, direction = "inbound" })
 end
 
 ---Creates outbound edges from node `id`. Only in the direction of node[id] -> node.
@@ -230,8 +234,9 @@ function M:unlink(id, ...)
     -- Do actual removal
     local ids = {}
     for _, node in ipairs(nodes) do
+        local had_edge = false
         if type(outbound[node]) ~= "nil" then
-            table.insert(ids, node)
+            had_edge = true
         end
 
         outbound[node] = nil
@@ -239,8 +244,13 @@ function M:unlink(id, ...)
         -- For each outbound, we also want to remove the cached inbound equivalent
         local inbound = self.__inbound[node]
         if type(inbound) ~= "nil" then
+            had_edge = true
             inbound[id] = nil
             self.__inbound[node] = inbound
+        end
+
+        if had_edge then
+            table.insert(ids, node)
         end
     end
 
