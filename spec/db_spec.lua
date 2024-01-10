@@ -69,9 +69,6 @@ describe("db", function()
         -- Create outbound link from "one" -> "two" and "two" -> "three"
         db:link(id1, id2)
         db:link(id2, id3)
-        print("one: " .. id1)
-        print("two: " .. id2)
-        print("three: " .. id3)
 
         -- Remove "three" node to sever the "two" -> "three" link
         assert.equals("three", db:remove(id3))
