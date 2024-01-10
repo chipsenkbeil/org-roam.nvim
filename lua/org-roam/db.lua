@@ -14,8 +14,10 @@ local utils = require("org-roam.utils")
 ---@field tags string[] a list of tags associated with the note.
 ---@field linked org-roam.Node[] a list of linked notes (references) within the note.
 
+---@alias org-roam.database.Node any
+
 ---@class org-roam.Database
----@field private __nodes table<string, org-roam.Node> collection of nodes indexed by id
+---@field private __nodes table<string, org-roam.database.Node> collection of nodes indexed by id
 ---@field private __outbound table<string, table<string, boolean>> mapping of node -> node by id
 ---@field private __inbound table<string, table<string, boolean>> mapping of node <- node by id
 local M = {}
@@ -62,12 +64,16 @@ function M:write_to_disk(path)
     handle:close()
 end
 
----Inserts a node into the database with no edges.
----@param node org-roam.Node
+---Inserts non-false data into the database as a node with no edges.
+---If an id is provided in options, will be used, otherwise a new id is generated.
+---@param node org-roam.database.Node
+---@param opts? {id?:string}
 ---@return string id #the id of the inserted node
-function M:insert(node)
-    ---@type string?
-    local id = node.id
+function M:insert(node, opts)
+    assert(node ~= nil, "Cannot insert nil value as node")
+
+    opts = opts or {}
+    local id = opts.id
 
     -- If we aren't given an id with the node, create one
     if type(id) ~= "string" then
@@ -84,7 +90,7 @@ end
 
 ---Removes a node from the database by its id, disconnecting it from any other nodes.
 ---@param id string
----@return org-roam.Node|nil #the removed node, or nil if none with id found
+---@return org-roam.database.Node|nil #the removed node, or nil if none with id found
 function M:remove(id)
     -- Disconnect the node from all associated nodes in both directions
     local ids = self:unlink(id)
@@ -100,14 +106,14 @@ end
 
 ---Retrieves node from the database by its id.
 ---@param id string
----@return org-roam.Node|nil #the node, or nil if none with id found
+---@return org-roam.database.Node|nil #the node, or nil if none with id found
 function M:get(id)
     return self.__nodes[id]
 end
 
 ---Retrieves one or more nodes from the database by their ids.
 ---@param ... string ids of nodes to retrieve
----@return table<string, org-roam.Node[]> #mapping of id -> node
+---@return table<string, org-roam.database.Node[]> #mapping of id -> node
 function M:get_many(...)
     local nodes = {}
 
