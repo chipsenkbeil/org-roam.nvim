@@ -20,18 +20,6 @@
 -- cite:thrun2005probabilistic (org-ref)
 
 -------------------------------------------------------------------------------
--- CLASS DEFINITIONS
--------------------------------------------------------------------------------
-
----@class OrgNode
----@field title string the title of the org-roam note.
----@field file string the file name where the note is stored.
----@field id string the unique identifier for the note.
----@field level number the heading level of the note in the org-mode file.
----@field tags string[] a list of tags associated with the note.
----@field linked OrgNode[] a list of linked notes (references) within the note.
-
--------------------------------------------------------------------------------
 -- VARIABLE DEFINITIONS
 -------------------------------------------------------------------------------
 
@@ -45,10 +33,10 @@
 ---| string path to daily-notes, relative to org-roam-directory.
 
 ---@alias org_roam_db_extra_links_elements
----| {type:'keyword'|'node-property', value:string} such as keyword "transclude".
+---| {type:'keyword'|'node-property', value:string}[] such as keyword "transclude".
 
 ---@alias org_roam_db_extra_links_exclude_keys
----| {type:'keyword'|'node-property', value:string} such as node-property "ROAM_REFS".
+---| {type:'keyword'|'node-property', value:string}[] such as node-property "ROAM_REFS".
 
 ---@alias org_roam_db_update_on_save
 ---| boolean if true, updates the database on each save.
@@ -125,7 +113,7 @@
 ---| fun(node:string, n:number) build and display a graph for `node`, or the full graph if `nil`. Will show `n` steps away, or all if `nil`.
 
 ---@alias org_roam_node_at_point
----| fun(assert:boolean):OrgNode returns the node at point. If `assert` is true, will throw an error if there is no node at point.
+---| fun(assert:boolean):org-roam.Node returns the node at point. If `assert` is true, will throw an error if there is no node at point.
 
 ---@alias org_roam_node_read
 ---| fun() TODO: This is one of the most complex, so need time to understand.
