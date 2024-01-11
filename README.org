@@ -72,3 +72,24 @@ Port of org-roam to neovim using orgmode.
    end
    #+end_src
 
+   We can create a treesitter language tree using ~vim.treesitter.get_string_parser()~
+
+   #+begin_src lua
+   -- This will parse the trees
+   local trees = vim.treesitter.get_string_parser("<org text>", "org", {}):parse()
+
+   -- orgmode plugin has an abstraction for this that gives us a wrapper
+   -- from_content(content:table, category?:string, filename?:string, is_archive_file?:boolean):File|nil
+   --
+   -- I believe content is string lines as the first part within from_content
+   -- performs local str_content = table.concat(content, '\n')
+   --
+   -- There's an even higher-level wrapper of File.load(path, callback)
+   -- where callback is passed nil or a File. But not sure about the error invocation
+   -- on catch. File not found errors are ignored, but everything else is not.
+   --
+   -- But unfortunately the File returned does not have any details on property drawers,
+   -- so we will have to result to detecting with treesitter and parsing the content
+   -- ourselves so we can learn and modify.
+   local file = require("orgmode.parser.file").from_content(content, nil, nil, nil)
+   #+end_src
