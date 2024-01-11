@@ -13,8 +13,16 @@ Port of org-roam to neovim using orgmode.
 
 ** Notes
 
-   Using treesitter, we can understand where our cursor is in org syntax
-   and use queries to figure out data such as outbound links to other org files.
+   Using treesitter, we can understand where our cursor is in org syntax and
+   use queries to figure out data such as outbound links to other org files.
+
+   This is an example of a =treesitter-highlight= syntax, but query could be
+   used to search sections and body.
+
+   #+begin_src scm
+   (body (drawer) @OrgDrawer)
+   (section (property_drawer) @OrgPropertyDrawer)
+   #+end_src
 
    The orgmode plugin provides a basic API that I think we can use like this:
 
