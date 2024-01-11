@@ -10,3 +10,65 @@ Port of org-roam to neovim using orgmode.
    #+begin_src bash
    make test
    #+end_src
+
+** Notes
+
+   Using treesitter, we can understand where our cursor is in org syntax
+   and use queries to figure out data such as outbound links to other org files.
+
+   The orgmode plugin provides a basic API that I think we can use like this:
+
+   #+begin_src lua
+   local api = require("orgmode.api")
+   local file = api.current()
+
+   -- Iterate over top-level headlines to see which one we're in???
+   for _, headline in ipairs(file.headlines) do
+      -- This is a range
+      local pos = headline.position
+   end
+   #+end_src
+
+   Alternatively, there is a wrapper to the treesitter API that the orgmode
+   plugin provides, and an example is setting tags:
+
+   #+begin_src lua
+   local ts_org = require("orgmode.treesitter")
+   function OrgHeadline:set_tags(tags)
+      return self:_do_action(function()
+         -- This will fail if there is no headline,
+         -- and this works by using require("orgmode.treesitter.headline").from_cursor({row, col})
+         local headline = ts_org.closest_headline()
+         return headline:set_tags(string.format(":%s:", table.concat(tags, ":")))
+      end)
+   end
+   #+end_src
+
+   The treesitter code underneath makes modifications using a utility method:
+
+   #+begin_src lua
+   local ts = vim.treesitter
+
+   -- Can take a buffer (or 0 for current buf) or string
+   ts.get_node_text(ts_node, 0)
+
+   -- From orgmode.utils.treesitter, used to overwrite parts of a buffer's text.
+   -- Given nodes tell us ranges
+   --
+   -- @param front_trim boolean
+   function M.set_node_text(node, text, front_trim)
+       local lines = vim.split(text, '\n', true)
+
+       -- StartRow, StartCol, EndRow, EndCol
+       local sr, sc, er, ec = node:range()
+       if string.len(text) == 0 then
+           if front_trim then
+               sc = math.max(sc - 1, 0)
+           else
+               ec = ec + 1
+           end
+       end
+       pcall(vim.api.nvim_buf_set_text, 0, sr, sc, er, ec, lines)
+   end
+   #+end_src
+
