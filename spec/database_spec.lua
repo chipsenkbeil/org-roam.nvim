@@ -1,4 +1,4 @@
-describe("database", function()
+describe("Database", function()
     local Database = require("org-roam.database")
 
     it("should be able to persist to disk", function()
