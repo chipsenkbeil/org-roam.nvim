@@ -21,10 +21,13 @@ local QUERY_TYPES         = {
 
 ---@enum org-roam.parser.QueryCaptureTypes
 local QUERY_CAPTURE_TYPES = {
+    TOP_LEVEL_PROPERTY_DRAWER              = "top-level-drawer",
     TOP_LEVEL_PROPERTY_DRAWER_NAME         = "top-level-drawer-name",
     TOP_LEVEL_PROPERTY_DRAWER_CONTENTS     = "top-level-drawer-contents",
     SECTION_PROPERTY_DRAWER_HEADLINE       = "property-drawer-headline",
     SECTION_PROPERTY_DRAWER_HEADLINE_STARS = "property-drawer-headline-stars",
+    SECTION_PROPERTY_DRAWER                = "property-drawer",
+    SECTION_PROPERTY_DRAWER_PROPERTY       = "property",
     SECTION_PROPERTY_DRAWER_PROPERTY_KEY   = "property-name",
     SECTION_PROPERTY_DRAWER_PROPERTY_VALUE = "property-value",
     REGULAR_LINK                           = "regular-link",
@@ -122,7 +125,7 @@ function M.parse(contents)
         (
             (drawer
                 name: (expr) @top-level-drawer-name
-                contents: (contents) @top-level-drawer-contents)
+                contents: (contents) @top-level-drawer-contents) @top-level-drawer
             (#eq? @top-level-drawer-name "PROPERTIES")
         )
         (section
@@ -131,7 +134,7 @@ function M.parse(contents)
             (property_drawer
                 (property
                     name: (expr) @property-name
-                    value: (value) @property-value))
+                    value: (value) @property-value) @property) @property-drawer
         )
         [
             (paragraph
@@ -185,6 +188,8 @@ function M.parse(contents)
             -- For regular links, we have to parse out the link and the
             -- optional description as we only have an overall expression.
             if pattern == QUERY_TYPES.TOP_LEVEL_PROPERTY_DRAWER then
+                ---@type org-roam.parser.Range|nil
+                local range
                 local properties = {}
                 for id, node in pairs(match) do
                     local name = query.captures[id]
@@ -195,7 +200,9 @@ function M.parse(contents)
                     -- :PROPERTIES:
                     -- ... <-- everything in here we need to parse
                     -- :END:
-                    if name == QUERY_CAPTURE_TYPES.TOP_LEVEL_PROPERTY_DRAWER_CONTENTS then
+                    if name == QUERY_CAPTURE_TYPES.TOP_LEVEL_PROPERTY_DRAWER then
+                        range = Range:from_node(node)
+                    elseif name == QUERY_CAPTURE_TYPES.TOP_LEVEL_PROPERTY_DRAWER_CONTENTS then
                         -- Store the starting row and offset of drawer contents
                         -- so we can build up ranges for the lines within
                         local start_row, _, start_offset = node:start()
@@ -222,9 +229,17 @@ function M.parse(contents)
                                 local value_col = key_col + key_len + space_len
                                 local value_offset = offset + value_col
 
-                                -- TODO: Set the slice key to adjust for the colon on either side
-                                local property = Property:new(
-                                    Slice:new(ref, Range:new({
+                                local property = Property:new({
+                                    range = Range:new({
+                                        row = row,
+                                        column = key_col,
+                                        offset = key_offset,
+                                    }, {
+                                        row = row,
+                                        column = value_col + value_len,
+                                        offset = value_offset + value_len
+                                    }),
+                                    name = Slice:new(ref, Range:new({
                                         row = row,
                                         column = key_col,
                                         offset = key_offset
@@ -232,8 +247,8 @@ function M.parse(contents)
                                         row = row,
                                         column = key_col + key_len,
                                         offset = key_offset + key_len
-                                    })),
-                                    Slice:new(ref, Range:new({
+                                    }), { cache = key }),
+                                    value = Slice:new(ref, Range:new({
                                         row = row,
                                         column = value_col,
                                         offset = value_offset
@@ -241,8 +256,8 @@ function M.parse(contents)
                                         row = row,
                                         column = value_col + value_len,
                                         offset = value_offset + value_len
-                                    }))
-                                )
+                                    }), { cache = value }),
+                                })
                                 table.insert(properties, property)
                             end
 
@@ -255,13 +270,15 @@ function M.parse(contents)
                     end
                 end
 
-                table.insert(results.drawers, PropertyDrawer:new(properties))
+                table.insert(results.drawers, PropertyDrawer:new({
+                    range = assert(range, "Impossible: Failed to find range of top-level property drawer"),
+                    properties = properties,
+                }))
             elseif pattern == QUERY_TYPES.SECTION_PROPERTY_DRAWER then
-                local drawer = { range = {}, properties = {} }
-
-                ---@type {[1]:org-roam.parser.Range, [2]:org-roam.parser.Range}[]
+                local range
+                ---@type org-roam.parser.Property[]
                 local properties = {}
-
+                local parts = {}
                 local heading_range
                 local heading_stars
                 for id, node in pairs(match) do
@@ -274,20 +291,29 @@ function M.parse(contents)
                         if type(stars) == "string" then
                             heading_stars = string.len(stars)
                         end
+                    elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER then
+                        range = Range:from_node(node)
+                    elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_PROPERTY then
+                        parts.range = Range:from_node(node)
                     elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_PROPERTY_KEY then
                         local range = Range:from_node(node)
-                        table.insert(properties, { range })
+                        local key = vim.treesitter.get_node_text(node, ref.value)
+                        parts.name = { range = range, cache = key }
                     elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_PROPERTY_VALUE then
                         local range = Range:from_node(node)
-                        table.insert(properties[#properties], range)
+                        local value = vim.treesitter.get_node_text(node, ref.value)
+                        parts.value = { range = range, cache = value }
                     end
-                end
 
-                for _, tuple in ipairs(properties) do
-                    table.insert(drawer.properties, Property:new(
-                        Slice:new(ref, tuple[1]),
-                        Slice:new(ref, tuple[2])
-                    ))
+                    -- If we have everything for another property, store it and reset
+                    if parts.range and parts.key and parts.value then
+                        table.insert(properties, Property:new({
+                            range = parts.range,
+                            name = Slice:new(ref, parts.name.range, { cache = parts.key.cache }),
+                            value = Slice:new(ref, parts.value.range, { cache = parts.value.cache }),
+                        }))
+                        parts = {}
+                    end
                 end
 
                 ---@type org-roam.parser.Heading|nil
@@ -296,7 +322,11 @@ function M.parse(contents)
                     heading = Heading:new(heading_range, heading_stars)
                 end
 
-                table.insert(results.drawers, PropertyDrawer:new(properties, heading))
+                table.insert(results.drawers, PropertyDrawer:new({
+                    range = range,
+                    properties = properties,
+                    heading = heading,
+                }))
             elseif pattern == QUERY_TYPES.REGULAR_LINK then
                 ---@type org-roam.parser.Position
                 local start = { row = 0, column = 0, offset = math.huge }
@@ -337,12 +367,21 @@ function M.parse(contents)
                 -- first and then try just path second
                 local _, _, path, description = string.find(raw_link, "^%[%[([^%c%z]*)%]%[([^%c%z]*)%]%]$")
                 if path and description then
-                    local link = Link:new("regular", range, path, description)
+                    local link = Link:new({
+                        kind = "regular",
+                        range = range,
+                        path = path,
+                        description = description,
+                    })
                     table.insert(results.links, link)
                 else
                     local _, _, path = string.find(raw_link, "^%[%[([^%c%z]*)%]%]$")
                     if path then
-                        local link = Link:new("regular", range, path)
+                        local link = Link:new({
+                            kind = "regular",
+                            range = range,
+                            path = path,
+                        })
                         table.insert(results.links, link)
                     end
                 end
