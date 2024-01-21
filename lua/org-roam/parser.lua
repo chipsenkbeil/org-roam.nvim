@@ -4,6 +4,13 @@
 -- Parsing logic to extract information from org files.
 -------------------------------------------------------------------------------
 
+local Heading             = require("org-roam.parser.heading")
+local Link                = require("org-roam.parser.link")
+local PropertyDrawer      = require("org-roam.parser.property-drawer")
+local Property            = require("org-roam.parser.property")
+local Range               = require("org-roam.parser.range")
+local Slice               = require("org-roam.parser.slice")
+
 -- THINGS WE NEED:
 --
 -- 1. Logic to parse org file into Treesitter trees
@@ -13,7 +20,7 @@
 -- 4. Insert nodes into database, or update existing nodes in database
 
 ---@enum org-roam.parser.QueryTypes
-local QUERY_TYPES = {
+local QUERY_TYPES         = {
     TOP_LEVEL_PROPERTY_DRAWER = 1,
     SECTION_PROPERTY_DRAWER = 2,
     REGULAR_LINK = 3,
@@ -23,8 +30,10 @@ local QUERY_TYPES = {
 local QUERY_CAPTURE_TYPES = {
     TOP_LEVEL_PROPERTY_DRAWER_NAME = "top-level-drawer-name",
     TOP_LEVEL_PROPERTY_DRAWER_CONTENTS = "top-level-drawer-contents",
-    SECTION_PROPERTY_DRAWER_KEY = "property-name",
-    SECTION_PROPERTY_DRAWER_VALUE = "property-value",
+    SECTION_PROPERTY_DRAWER_HEADLINE = "property-drawer-headline",
+    SECTION_PROPERTY_DRAWER_HEADLINE_STARS = "property-drawer-headline-stars",
+    SECTION_PROPERTY_DRAWER_PROPERTY_KEY = "property-name",
+    SECTION_PROPERTY_DRAWER_PROPERTY_VALUE = "property-value",
     REGULAR_LINK = "regular-link",
 }
 
@@ -32,80 +41,15 @@ local QUERY_CAPTURE_TYPES = {
 ---@field drawers org-roam.parser.PropertyDrawer[]
 ---@field links org-roam.parser.Link[]
 
----@class org-roam.parser.PropertyDrawer
----@field range org-roam.parser.Range
----@field heading? org-roam.parser.Heading
----@field properties org-roam.parser.Property[]
-
----@class org-roam.parser.Heading
----@field range org-roam.parser.Range
----@field stars integer #total number of stars associated with the heading
-
----@class org-roam.parser.Property
----@field key {text:string, range:org-roam.parser.Range}
----@field value {text:string, range:org-roam.parser.Range}
-
----@alias org-roam.parser.Link
----| org-roam.parser.RegularLink
----| org-roam.parser.RadioLink
----| org-roam.parser.PlainLink
----| org-roam.parser.AngleLink
-
----@class org-roam.parser.PlainLink
----@field kind 'plain'
----@field range org-roam.parser.Range
----@field path string
-
----@class org-roam.parser.AngleLink
----@field kind 'angle'
----@field range org-roam.parser.Range
----@field path string
-
----@class org-roam.parser.RadioLink
----@field kind 'radio'
----@field range org-roam.parser.Range
----@field path string
-
----@class org-roam.parser.RegularLink
----@field kind 'regular'
----@field range org-roam.parser.Range
----@field path string
----@field description? string
-
----@class org-roam.parser.Range
----@field start {row:integer, column:integer, offset:integer} #all zero-based
----@field end_ {row:integer, column:integer, offset:integer} #all zero-based
-
 ---@class org-roam.Parser
 ---@field private __is_initialized boolean
-local M = {
+local M                   = {
     __is_initialized = false,
 }
 
 function M.init()
     if M.__is_initialized then
         return
-    end
-
-    ---Retrieves the text of a node.
-    ---Pulled from nvim-orgmode/orgmode.
-    ---@param node TSNode
-    ---@param source number
-    ---@param offset_col_start? number
-    ---@param offset_col_end? number
-    ---@return string
-    local function get_node_text(node, source, offset_col_start, offset_col_end)
-        local range = { node:range() }
-        return vim.treesitter.get_node_text(node, source, {
-            metadata = {
-                range = {
-                    range[1],
-                    math.max(0, range[2] + (offset_col_start or 0)),
-                    range[3],
-                    math.max(0, range[4] + (offset_col_end or 0)),
-                },
-            },
-        })
     end
 
     ---Ensures that the nodes are on the same line.
@@ -179,6 +123,7 @@ function M.test_parse(contents)
     --
     -- NOTE: The link-parsing logic is a bit of a hack and comes from
     --       https://github.com/nvim-orgmode/orgmode/blob/master/queries/org/markup.scm
+    ---@type Query
     local query = vim.treesitter.query.parse("org", [=[
         (
             (drawer
@@ -188,7 +133,7 @@ function M.test_parse(contents)
         )
         (section
             (headline
-                stars: (stars) @headline-stars)
+                stars: (stars) @property-drawer-headline-stars) @property-drawer-headline
             (property_drawer
                 (property
                     name: (expr) @property-name
@@ -222,27 +167,10 @@ function M.test_parse(contents)
         ]
     ]=])
 
-    ---@param node TSNode
-    ---@return org-roam.parser.Range
-    local function node_to_range(node)
-        local range = {}
-
-        local row, column, offset
-        row, column, offset = node:start()
-        range.start = { row = row, column = column, offset = offset }
-        row, column, offset = node:end_()
-        range.end_ = { row = row, column = column, offset = offset }
-
-        return range
-    end
-
     ---@type org-roam.parser.Results
     local results = { drawers = {}, links = {} }
     for _, tree in ipairs(trees) do
-        for pattern, match, metadata in query:iter_matches(tree:root(), contents) do
-            ---@type integer, integer
-            local offset_start, offset_end = math.huge, -1
-
+        for pattern, match, _ in query:iter_matches(tree:root(), contents) do
             -- Currently, we handle three different patterns:
             --
             -- 1. Top Level Property Drawer: this shows up when we find a
@@ -250,7 +178,7 @@ function M.test_parse(contents)
             --                               that is not within a section.
             --
             -- 2. Section Property Drawer: this shows up when we find a
-            --                             property drawer within a sectin.
+            --                             property drawer within a section.
             --
             -- 3. Regular Link: this shows up when we find a regullar link.
             --                  Angle, plain, and radio links do not match.
@@ -263,13 +191,9 @@ function M.test_parse(contents)
             -- For regular links, we have to parse out the link and the
             -- optional description as we only have an overall expression.
             if pattern == QUERY_TYPES.TOP_LEVEL_PROPERTY_DRAWER then
-                print("KIND: top-level-property-drawer")
-                local drawer = { range = {}, properties = {} }
-                table.insert(results.drawers, drawer)
-
+                local properties = {}
                 for id, node in pairs(match) do
                     local name = query.captures[id]
-                    local node_data = metadata[id]
 
                     -- We only expect to deal with the full contents within a property
                     -- drawer in this situation.
@@ -278,94 +202,165 @@ function M.test_parse(contents)
                     -- ... <-- everything in here we need to parse
                     -- :END:
                     if name == QUERY_CAPTURE_TYPES.TOP_LEVEL_PROPERTY_DRAWER_CONTENTS then
-                        local inner = vim.treesitter.get_node_text(node, contents)
-                        local lines = vim.split(inner, "\n", { plain = true, trimempty = true })
-                        for _, line in ipairs(lines) do
-                            -- Parse ":KEY: VALUE"
-                            local _, _, key, value = string.find(line, ":([^%c%z\\n]):%s+([^%c%z\\n])")
-                            if key and value then
-                                local property = {
+                        -- Store the starting row and offset of drawer contents
+                        -- so we can build up ranges for the lines within
+                        local start_row, _, start_offset = node:start()
 
-                                }
-                                ---@field range org-roam.parser.Range
-                                ---@field heading? org-roam.parser.Heading
-                                ---@field properties org-roam.parser.Property[]
+                        -- Get the lines within the drawer, which we will iterate through
+                        -- NOTE: We do NOT skip empty lines!
+                        local inner = vim.treesitter.get_node_text(node, contents)
+                        local lines = vim.split(inner, "\n", { plain = true })
+
+                        local row = start_row
+                        local offset = start_offset
+                        for _, line in ipairs(lines) do
+                            -- Remember that i is starting from 1 index and not 0, which our slice uses
+                            local i, _, key, space, value = string.find(line, ":([^%c%z\\n]+):(%s+)([^%c%z\\n]+)")
+                            if key and value then
+                                -- Total key len includes the colon on either side
+                                local key_len = string.len(key) + 2
+                                local key_col = i - 1
+                                local key_offset = offset + key_col
+
+                                local space_len = string.len(space)
+
+                                local value_len = string.len(value)
+                                local value_col = key_col + key_len + space_len
+                                local value_offset = offset + value_col
+
+                                -- TODO: Set the slice key to adjust for the colon on either side
+                                local property = Property:new(
+                                    Slice:new(key, Range:new({
+                                        row = row,
+                                        column = key_col,
+                                        offset = key_offset
+                                    }, {
+                                        row = row,
+                                        column = key_col + key_len,
+                                        offset = key_offset + key_len
+                                    })),
+                                    Slice:new(value, Range:new({
+                                        row = row,
+                                        column = value_col,
+                                        offset = value_offset
+                                    }, {
+                                        row = row,
+                                        column = value_col + value_len,
+                                        offset = value_offset + value_len
+                                    }))
+                                )
+                                table.insert(properties, property)
                             end
+
+                            -- Next line means next row
+                            row = row + 1
+
+                            -- Advance the offset by the line (including the newline)
+                            offset = offset + string.len(line)
                         end
                     end
                 end
+
+                table.insert(results.drawers, PropertyDrawer:new(properties))
             elseif pattern == QUERY_TYPES.SECTION_PROPERTY_DRAWER then
                 local drawer = { range = {}, properties = {} }
-                print("KIND: section-property-drawer")
+
+                ---@type {[1]:string, [2]:org-roam.parser.Range, [3]:string, [4]:org-roam.parser.Range}[]
+                local properties = {}
+
+                local heading_range
+                local heading_stars
+                for id, node in pairs(match) do
+                    local name = query.captures[id]
+
+                    if name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_HEADLINE then
+                        heading_range = Range:from_node(node)
+                    elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_HEADLINE_STARS then
+                        local stars = vim.treesitter.get_node_text(node, contents)
+                        if type(stars) == "string" then
+                            heading_stars = string.len(stars)
+                        end
+                    elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_PROPERTY_KEY then
+                        local range = Range:from_node(node)
+                        local key = vim.treesitter.get_node_text(node, contents)
+                        table.insert(properties, { key, range })
+                    elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_PROPERTY_VALUE then
+                        local range = Range:from_node(node)
+                        local value = vim.treesitter.get_node_text(node, contents)
+                        table.insert(properties[#properties], value)
+                        table.insert(properties[#properties], range)
+                    end
+                end
+
+                for _, tuple in ipairs(properties) do
+                    table.insert(drawer.properties, Property:new(
+                        Slice:new(tuple[1], tuple[2]),
+                        Slice:new(tuple[3], tuple[4])
+                    ))
+                end
+
+                ---@type org-roam.parser.Heading|nil
+                local heading
+                if heading_range and heading_stars then
+                    heading = Heading:new(heading_range, heading_stars)
+                end
+
+                table.insert(results.drawers, PropertyDrawer:new(properties, heading))
             elseif pattern == QUERY_TYPES.REGULAR_LINK then
-                print("KIND: regular-link")
+                ---@type org-roam.parser.Position
+                local start = { row = 0, column = 0, offset = math.huge }
+                ---@type org-roam.parser.Position
+                local end_ = { row = 0, column = 0, offset = -1 }
+
+                -- Find start and end of match
+                for _, node in pairs(match) do
+                    local start_row, start_col, offset_start = node:start()
+                    local end_row, end_col, offset_end = node:end_()
+
+                    local cur_start_offset = start.offset
+                    local cur_end_offset = end_.offset
+
+                    start.offset = math.min(start.offset, offset_start)
+                    end_.offset = math.max(end_.offset, offset_end)
+
+                    -- Start changed, so adjust row/col
+                    if start.offset ~= cur_start_offset then
+                        start.row = start_row
+                        start.column = start_col
+                    end
+
+                    -- End changed, so adjust row/col
+                    if end_.offset ~= cur_end_offset then
+                        end_.row = end_row
+                        end_.column = end_col
+                    end
+                end
+
+                -- Create range from match scan
+                local range = Range:new(start, end_)
+
+                -- Get the raw link from the contents
+                local raw_link = vim.trim(string.sub(contents, range.start.offset + 1, range.end_.offset + 1))
+
+                -- Because Lua does not support modifiers on group patterns, we test for path & description
+                -- first and then try just path second
+                local _, _, path, description = string.find(raw_link, "^%[%[([^%c%z]*)%]%[([^%c%z]*)%]%]$")
+                if path and description then
+                    -- TODO: Calculate the range to provide to the link
+                    local link = Link:new("regular", range, path, description)
+                    table.insert(results.links, link)
+                else
+                    local _, _, path = string.find(raw_link, "^%[%[([^%c%z]*)%]%]$")
+                    if path then
+                        -- TODO: Calculate the range to provide to the link
+                        local link = Link:new("regular", range, path)
+                        table.insert(results.links, link)
+                    end
+                end
             end
         end
     end
     return results
-end
-
----Parses a file into zero or more org roam nodes.
----@param path string
----@return org-roam.Node[]
-function M.parse(path)
-    local trees = M.__load_org_file_as_treesitter_trees(path)
-    return M.__treesitter_trees_into_nodes(trees)
-end
-
----Parses a string into zero or more org roam nodes.
----@param contents string
----@return org-roam.Node[]
-function M.parse_string(contents)
-    local trees = M.__load_org_string_as_treesitter_trees(contents)
-    return M.__treesitter_trees_into_nodes(trees)
-end
-
----@private
----@param trees TSTree[]
----@return org-roam.Node[]
-function M.__treesitter_trees_into_nodes(trees)
-    local nodes = {}
-    for _, tree in ipairs(trees) do
-        for _, node in ipairs(M.__treesitter_root_into_org_nodes(tree:root())) do
-            table.insert(nodes, node)
-        end
-    end
-    return nodes
-end
-
----@private
----@param root TSNode
----@return org-roam.Node[]
-function M.__treesitter_root_into_org_nodes(root)
-    local nodes = {}
-    for _, tree in ipairs(trees) do
-        error("TREE[" .. i .. "]" .. vim.inspect(tree:root():sexpr()))
-    end
-    return nodes
-end
-
----@private
----@param path string
----@return {trees: TSTree[], contents: string}
-function M.__load_org_file_as_treesitter_trees(path)
-    -- Load file, read contents, and parse into TSTree[]; file closed on drop
-    local file = assert(io.open(path, "r"), "Failed to open " .. path)
-
-    ---@type string
-    local contents = assert(file:read("*a"), "Failed to read org file @ " .. path)
-
-    return M.__load_org_string_as_treesitter_trees(contents)
-end
-
----@private
----@param contents string
----@return {trees: TSTree[], contents: string}
-function M.__load_org_string_as_treesitter_trees(contents)
-    return {
-        trees = vim.treesitter.get_string_parser(contents, "org"):parse(),
-        contents = contents,
-    }
 end
 
 return M
