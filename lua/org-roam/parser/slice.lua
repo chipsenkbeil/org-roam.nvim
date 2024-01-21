@@ -15,14 +15,18 @@ local M = {}
 M.__index = M
 
 ---Creates a new slice for the given text using the provided range as the subset.
----@param text org-roam.parser.Ref<string>
+---@param text org-roam.parser.Ref<string> #full text comprising the slice
 ---@param range org-roam.parser.Range
+---@param opts? {cache?:string}
 ---@return org-roam.parser.Slice
-function M:new(text, range)
+function M:new(text, range, opts)
+    opts = opts or {}
+
     local instance = {}
     setmetatable(instance, M)
 
     instance.__full = text
+    instance.__cache = opts.cache
     instance.__range = range
 
     return instance
