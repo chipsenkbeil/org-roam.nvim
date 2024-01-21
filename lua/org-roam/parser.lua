@@ -9,6 +9,7 @@ local Link                = require("org-roam.parser.link")
 local PropertyDrawer      = require("org-roam.parser.property-drawer")
 local Property            = require("org-roam.parser.property")
 local Range               = require("org-roam.parser.range")
+local Ref                 = require("org-roam.parser.ref")
 local Slice               = require("org-roam.parser.slice")
 
 ---@enum org-roam.parser.QueryTypes
@@ -108,7 +109,8 @@ end
 function M.parse(contents)
     M.init()
 
-    local trees = vim.treesitter.get_string_parser(contents, "org"):parse()
+    local ref = Ref:new(contents)
+    local trees = vim.treesitter.get_string_parser(ref.value, "org"):parse()
 
     -- Build a query to find top-level drawers (with  name PROPERTIES)
     -- property drawers underneath headings, and expressions that are links
@@ -162,7 +164,7 @@ function M.parse(contents)
     ---@type org-roam.parser.Results
     local results = { drawers = {}, links = {} }
     for _, tree in ipairs(trees) do
-        for pattern, match, _ in query:iter_matches(tree:root(), contents) do
+        for pattern, match, _ in query:iter_matches(tree:root(), ref.value) do
             -- Currently, we handle three different patterns:
             --
             -- 1. Top Level Property Drawer: this shows up when we find a
@@ -200,7 +202,7 @@ function M.parse(contents)
 
                         -- Get the lines within the drawer, which we will iterate through
                         -- NOTE: We do NOT skip empty lines!
-                        local inner = vim.treesitter.get_node_text(node, contents)
+                        local inner = vim.treesitter.get_node_text(node, ref.value)
                         local lines = vim.split(inner, "\n", { plain = true })
 
                         local row = start_row
@@ -222,7 +224,7 @@ function M.parse(contents)
 
                                 -- TODO: Set the slice key to adjust for the colon on either side
                                 local property = Property:new(
-                                    Slice:new(key, Range:new({
+                                    Slice:new(ref, Range:new({
                                         row = row,
                                         column = key_col,
                                         offset = key_offset
@@ -231,7 +233,7 @@ function M.parse(contents)
                                         column = key_col + key_len,
                                         offset = key_offset + key_len
                                     })),
-                                    Slice:new(value, Range:new({
+                                    Slice:new(ref, Range:new({
                                         row = row,
                                         column = value_col,
                                         offset = value_offset
@@ -257,7 +259,7 @@ function M.parse(contents)
             elseif pattern == QUERY_TYPES.SECTION_PROPERTY_DRAWER then
                 local drawer = { range = {}, properties = {} }
 
-                ---@type {[1]:string, [2]:org-roam.parser.Range, [3]:string, [4]:org-roam.parser.Range}[]
+                ---@type {[1]:org-roam.parser.Range, [2]:org-roam.parser.Range}[]
                 local properties = {}
 
                 local heading_range
@@ -268,26 +270,23 @@ function M.parse(contents)
                     if name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_HEADLINE then
                         heading_range = Range:from_node(node)
                     elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_HEADLINE_STARS then
-                        local stars = vim.treesitter.get_node_text(node, contents)
+                        local stars = vim.treesitter.get_node_text(node, ref.value)
                         if type(stars) == "string" then
                             heading_stars = string.len(stars)
                         end
                     elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_PROPERTY_KEY then
                         local range = Range:from_node(node)
-                        local key = vim.treesitter.get_node_text(node, contents)
-                        table.insert(properties, { key, range })
+                        table.insert(properties, { range })
                     elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_PROPERTY_VALUE then
                         local range = Range:from_node(node)
-                        local value = vim.treesitter.get_node_text(node, contents)
-                        table.insert(properties[#properties], value)
                         table.insert(properties[#properties], range)
                     end
                 end
 
                 for _, tuple in ipairs(properties) do
                     table.insert(drawer.properties, Property:new(
-                        Slice:new(tuple[1], tuple[2]),
-                        Slice:new(tuple[3], tuple[4])
+                        Slice:new(ref, tuple[1]),
+                        Slice:new(ref, tuple[2])
                     ))
                 end
 
@@ -332,7 +331,7 @@ function M.parse(contents)
                 local range = Range:new(start, end_)
 
                 -- Get the raw link from the contents
-                local raw_link = vim.trim(string.sub(contents, range.start.offset + 1, range.end_.offset + 1))
+                local raw_link = vim.trim(string.sub(ref.value, range.start.offset + 1, range.end_.offset + 1))
 
                 -- Because Lua does not support modifiers on group patterns, we test for path & description
                 -- first and then try just path second
