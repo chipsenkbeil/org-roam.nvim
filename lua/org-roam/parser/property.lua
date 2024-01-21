@@ -5,8 +5,8 @@
 -------------------------------------------------------------------------------
 
 ---@class org-roam.parser.Property
----@field key org-roam.parser.Slice
----@field value org-roam.parser.Slice
+---@field key org-roam.parser.Slice #slice representing inside of a :KEY:
+---@field value org-roam.parser.Slice #slice representing value tied to key
 local M = {}
 M.__index = M
 

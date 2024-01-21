@@ -10,8 +10,8 @@
 ---@field offset integer #zero-based byte position
 
 ---@class org-roam.parser.Range
----@field start org-roam.parser.Position
----@field end_ org-roam.parser.Position
+---@field start org-roam.parser.Position #inclusive beginning to range
+---@field end_ org-roam.parser.Position #inclusive end to range
 local M = {}
 M.__index = M
 

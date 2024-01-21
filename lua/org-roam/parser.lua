@@ -11,14 +11,6 @@ local Property            = require("org-roam.parser.property")
 local Range               = require("org-roam.parser.range")
 local Slice               = require("org-roam.parser.slice")
 
--- THINGS WE NEED:
---
--- 1. Logic to parse org file into Treesitter trees
--- 2. Logic to scan Treesitter trees to find property drawers and return their
---    level, link to their heading, and support modification of their keys/values
--- 3. Take property drawer objects and transform them into nodes
--- 4. Insert nodes into database, or update existing nodes in database
-
 ---@enum org-roam.parser.QueryTypes
 local QUERY_TYPES         = {
     TOP_LEVEL_PROPERTY_DRAWER = 1,
@@ -28,13 +20,13 @@ local QUERY_TYPES         = {
 
 ---@enum org-roam.parser.QueryCaptureTypes
 local QUERY_CAPTURE_TYPES = {
-    TOP_LEVEL_PROPERTY_DRAWER_NAME = "top-level-drawer-name",
-    TOP_LEVEL_PROPERTY_DRAWER_CONTENTS = "top-level-drawer-contents",
-    SECTION_PROPERTY_DRAWER_HEADLINE = "property-drawer-headline",
+    TOP_LEVEL_PROPERTY_DRAWER_NAME         = "top-level-drawer-name",
+    TOP_LEVEL_PROPERTY_DRAWER_CONTENTS     = "top-level-drawer-contents",
+    SECTION_PROPERTY_DRAWER_HEADLINE       = "property-drawer-headline",
     SECTION_PROPERTY_DRAWER_HEADLINE_STARS = "property-drawer-headline-stars",
-    SECTION_PROPERTY_DRAWER_PROPERTY_KEY = "property-name",
+    SECTION_PROPERTY_DRAWER_PROPERTY_KEY   = "property-name",
     SECTION_PROPERTY_DRAWER_PROPERTY_VALUE = "property-value",
-    REGULAR_LINK = "regular-link",
+    REGULAR_LINK                           = "regular-link",
 }
 
 ---@class org-roam.parser.Results
@@ -113,7 +105,7 @@ end
 
 ---@param contents string
 ---@return org-roam.parser.Results
-function M.test_parse(contents)
+function M.parse(contents)
     M.init()
 
     local trees = vim.treesitter.get_string_parser(contents, "org"):parse()
@@ -346,13 +338,11 @@ function M.test_parse(contents)
                 -- first and then try just path second
                 local _, _, path, description = string.find(raw_link, "^%[%[([^%c%z]*)%]%[([^%c%z]*)%]%]$")
                 if path and description then
-                    -- TODO: Calculate the range to provide to the link
                     local link = Link:new("regular", range, path, description)
                     table.insert(results.links, link)
                 else
                     local _, _, path = string.find(raw_link, "^%[%[([^%c%z]*)%]%]$")
                     if path then
-                        -- TODO: Calculate the range to provide to the link
                         local link = Link:new("regular", range, path)
                         table.insert(results.links, link)
                     end
