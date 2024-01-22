@@ -66,19 +66,29 @@ function M:from_ref(ref)
         line_cnt = line_cnt + 1
     end
 
-
     local range = Range:new({
         row = 0,
         column = 0,
-        offset = 0,
+        -- NOTE: We have to handle empty string as a special case
+        --       where the offset is -1 to match how vim reports
+        --       the byte offset of an empty file, otherwise the
+        --       starting offset is 0 to indicate the beginning.
+        offset = text_len > 0 and 0 or -1,
     }, {
         -- Final row (line) in text, zero-indexed
         row = line_cnt - 1,
         -- Final column in last line of text, zero-indexed
-        column = newline_offset and (text_len - newline_offset - 1) or (text_len - 1),
+        column = newline_offset and (text_len - newline_offset - 2) or (text_len - 1),
         -- Final byte offset of text, zero-indexed
         offset = text_len - 1,
     })
+
+    -- NOTE: If column ends up being negative, this means that our text
+    --       ended with a newline, so we reset to a column of 0 to match
+    --       how the vim cursor would appear (minus the 1-based indexing).
+    if range.end_.column < 0 then
+        range.end_.column = 0
+    end
 
     return M:new(ref, range)
 end
