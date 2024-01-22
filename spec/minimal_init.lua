@@ -1,5 +1,13 @@
 local cwd = vim.fn.getcwd()
 
+-- NOTE: Hack because cwd seems to be within the lua
+--       directory, and this results in us cloning
+--       the repositories into the lua directory
+--       instead of the vendor directory.
+if vim.endswith(cwd, "lua") or vim.endswith(cwd, "lua/") or vim.endswith(cwd, "lua\\") then
+    cwd = vim.fs.dirname(cwd)
+end
+
 ---@class Plugin
 ---@field name string
 ---@field path string
