@@ -28,7 +28,7 @@ local QUERY_CAPTURE_TYPES = {
     SECTION_PROPERTY_DRAWER_HEADLINE_STARS = "property-drawer-headline-stars",
     SECTION_PROPERTY_DRAWER                = "property-drawer",
     SECTION_PROPERTY_DRAWER_PROPERTY       = "property",
-    SECTION_PROPERTY_DRAWER_PROPERTY_KEY   = "property-name",
+    SECTION_PROPERTY_DRAWER_PROPERTY_NAME  = "property-name",
     SECTION_PROPERTY_DRAWER_PROPERTY_VALUE = "property-value",
     REGULAR_LINK                           = "regular-link",
 }
@@ -107,6 +107,81 @@ function M.init()
     M.__is_initialized = true
 end
 
+---@private
+---@param properties org-roam.parser.Property[] #where to place new properties
+---@param ref org-roam.parser.Ref<string> #reference to overall contents
+---@param lines string[] #lines to parse
+---@param start_row integer
+---@param start_offset integer
+local function parse_lines_as_properties(properties, ref, lines, start_row, start_offset)
+    local row = start_row
+    local offset = start_offset
+
+    for _, line in ipairs(lines) do
+        local i, _, name, space, value = string.find(line, ":([^%c%z]+):(%s+)([^%c%z]+)$")
+        if name and value then
+            -- Record where the property starts (could have whitespace in front of it)
+            local property_offset = offset + i - 1
+
+            -- We parsed a name and value, so now we need to build up the ranges for the
+            -- entire property, which looks like this:
+            --
+            --     range
+            -- |          |
+            -- :NAME: VALUE
+            --  |  |  |   |
+            --  range range
+            --
+            --  To do this, we need to build up the position from an initial offset
+            --  representing the beginning of the line, the length of the name, and
+            --  the length of the value.
+            local property_range = Range:new({
+                row = row,
+                column = property_offset - offset,
+                offset = property_offset,
+            }, {
+                row = row,
+                column = (property_offset - offset) + string.len(line),
+                offset = offset + string.len(line),
+            })
+
+            -- Name range is within the colons
+            local name_range = Range:new({
+                row = property_range.start.row,
+                column = property_range.start.column + 1,
+                offset = property_range.start.offset + 1,
+            }, {
+                row = property_range.end_.row,
+                column = property_range.start.column + string.len(name),
+                offset = property_range.start.offset + string.len(name),
+            })
+
+            local value_range = Range:new({
+                row = property_range.start.row,
+                column = (name_range.end_.column + 1) + string.len(space) + 1,
+                offset = (name_range.end_.offset + 1) + string.len(space) + 1,
+            }, {
+                row = property_range.end_.row,
+                column = (name_range.end_.column + 1) + string.len(space) + string.len(value),
+                offset = (name_range.end_.offset + 1) + string.len(space) + string.len(value),
+            })
+
+            local property = Property:new({
+                range = property_range,
+                name = Slice:new(ref, name_range, { cache = name }),
+                value = Slice:new(ref, value_range, { cache = value }),
+            })
+            table.insert(properties, property)
+        end
+
+        -- Next line means next row
+        row = row + 1
+
+        -- Advance the offset by the line (including the newline)
+        offset = offset + string.len(line) + 1
+    end
+end
+
 ---@param contents string
 ---@return org-roam.parser.Results
 function M.parse(contents)
@@ -131,10 +206,7 @@ function M.parse(contents)
         (section
             (headline
                 stars: (stars) @property-drawer-headline-stars) @property-drawer-headline
-            (property_drawer
-                (property
-                    name: (expr) @property-name
-                    value: (value) @property-value) @property) @property-drawer
+            (property_drawer) @property-drawer
         )
         [
             (paragraph
@@ -211,62 +283,7 @@ function M.parse(contents)
                         -- NOTE: We do NOT skip empty lines!
                         local inner = vim.treesitter.get_node_text(node, ref.value)
                         local lines = vim.split(inner, "\n", { plain = true })
-
-                        local row = start_row
-                        local offset = start_offset
-                        for _, line in ipairs(lines) do
-                            -- Remember that i is starting from 1 index and not 0, which our slice uses
-                            local i, _, key, space, value = string.find(line, ":([^%c%z\\n]+):(%s+)([^%c%z\\n]+)")
-                            if key and value then
-                                -- Total key len includes the colon on either side
-                                local key_len = string.len(key) + 2
-                                local key_col = i - 1
-                                local key_offset = offset + key_col
-
-                                local space_len = string.len(space)
-
-                                local value_len = string.len(value)
-                                local value_col = key_col + key_len + space_len
-                                local value_offset = offset + value_col
-
-                                local property = Property:new({
-                                    range = Range:new({
-                                        row = row,
-                                        column = key_col,
-                                        offset = key_offset,
-                                    }, {
-                                        row = row,
-                                        column = value_col + value_len,
-                                        offset = value_offset + value_len
-                                    }),
-                                    name = Slice:new(ref, Range:new({
-                                        row = row,
-                                        column = key_col,
-                                        offset = key_offset
-                                    }, {
-                                        row = row,
-                                        column = key_col + key_len,
-                                        offset = key_offset + key_len
-                                    }), { cache = key }),
-                                    value = Slice:new(ref, Range:new({
-                                        row = row,
-                                        column = value_col,
-                                        offset = value_offset
-                                    }, {
-                                        row = row,
-                                        column = value_col + value_len,
-                                        offset = value_offset + value_len
-                                    }), { cache = value }),
-                                })
-                                table.insert(properties, property)
-                            end
-
-                            -- Next line means next row
-                            row = row + 1
-
-                            -- Advance the offset by the line (including the newline)
-                            offset = offset + string.len(line)
-                        end
+                        parse_lines_as_properties(properties, ref, lines, start_row, start_offset)
                     end
                 end
 
@@ -278,9 +295,13 @@ function M.parse(contents)
                 local range
                 ---@type org-roam.parser.Property[]
                 local properties = {}
-                local parts = {}
                 local heading_range
                 local heading_stars
+
+                -- TODO: Due to https://github.com/neovim/neovim/issues/17060, we cannot use iter_matches
+                --       with a quantification using + in our query as the multiple node matches do not
+                --       show up. Instead, we have to do a hack where we read the contents between the
+                --       property drawer and parse them the same way as our top-level parser.
                 for id, node in pairs(match) do
                     local name = query.captures[id]
 
@@ -293,26 +314,26 @@ function M.parse(contents)
                         end
                     elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER then
                         range = Range:from_node(node)
-                    elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_PROPERTY then
-                        parts.range = Range:from_node(node)
-                    elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_PROPERTY_KEY then
-                        local range = Range:from_node(node)
-                        local key = vim.treesitter.get_node_text(node, ref.value)
-                        parts.name = { range = range, cache = key }
-                    elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_PROPERTY_VALUE then
-                        local range = Range:from_node(node)
-                        local value = vim.treesitter.get_node_text(node, ref.value)
-                        parts.value = { range = range, cache = value }
-                    end
 
-                    -- If we have everything for another property, store it and reset
-                    if parts.range and parts.key and parts.value then
-                        table.insert(properties, Property:new({
-                            range = parts.range,
-                            name = Slice:new(ref, parts.name.range, { cache = parts.key.cache }),
-                            value = Slice:new(ref, parts.value.range, { cache = parts.value.cache }),
-                        }))
-                        parts = {}
+                        -- Get the lines between the property drawer for us to manually parse
+                        -- due to https://github.com/neovim/neovim/issues/17060 preventing us
+                        -- from capturing multiple properties using quantification operators.
+                        local all_lines = vim.split(vim.treesitter.get_node_text(node, ref.value), "\n", { plain = true })
+
+                        -- Start row for properties is one line after :PROPERTIES:
+                        local start_row = range.start.row + 1
+
+                        -- Start offset for properties is one line after :PROPERTIES:\n
+                        local start_offset = range.start.offset + string.len(all_lines[1]) + 1
+
+                        local lines = {}
+                        for i, line in ipairs(all_lines) do
+                            if i > 1 and i < #all_lines then
+                                table.insert(lines, line)
+                            end
+                        end
+
+                        parse_lines_as_properties(properties, ref, lines, start_row, start_offset)
                     end
                 end
 
