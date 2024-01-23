@@ -93,9 +93,39 @@ function M.init()
         -- For now, we trim the space so one of these will work...
         local text = vim.trim(string.sub(source, offset_start + 1, offset_end + 1))
 
-        local is_valid_start = vim.startswith(text, "[[")
-        local is_valid_end = vim.endswith(text, "]]")
-        return is_valid_start and is_valid_end
+        -- <<< EXCERPT FROM EMACS ORGMODE MANUAL >>>
+        --
+        -- Some '\', '[' and ']' characters in the LINK part need to be
+        -- "escaped", i.e., preceded by another '\' character.  More specifically,
+        -- the following characters, and only them, must be escaped:
+        --
+        -- 1. all '[' and ']' characters,
+        -- 2. every '\' character preceding either ']' or '[',
+        -- 3. every '\' character at the end of the link.
+        --
+        -- Examples:
+        --
+        -- [[link\\]] is valid whereas [[link\]] is not.
+        -- [[link\[]] and [[link\]]] are both valid.
+        -- [[l\i\n\k]] is valid.
+        -- [[l\\i\\n\\k]] is valid.
+        --
+        -- Any combination can be in the description.
+        local _, _, path, description = string.find(text, "^%[%[(.*)%]%[(..*)%]%]$")
+        if not path then
+            _, _, path = string.find(text, "^%[%[(.*)%]%]$")
+        end
+
+        -- If we don't find a link's path in either search above, it is not a link
+        if not path then
+            return false
+        end
+
+        -- Remove cases of \\ and \[ and \] so we can test
+        path = string.gsub(path, "\\[\\%[%]]", "")
+
+        -- Otherwise, we check if there are any invalid \ or dangling [ ] in the path
+        return not string.find(path, "[\\%[%]]")
     end
 
     -- Build out custom predicates so we can further validate our links
@@ -363,6 +393,10 @@ function M.parse(contents)
                     local start_row, start_col, offset_start = node:start()
                     local end_row, end_col, offset_end = node:end_()
 
+                    -- NOTE: End column & offset are exclusive, but we want inclusive, so adjust accordingly
+                    end_col = end_col - 1
+                    offset_end = offset_end - 1
+
                     local cur_start_offset = start.offset
                     local cur_end_offset = end_.offset
 
@@ -386,7 +420,7 @@ function M.parse(contents)
                 local range = Range:new(start, end_)
 
                 -- Get the raw link from the contents
-                local raw_link = vim.trim(string.sub(ref.value, range.start.offset + 1, range.end_.offset + 1))
+                local raw_link = string.sub(ref.value, range.start.offset + 1, range.end_.offset + 1)
 
                 -- Because Lua does not support modifiers on group patterns, we test for path & description
                 -- first and then try just path second
