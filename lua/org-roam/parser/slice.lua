@@ -33,6 +33,7 @@ function M:new(text, range, opts)
 end
 
 ---Creates a new slice for the given range using the same contents.
+---@param range org-roam.parser.Range
 ---@return org-roam.parser.Slice
 function M:slice(range)
     return M:new(self.__full, range)
