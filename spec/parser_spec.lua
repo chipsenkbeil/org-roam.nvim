@@ -46,9 +46,9 @@ describe("Parser", function()
     assert.equals(40, output.drawers[1].properties[1].range.start.offset)
     assert.equals(2, output.drawers[1].properties[1].range.end_.row)
     assert.equals(8, output.drawers[1].properties[1].range.end_.column)
-    assert.equals(47, output.drawers[1].properties[1].range.end_.offset)
+    assert.equals(48, output.drawers[1].properties[1].range.end_.offset)
 
-    -- Check the position of the first key (all should be zero-based)
+    -- Check the position of the first name (all should be zero-based)
     assert.equals("ID", output.drawers[1].properties[1].name:text())
     assert.equals("ID", output.drawers[1].properties[1].name:text({ refresh = true }))
     assert.equals(2, output.drawers[1].properties[1].name:start_row())
@@ -68,7 +68,15 @@ describe("Parser", function()
     assert.equals(8, output.drawers[1].properties[1].value:end_column())
     assert.equals(48, output.drawers[1].properties[1].value:end_byte_offset())
 
-    -- Check the position of the second key (all should be zero-based)
+    -- Check position of second property
+    assert.equals(3, output.drawers[1].properties[2].range.start.row)
+    assert.equals(0, output.drawers[1].properties[2].range.start.column)
+    assert.equals(50, output.drawers[1].properties[2].range.start.offset)
+    assert.equals(3, output.drawers[1].properties[2].range.end_.row)
+    assert.equals(12, output.drawers[1].properties[2].range.end_.column)
+    assert.equals(62, output.drawers[1].properties[2].range.end_.offset)
+
+    -- Check the position of the second name (all should be zero-based)
     assert.equals("OTHER", output.drawers[1].properties[2].name:text())
     assert.equals("OTHER", output.drawers[1].properties[2].name:text({ refresh = true }))
     assert.equals(3, output.drawers[1].properties[2].name:start_row())
@@ -92,7 +100,15 @@ describe("Parser", function()
     -- HEADLINE PROPERTY DRAWER --
     ------------------------------
 
-    -- Check the position of the first key (all should be zero-based)
+    -- Check position of first property
+    assert.equals(12, output.drawers[2].properties[1].range.start.row)
+    assert.equals(2, output.drawers[2].properties[1].range.start.column)
+    assert.equals(143, output.drawers[2].properties[1].range.start.offset)
+    assert.equals(12, output.drawers[2].properties[1].range.end_.row)
+    assert.equals(10, output.drawers[2].properties[1].range.end_.column)
+    assert.equals(151, output.drawers[2].properties[1].range.end_.offset)
+
+    -- Check the position of the first name (all should be zero-based)
     assert.equals("ID", output.drawers[2].properties[1].name:text())
     assert.equals("ID", output.drawers[2].properties[1].name:text({ refresh = true }))
     assert.equals(12, output.drawers[2].properties[1].name:start_row())
@@ -112,7 +128,15 @@ describe("Parser", function()
     assert.equals(10, output.drawers[2].properties[1].value:end_column())
     assert.equals(151, output.drawers[2].properties[1].value:end_byte_offset())
 
-    -- Check the position of the second key (all should be zero-based)
+    -- Check position of second property
+    assert.equals(13, output.drawers[2].properties[2].range.start.row)
+    assert.equals(2, output.drawers[2].properties[2].range.start.column)
+    assert.equals(155, output.drawers[2].properties[2].range.start.offset)
+    assert.equals(13, output.drawers[2].properties[2].range.end_.row)
+    assert.equals(14, output.drawers[2].properties[2].range.end_.column)
+    assert.equals(167, output.drawers[2].properties[2].range.end_.offset)
+
+    -- Check the position of the second name (all should be zero-based)
     assert.equals("OTHER", output.drawers[2].properties[2].name:text())
     assert.equals("OTHER", output.drawers[2].properties[2].name:text({ refresh = true }))
     assert.equals(13, output.drawers[2].properties[2].name:start_row())
