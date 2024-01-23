@@ -122,6 +122,8 @@ local function parse_lines_as_properties(properties, ref, lines, start_row, star
         if name and value then
             -- Record where the property starts (could have whitespace in front of it)
             local property_offset = offset + i - 1
+            local property_column_offset = property_offset - offset
+            local property_len = string.len(name) + string.len(space) + string.len(value) + 2
 
             -- We parsed a name and value, so now we need to build up the ranges for the
             -- entire property, which looks like this:
@@ -137,12 +139,14 @@ local function parse_lines_as_properties(properties, ref, lines, start_row, star
             --  the length of the value.
             local property_range = Range:new({
                 row = row,
-                column = property_offset - offset,
+                column = property_column_offset,
                 offset = property_offset,
             }, {
                 row = row,
-                column = (property_offset - offset) + string.len(line),
-                offset = offset + string.len(line),
+                -- NOTE: Subtracting 1 to remove newline from consideration and
+                --       not stretch beyond the total text of the line itself.
+                column = property_column_offset + property_len - 1,
+                offset = property_offset + property_len - 1,
             })
 
             -- Name range is within the colons
