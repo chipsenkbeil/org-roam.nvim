@@ -24,6 +24,7 @@ local TEST_ORG_CONTENTS = vim.trim([=[
   [[id:1234][Link to file node]] is here.
   [[id:5678][Link to heading node]] is here.
   [[https://example.com]] is a link without a description.
+  This is a [[link]] embedded within, and [[link2]] also.
 ]=])
 
 describe("Parser", function()
@@ -160,9 +161,62 @@ describe("Parser", function()
     -- REGULAR LINKS --
     -------------------
 
-    -- TODO: Lines 22 - 24 for links
-    -- 291 for first link
-    -- 333 for second link
-    -- 378 for third link
+    -- Check our links
+    assert.equals(5, #output.links)
+
+    -- Check information about the first link
+    assert.equals("regular", output.links[1].kind)
+    assert.equals("id:1234", output.links[1].path)
+    assert.equals("Link to file node", output.links[1].description)
+    assert.equals(22, output.links[1].range.start.row)
+    assert.equals(2, output.links[1].range.start.column)
+    assert.equals(291, output.links[1].range.start.offset)
+    assert.equals(22, output.links[1].range.end_.row)
+    assert.equals(31, output.links[1].range.end_.column)
+    assert.equals(320, output.links[1].range.end_.offset)
+
+    -- Check information about the second link
+    assert.equals("regular", output.links[2].kind)
+    assert.equals("id:5678", output.links[2].path)
+    assert.equals("Link to heading node", output.links[2].description)
+    assert.equals(23, output.links[2].range.start.row)
+    assert.equals(2, output.links[2].range.start.column)
+    assert.equals(333, output.links[2].range.start.offset)
+    assert.equals(23, output.links[2].range.end_.row)
+    assert.equals(34, output.links[2].range.end_.column)
+    assert.equals(365, output.links[2].range.end_.offset)
+
+    -- Check information about the third link
+    assert.equals("regular", output.links[3].kind)
+    assert.equals("https://example.com", output.links[3].path)
+    assert.is_nil(output.links[3].description)
+    assert.equals(24, output.links[3].range.start.row)
+    assert.equals(2, output.links[3].range.start.column)
+    assert.equals(378, output.links[3].range.start.offset)
+    assert.equals(24, output.links[3].range.end_.row)
+    assert.equals(24, output.links[3].range.end_.column)
+    assert.equals(400, output.links[3].range.end_.offset)
+
+    -- Check information about the fourth link
+    assert.equals("regular", output.links[4].kind)
+    assert.equals("link", output.links[4].path)
+    assert.is_nil(output.links[4].description)
+    assert.equals(25, output.links[4].range.start.row)
+    assert.equals(12, output.links[4].range.start.column)
+    assert.equals(447, output.links[4].range.start.offset)
+    assert.equals(25, output.links[4].range.end_.row)
+    assert.equals(19, output.links[4].range.end_.column)
+    assert.equals(454, output.links[4].range.end_.offset)
+
+    -- Check information about the fifth link
+    assert.equals("regular", output.links[5].kind)
+    assert.equals("link2", output.links[5].path)
+    assert.is_nil(output.links[5].description)
+    assert.equals(25, output.links[5].range.start.row)
+    assert.equals(42, output.links[5].range.start.column)
+    assert.equals(477, output.links[5].range.start.offset)
+    assert.equals(25, output.links[5].range.end_.row)
+    assert.equals(50, output.links[5].range.end_.column)
+    assert.equals(485, output.links[5].range.end_.offset)
   end)
 end)
