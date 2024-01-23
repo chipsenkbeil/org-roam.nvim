@@ -1,6 +1,59 @@
 describe("org-roam.parser.Slice", function()
     local Slice = require("org-roam.parser.slice")
+    local Range = require("org-roam.parser.range")
     local Ref = require("org-roam.parser.ref")
+
+    describe("text", function()
+        it("should return the text within the slice that matches the range", function()
+            local s = Slice:new(
+                Ref:new("abc"),
+                Range:new({
+                    row = 0,
+                    column = 0,
+                    offset = 0,
+                }, {
+                    row = 0,
+                    column = 1,
+                    offset = 1,
+                })
+            )
+            assert.equals("ab", s:text())
+        end)
+
+        it("should refresh the cached value if refresh = true", function()
+            local s = Slice:new(
+                Ref:new("abc"),
+                Range:new({
+                    row = 0,
+                    column = 0,
+                    offset = 0,
+                }, {
+                    row = 0,
+                    column = 2,
+                    offset = 2,
+                }),
+                { cache = "hello" }
+            )
+            assert.equals("abc", s:text({ refresh = true }))
+        end)
+
+        it("should use the cached value if it exists", function()
+            local s = Slice:new(
+                Ref:new("abc"),
+                Range:new({
+                    row = 0,
+                    column = 0,
+                    offset = 0,
+                }, {
+                    row = 0,
+                    column = 2,
+                    offset = 2,
+                }),
+                { cache = "hello" }
+            )
+            assert.equals("hello", s:text())
+        end)
+    end)
 
     describe("from_string", function()
         it("should calculate range for string", function()
