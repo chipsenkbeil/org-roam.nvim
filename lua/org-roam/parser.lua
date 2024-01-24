@@ -12,6 +12,8 @@ local Range               = require("org-roam.parser.range")
 local Ref                 = require("org-roam.parser.ref")
 local Slice               = require("org-roam.parser.slice")
 
+local utils               = require("org-roam.utils")
+
 ---@enum org-roam.parser.QueryTypes
 local QUERY_TYPES         = {
     TOP_LEVEL_PROPERTY_DRAWER = 1,
@@ -33,7 +35,7 @@ local QUERY_CAPTURE_TYPES = {
     REGULAR_LINK                           = "regular-link",
 }
 
----@class org-roam.parser.Results
+---@class org-roam.parser.File
 ---@field drawers org-roam.parser.PropertyDrawer[]
 ---@field links org-roam.parser.Link[]
 
@@ -217,7 +219,7 @@ local function parse_lines_as_properties(properties, ref, lines, start_row, star
 end
 
 ---@param contents string
----@return org-roam.parser.Results
+---@return org-roam.parser.File
 function M.parse(contents)
     M.init()
 
@@ -270,8 +272,8 @@ function M.parse(contents)
         ]
     ]=])
 
-    ---@type org-roam.parser.Results
-    local results = { drawers = {}, links = {} }
+    ---@type org-roam.parser.File
+    local file = { drawers = {}, links = {} }
     for _, tree in ipairs(trees) do
         for pattern, match, _ in query:iter_matches(tree:root(), ref.value) do
             -- Currently, we handle three different patterns:
@@ -321,7 +323,7 @@ function M.parse(contents)
                     end
                 end
 
-                table.insert(results.drawers, PropertyDrawer:new({
+                table.insert(file.drawers, PropertyDrawer:new({
                     range = assert(range, "Impossible: Failed to find range of top-level property drawer"),
                     properties = properties,
                 }))
@@ -377,7 +379,7 @@ function M.parse(contents)
                     heading = Heading:new(heading_range, heading_stars)
                 end
 
-                table.insert(results.drawers, PropertyDrawer:new({
+                table.insert(file.drawers, PropertyDrawer:new({
                     range = range,
                     properties = properties,
                     heading = heading,
@@ -432,7 +434,7 @@ function M.parse(contents)
                         path = path,
                         description = description,
                     })
-                    table.insert(results.links, link)
+                    table.insert(file.links, link)
                 else
                     local _, _, path = string.find(raw_link, "^%[%[([^%c%z]*)%]%]$")
                     if path then
@@ -441,13 +443,50 @@ function M.parse(contents)
                             range = range,
                             path = path,
                         })
-                        table.insert(results.links, link)
+                        table.insert(file.links, link)
                     end
                 end
             end
         end
     end
-    return results
+    return file
+end
+
+---Loads a file from disk asynchronously and parses its contents.
+---@param path string
+---@param cb fun(err:string|nil, file:org-roam.parser.File|nil)
+function M.parse_file(path, cb)
+    utils.async_read_file(path, function(err, contents)
+        cb(err, contents and M.parse(contents))
+    end)
+end
+
+---Loads multiple files from disk asynchronously and parses their contents.
+---@param paths string[]
+---@param cb fun(errors:table<string, string>, files:table<string, org-roam.parser.File>)
+function M.parse_files(paths, cb)
+    local errors = {}
+    local files = {}
+
+    local i = 0
+    local cnt = #paths
+    for _, path in ipairs(paths) do
+        M.parse_file(path, function(err, file)
+            if err then
+                errors[path] = err
+            end
+
+            if file then
+                files[path] = file
+            end
+
+            -- Increment completed and check if we're done
+            i = i + 1
+            if i == cnt then
+                cb(errors, files)
+            end
+        end)
+    end
 end
 
 return M
