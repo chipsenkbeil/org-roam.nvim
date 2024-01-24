@@ -61,4 +61,49 @@ function M.uuid_v4()
     return string.char(M.unpack(uuid))
 end
 
+---Read a file into memory, returning the contents asynchronously in a callback.
+---The file is closed asynchronously once the contents have been read.
+---@param path string
+---@param cb fun(err:string|nil, contents:string|nil)
+function M.async_read_file(path, cb)
+    vim.loop.fs_open(path, "r", 0, function(err, fd)
+        if err then
+            cb(err)
+            return
+        end
+
+        assert(fd, "Impossible: file descriptor missing")
+
+        vim.loop.fs_fstat(fd, function(err, stat)
+            if err then
+                cb(err)
+                return
+            end
+
+            assert(stat, "Impossible: file stat missing")
+
+            vim.loop.fs_read(fd, stat.size, 0, function(err, data)
+                if err then
+                    cb(err)
+                    return
+                end
+
+                assert(data, "Impossible: file data missing")
+
+                -- Schedule execution of callback in parallel to closing the
+                -- file, which we will do and merely report a warning if failing
+                vim.schedule(function()
+                    cb(nil, data)
+                end)
+
+                vim.loop.fs_close(fd, function(err)
+                    if err then
+                        vim.notify(err, vim.log.levels.WARN)
+                    end
+                end)
+            end)
+        end)
+    end)
+end
+
 return M
