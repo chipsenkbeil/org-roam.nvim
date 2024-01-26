@@ -18,18 +18,12 @@
 -- @thrun2005probabilistic (unique citation key)
 -- [cite:@thrun2005probabilistic] (org-cite)
 -- cite:thrun2005probabilistic (org-ref)
-
--------------------------------------------------------------------------------
--- CLASS DEFINITIONS
--------------------------------------------------------------------------------
-
----@class org-roam.Node
----@field title string the title of the org-roam note.
----@field file string the file name where the note is stored.
----@field id string the unique identifier for the note.
----@field level number the heading level of the note in the org-mode file.
----@field tags string[] a list of tags associated with the note.
----@field linked org-roam.Node[] a list of linked notes (references) within the note.
+--
+-- Note that text for aliases and refs is space-delimited, but supports
+-- double-quotes to group spaced items together.
+--
+-- :ROAM_ALIASES: "one item" "two item" three four
+-- :ROAM_REFS: @my_ref https://example.com/
 
 -------------------------------------------------------------------------------
 -- VARIABLE DEFINITIONS
