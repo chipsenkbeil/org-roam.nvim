@@ -412,4 +412,61 @@ function M:unlink(id, ...)
     return ids
 end
 
+---@class org-roam.database.Database.TraverseOpts
+---@field depth? integer the maximum depth of traversal. 0 means to stop at the root. 1 means ot stop at the immediate connections.
+---@field destination? org-roam.database.NodeId id of the node which, once reached, will stop traversing. Paths are built up internally such that only nodes between the root and destination will be returned.
+---@field filter? fun(id:org-roam.database.NodeId, depth:integer):boolean function that takes in nodes as they are traversed, returning false if they should be ignored, true if they should be kept.
+
+---Traverses across nodes in the database.
+---@param root org-roam.database.NodeId id of the root/starting node
+---@param opts org-roam.database.Database.TraverseOpts
+---@return {[1]: org-roam.database.NodeId, [2]: integer}[]
+function M:traverse(root, opts)
+    assert(opts.depth ~= nil
+        or opts.destination ~= nil
+        or opts.filter ~= nil, "Missing traversal option")
+
+    ---@type {[1]: org-roam.database.NodeId, [2]: integer}[]
+    local results = { { root, 0 } }
+    local i = 1 -- Keep track of which result we are traversing
+
+    while i <= #results do
+        local skip = false
+        local id = results[i][1]
+        local depth = results[i][2]
+
+        -- Once we reach the desired depth, we don't traverse anymore
+        if opts.depth and depth >= opts.depth then
+            skip = true
+        end
+
+        -- Otherwise,
+
+        local next = {}
+        for _, id in ipairs(queue) do
+            local skip = false
+
+            -- Check if we have found our node
+            if opts.destination and opts.destination == id then
+                break
+            end
+
+            -- Check if we want to traverse this node
+            if opts.filter and not opts.filter(id, depth) then
+                skip = true
+            end
+
+            -- At this stage, we have visited the node, so add it,
+            -- check if it is our destination, and if not get
+            -- the outbound links to traverse next
+            if not skip then
+                ---@type org-roam.database.NodeId[]
+                local links = vim.tbl_key(self:get_links(id))
+            end
+        end
+    end
+
+    return results
+end
+
 return M
