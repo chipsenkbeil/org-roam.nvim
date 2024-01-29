@@ -18,7 +18,8 @@ local utils               = require("org-roam.utils")
 local QUERY_TYPES         = {
     TOP_LEVEL_PROPERTY_DRAWER = 1,
     SECTION_PROPERTY_DRAWER = 2,
-    REGULAR_LINK = 3,
+    FILETAGS = 3,
+    REGULAR_LINK = 4,
 }
 
 ---@enum org-roam.parser.QueryCaptureTypes
@@ -28,6 +29,7 @@ local QUERY_CAPTURE_TYPES = {
     TOP_LEVEL_PROPERTY_DRAWER_CONTENTS     = "top-level-drawer-contents",
     SECTION_PROPERTY_DRAWER_HEADLINE       = "property-drawer-headline",
     SECTION_PROPERTY_DRAWER_HEADLINE_STARS = "property-drawer-headline-stars",
+    SECTION_PROPERTY_DRAWER_HEADLINE_TAGS  = "property-drawer-headline-tags",
     SECTION_PROPERTY_DRAWER                = "property-drawer",
     SECTION_PROPERTY_DRAWER_PROPERTY       = "property",
     SECTION_PROPERTY_DRAWER_PROPERTY_NAME  = "property-name",
@@ -36,6 +38,7 @@ local QUERY_CAPTURE_TYPES = {
 }
 
 ---@class org-roam.parser.File
+---@field filetags string[]
 ---@field drawers org-roam.parser.PropertyDrawer[]
 ---@field links org-roam.parser.Link[]
 
@@ -130,10 +133,22 @@ function M.init()
         return not string.find(path, "[\\%[%]]")
     end
 
+    local function eq_case_insensitive(match, _, source, predicates)
+        print("eq_case_insensitive")
+        print("match: " .. vim.inspect(match))
+        print("source: " .. vim.inspect(source))
+        print("predicates: " .. vim.inspect(predicates))
+        error("TODO")
+    end
+
     -- Build out custom predicates so we can further validate our links
     vim.treesitter.query.add_predicate(
         "org-roam-is-valid-regular-link-range?",
         is_valid_regular_link_range
+    )
+    vim.treesitter.query.add_predicate(
+        "org-roam-eq-case-insensitive?",
+        eq_case_insensitive
     )
 
     M.__is_initialized = true
@@ -241,8 +256,15 @@ function M.parse(contents)
         )
         (section
             (headline
-                stars: (stars) @property-drawer-headline-stars) @property-drawer-headline
+                stars: (stars) @property-drawer-headline-stars
+                tags: (taglist) @property-drawer-headline-tags) @property-drawer-headline
             (property_drawer) @property-drawer
+        )
+        (
+            (directive
+                name: (expr) @directive-name
+                value: (value) @directive-value)
+            (#org-roam-eq-case-insensitive? @directive-name "filetags")))
         )
         [
             (paragraph
