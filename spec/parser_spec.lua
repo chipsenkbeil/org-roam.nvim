@@ -25,6 +25,13 @@ local TEST_ORG_CONTENTS = vim.trim([=[
   [[id:5678][Link to heading node]] is here.
   [[https://example.com]] is a link without a description.
   This is a [[link]] embedded within, and [[link2]] also.
+
+* Heading 3 that is a node with tags :tag1:tag2:
+  :PROPERTIES:
+  :ID: 9999
+  :END:
+
+#+FILETAGS: :a:b:c:
 ]=])
 
 describe("Parser", function()
@@ -156,6 +163,23 @@ describe("Parser", function()
     assert.equals(13, output.drawers[2].properties[2].value:end_row())
     assert.equals(14, output.drawers[2].properties[2].value:end_column())
     assert.equals(167, output.drawers[2].properties[2].value:end_byte_offset())
+
+    ----------------------------------------
+    -- HEADLINE PROPERTY DRAWER WITH TAGS --
+    ----------------------------------------
+
+    -- NOTE: I'm lazy, so we're just checking a couple of specifics here
+    --       since we've already tested ranges earlier for drawers.
+    assert.equals("ID", output.drawers[3].properties[1].name:text())
+    assert.equals("9999", output.drawers[3].properties[1].value:text())
+    assert.equals(":tag1:tag2:", output.drawers[3].heading.tags:text())
+    assert.same({ "tag1", "tag2" }, output.drawers[3].heading:tag_list())
+
+    ------------------------
+    -- FILETAGS DIRECTIVE --
+    ------------------------
+
+    assert.same({ "a", "b", "c" }, output.filetags)
 
     -------------------
     -- REGULAR LINKS --

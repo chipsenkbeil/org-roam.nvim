@@ -4,6 +4,7 @@
 -- Parsing logic to extract information from org files.
 -------------------------------------------------------------------------------
 
+local Directive           = require("org-roam.parser.directive")
 local Heading             = require("org-roam.parser.heading")
 local Link                = require("org-roam.parser.link")
 local PropertyDrawer      = require("org-roam.parser.property-drawer")
@@ -34,6 +35,8 @@ local QUERY_CAPTURE_TYPES = {
     SECTION_PROPERTY_DRAWER_PROPERTY       = "property",
     SECTION_PROPERTY_DRAWER_PROPERTY_NAME  = "property-name",
     SECTION_PROPERTY_DRAWER_PROPERTY_VALUE = "property-value",
+    DIRECTIVE_NAME                         = "directive-name",
+    DIRECTIVE_VALUE                        = "directive-value",
     REGULAR_LINK                           = "regular-link",
 }
 
@@ -134,11 +137,13 @@ function M.init()
     end
 
     local function eq_case_insensitive(match, _, source, predicates)
-        print("eq_case_insensitive")
-        print("match: " .. vim.inspect(match))
-        print("source: " .. vim.inspect(source))
-        print("predicates: " .. vim.inspect(predicates))
-        error("TODO")
+        ---@type TSNode
+        local node = match[predicates[2]]
+
+        ---@type string
+        local text = predicates[3]
+
+        return string.lower(vim.treesitter.get_node_text(node, source)) == string.lower(text)
     end
 
     -- Build out custom predicates so we can further validate our links
@@ -257,14 +262,14 @@ function M.parse(contents)
         (section
             (headline
                 stars: (stars) @property-drawer-headline-stars
-                tags: (taglist) @property-drawer-headline-tags) @property-drawer-headline
+                tags: ((tag_list)? @property-drawer-headline-tags)) @property-drawer-headline
             (property_drawer) @property-drawer
         )
         (
             (directive
                 name: (expr) @directive-name
                 value: (value) @directive-value)
-            (#org-roam-eq-case-insensitive? @directive-name "filetags")))
+            (#org-roam-eq-case-insensitive? @directive-name "filetags")
         )
         [
             (paragraph
@@ -295,10 +300,10 @@ function M.parse(contents)
     ]=])
 
     ---@type org-roam.parser.File
-    local file = { drawers = {}, links = {} }
+    local file = { drawers = {}, filetags = {}, links = {} }
     for _, tree in ipairs(trees) do
         for pattern, match, _ in query:iter_matches(tree:root(), ref.value) do
-            -- Currently, we handle three different patterns:
+            -- Currently, we handle four different patterns:
             --
             -- 1. Top Level Property Drawer: this shows up when we find a
             --                               normal drawer named PROPERTIES
@@ -307,13 +312,19 @@ function M.parse(contents)
             -- 2. Section Property Drawer: this shows up when we find a
             --                             property drawer within a section.
             --
-            -- 3. Regular Link: this shows up when we find a regullar link.
+            -- 3. Directive: this shows up when we find a directive anywhere
+            --               within the contents. Currently, we limit
+            --               the match to be a filetags directive.
+            --
+            -- 4. Regular Link: this shows up when we find a regular link.
             --                  Angle, plain, and radio links do not match.
             --
             -- For the top-level property drawer, we have to parse out the
             -- properties and their values as we only have the overall contents.
             --
             -- For the property drawer, everything comes as expected.
+            --
+            -- For directives, everything comes as expected.
             --
             -- For regular links, we have to parse out the link and the
             -- optional description as we only have an overall expression.
@@ -355,6 +366,7 @@ function M.parse(contents)
                 local properties = {}
                 local heading_range
                 local heading_stars
+                local heading_tag_list
 
                 -- TODO: Due to https://github.com/neovim/neovim/issues/17060, we cannot use iter_matches
                 --       with a quantification using + in our query as the multiple node matches do not
@@ -370,6 +382,13 @@ function M.parse(contents)
                         if type(stars) == "string" then
                             heading_stars = string.len(stars)
                         end
+                    elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_HEADLINE_TAGS then
+                        local tag_list = vim.treesitter.get_node_text(node, ref.value)
+                        heading_tag_list = Slice:new(
+                            ref,
+                            Range:from_node(node),
+                            { cache = tag_list }
+                        )
                     elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER then
                         range = Range:from_node(node)
 
@@ -398,7 +417,7 @@ function M.parse(contents)
                 ---@type org-roam.parser.Heading|nil
                 local heading
                 if heading_range and heading_stars then
-                    heading = Heading:new(heading_range, heading_stars)
+                    heading = Heading:new(heading_range, heading_stars, heading_tag_list)
                 end
 
                 table.insert(file.drawers, PropertyDrawer:new({
@@ -406,6 +425,22 @@ function M.parse(contents)
                     properties = properties,
                     heading = heading,
                 }))
+            elseif pattern == QUERY_TYPES.FILETAGS then
+                for id, node in pairs(match) do
+                    local name = query.captures[id]
+
+                    if name == QUERY_CAPTURE_TYPES.DIRECTIVE_VALUE then
+                        local tags = vim.split(
+                            vim.treesitter.get_node_text(node, ref.value),
+                            ":",
+                            { trimempty = true }
+                        )
+
+                        for _, tag in ipairs(tags) do
+                            table.insert(file.filetags, tag)
+                        end
+                    end
+                end
             elseif pattern == QUERY_TYPES.REGULAR_LINK then
                 ---@type org-roam.parser.Position
                 local start = { row = 0, column = 0, offset = math.huge }

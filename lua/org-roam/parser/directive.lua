@@ -1,24 +1,24 @@
 -------------------------------------------------------------------------------
--- PROPERTY.LUA
+-- DIRECTIVE.LUA
 --
--- Abstraction for an org property within a property drawer.
+-- Abstraction for an org directive.
 -------------------------------------------------------------------------------
 
----@class org-roam.parser.Property
+---@class org-roam.parser.Directive
 ---@field range org-roam.parser.Range
----@field name org-roam.parser.Slice #slice representing inside of colons
----@field value org-roam.parser.Slice #slice representing value
+---@field name org-roam.parser.Slice
+---@field value org-roam.parser.Slice
 local M = {}
 M.__index = M
 
----@class org-roam.parser.Property.NewOpts
+---@class org-roam.parser.Directive.NewOpts
 ---@field range org-roam.parser.Range
 ---@field name org-roam.parser.Slice
 ---@field value org-roam.parser.Slice
 
 ---Creates a new property.
----@param opts org-roam.parser.Property.NewOpts
----@return org-roam.parser.Property
+---@param opts org-roam.parser.Directive.NewOpts
+---@return org-roam.parser.Directive
 function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
