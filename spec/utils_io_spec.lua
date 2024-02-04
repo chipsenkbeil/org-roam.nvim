@@ -140,4 +140,66 @@ describe("utils.io", function()
             assert.equals("hello world", data)
         end)
     end)
+
+    describe("stat_sync", function()
+        it("should fail if path does not exist", function()
+            local path = vim.fn.tempname()
+            local err, stat = utils_io.stat_sync(path)
+            assert.is_not_nil(err)
+            assert.is_nil(stat)
+        end)
+
+        it("should retrieve information about the file at path", function()
+            local path = write_temp_file_sync("test")
+            local err, stat = utils_io.stat_sync(path)
+            assert.is_nil(err)
+            assert.is_not_nil(stat) ---@cast stat -nil
+
+            -- Check something we can verify indicates it works as expected,
+            -- which in this case is validating the modification time
+            local expected = vim.fn.getftime(path)
+            assert.equals(expected, stat.mtime.sec)
+        end)
+    end)
+
+    describe("stat", function()
+        it("should fail if path does not exist", function()
+            local error, stat
+            local is_done = false
+
+            local path = vim.fn.tempname()
+            utils_io.stat(path, function(err, s)
+                error = err
+                stat = s
+                is_done = true
+            end)
+
+            vim.wait(10000, function() return is_done end)
+
+            assert.is_not_nil(error)
+            assert.is_nil(stat)
+        end)
+
+        it("should retrieve information about the file at path", function()
+            local error, stat
+            local is_done = false
+
+            local path = write_temp_file_sync("test")
+            utils_io.stat(path, function(err, s)
+                error = err
+                stat = s
+                is_done = true
+            end)
+
+            vim.wait(10000, function() return is_done end)
+
+            assert.is_nil(error)
+            assert.is_not_nil(stat) ---@cast stat -nil
+
+            -- Check something we can verify indicates it works as expected,
+            -- which in this case is validating the modification time
+            local expected = vim.fn.getftime(path)
+            assert.equals(expected, stat.mtime.sec)
+        end)
+    end)
 end)
