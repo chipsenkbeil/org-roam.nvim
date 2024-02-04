@@ -418,13 +418,11 @@ end
 ---@field max_distance? integer
 ---@field filter? fun(id:org-roam.database.NodeId, distance:integer):boolean
 
----@alias org-roam.database.Database.TraverseList {[1]: org-roam.database.NodeId, [2]: integer}[]
-
----Traverses across nodes in the database, returning a list of tuples
+---Traverses across nodes in the database, returning an iterator of tuples
 ---comprised of traversed node ids and their distance from the starting
 ---node.
 ---@param opts org-roam.database.Database.TraverseOpts
----@return org-roam.database.Database.TraverseList
+---@return org-roam.utils.Iterator
 function M:traverse(opts)
     assert(opts and opts.start_node_id, "Missing starting node id")
 
@@ -432,45 +430,107 @@ function M:traverse(opts)
     local MAX_DISTANCE = opts.max_distance or math.huge
     local filter = opts.filter or function() return true end
 
-    ---@type org-roam.database.Database.TraverseList
-    local nodes = {}
     ---@type table<org-roam.database.NodeId, boolean>
     local visited = {}
     local queue = utils.queue({ { opts.start_node_id, 0 } })
+    local count = 0
 
-    while #nodes < MAX_NODES and not queue:is_empty() do
-        ---@type org-roam.database.NodeId, integer
-        local id, distance = utils.unpack(queue:pop_front())
+    return utils.iterator(function()
+        -- NOTE: While we have a loop, this should only run until
+        --       we get a node id and distance to return as the
+        --       next iterator value, or the queue becomes empty.
+        while count < MAX_NODES and not queue:is_empty() do
+            ---@type org-roam.database.NodeId, integer
+            local id, distance = utils.unpack(queue:pop_front())
 
-        if distance <= MAX_DISTANCE and not visited[id] and filter(id, distance) then
-            visited[id] = true
-            table.insert(nodes, { id, distance })
+            if distance <= MAX_DISTANCE and not visited[id] and filter(id, distance) then
+                visited[id] = true
+                count = count + 1
 
-            if distance + 1 <= MAX_DISTANCE then
-                for link_id, _ in pairs(self:get_links(id)) do
-                    queue:push_back({ link_id, distance + 1 })
+                if distance + 1 <= MAX_DISTANCE then
+                    for link_id, _ in pairs(self:get_links(id)) do
+                        queue:push_back({ link_id, distance + 1 })
+                    end
                 end
+
+                return id, distance
             end
         end
-    end
-
-    return nodes
+    end)
 end
 
----Finds a path between the starting and ending nodes using BFS.
----Returns a list of node ids from start to end, or nil if no path possible.
+---Finds paths using BFS between the starting and ending nodes, returning
+---an iterator over lists of node ids representing complete paths from start
+---to end.
+---@param start_node_id org-roam.database.NodeId
+---@param end_node_id org-roam.database.NodeId
+---@param opts? {max_distance?:integer}
+---@return org-roam.utils.Iterator
+function M:iter_paths(start_node_id, end_node_id, opts)
+    opts = opts or {}
+
+    local MAX_DISTANCE = opts.max_distance or math.huge
+
+    -- Establish a queue of paths that we continue to try to build out
+    -- until we find the end node.
+    --
+    -- Format of queue items is a map of id -> position and "last" -> id
+    -- to keep track of the last id in the path thus far. We do this so
+    -- we can lookup cycles by key before they occur.
+    local queue = utils.queue({ { [start_node_id] = 1, last = start_node_id } })
+
+    -- TODO: Implement find_path to use BFS, building up potential paths in a queue,
+    --       popping off the next path whose last element is checked for children,
+    --       and then for each child if not the end will be appended to a new list
+    return utils.iterator(function()
+        -- NOTE: While we have a loop, this should only run until we get a
+        --       path to return as the next iterator value, or the queue becomes
+        --       empty.
+        while not queue:is_empty() do
+            ---@type { last:string, [string]:integer }
+            local path = queue:pop_front()
+            local last_id = path.last ---@cast last_id string
+            local idx = path[last_id]
+
+            -- Queue up outbound links as future paths to explore
+            if idx <= MAX_DISTANCE then
+                for id, _ in pairs(self:get_links(last_id)) do
+                    -- Skip any outgoing edge that results in a cycle
+                    if not path[id] then
+                        -- Make a new path that includes the outbound link
+                        local tbl = vim.deepcopy(path)
+                        tbl[id] = idx + 1
+                        tbl.last = id
+                        queue:push_back(tbl)
+                    end
+                end
+            end
+
+            -- Check if this path has found the end and if so return it
+            if last_id == end_node_id then
+                path.last = nil
+
+                -- Reverse id -> i to be i -> id
+                local results = {}
+                for id, i in pairs(path) do
+                    results[i] = id
+                end
+
+                return results
+            end
+        end
+    end)
+end
+
+---Finds a path using BFS between the starting and ending nodes, returning
+---the first path found as a list of node ids from start to end, or nil
+---if no path found.
 ---@param start_node_id org-roam.database.NodeId
 ---@param end_node_id org-roam.database.NodeId
 ---@param opts? {max_distance?:integer}
 ---@return org-roam.database.NodeId[]|nil
 function M:find_path(start_node_id, end_node_id, opts)
-    opts = opts or {}
-
-    local MAX_DISTANCE = opts.max_distance or math.huge
-
-    -- TODO: Implement find_path to use BFS, building up potential paths in a queue,
-    --       popping off the next path whose last element is checked for children,
-    --       and then for each child if not the end will be appended to a new list
+    return self:iter_paths(start_node_id, end_node_id, opts):next()
 end
 
 return M

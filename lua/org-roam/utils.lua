@@ -161,4 +161,12 @@ function M.queue(data)
     return require("org-roam.utils.queue"):new(data)
 end
 
+---Creates a new iterator.
+---@param f fun():...
+---@param opts? {allow_nil?:boolean}
+---@return org-roam.utils.Iterator
+function M.iterator(f, opts)
+    return require("org-roam.utils.iterator"):new(f, opts)
+end
+
 return M
