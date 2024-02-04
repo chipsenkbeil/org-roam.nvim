@@ -159,4 +159,47 @@ function M:new(opts)
     return instance
 end
 
+---@class org-roam.core.config.Config.MergeOpts
+---
+---@field org_roam_completion_everywhere? org-roam.core.config.org_roam_completion_everywhere
+---@field org_roam_dailies_capture_templates? org-roam.core.config.org_roam_dailies_capture_templates
+---@field org_roam_dailies_directory? org-roam.core.config.org_roam_dailies_directory
+---@field org_roam_db_extra_links_elements? org-roam.core.config.org_roam_db_extra_links_elements
+---@field org_roam_db_extra_links_exclude_keys? org-roam.core.config.org_roam_db_extra_links_exclude_keys
+---@field org_roam_db_update_on_save? org-roam.core.config.org_roam_db_update_on_save
+---@field org_roam_directory? org-roam.core.config.org_roam_directory
+---@field org_roam_graph_edge_extra_config? org-roam.core.config.org_roam_graph_edge_extra_config
+---@field org_roam_graph_executable? org-roam.core.config.org_roam_graph_executable
+---@field org_roam_graph_extra_config? org-roam.core.config.org_roam_graph_extra_config
+---@field org_roam_graph_filetype? org-roam.core.config.org_roam_graph_filetype
+---@field org_roam_graph_node_extra_config? org-roam.core.config.org_roam_graph_node_extra_config
+---@field org_roam_graph_viewer? org-roam.core.config.org_roam_graph_viewer
+---@field org_roam_node_display_template? org-roam.core.config.org_roam_node_display_template
+
+---Merges the provided options into this config, overwriting its current values.
+---@param opts org-roam.core.config.Config.MergeOpts
+function M:merge(opts)
+    ---@generic T
+    ---@param name string
+    ---@param f fun(value:any, default:T):T
+    local function set_field(name, f)
+        self[name] = f(opts[name], self[name])
+    end
+
+    set_field("org_roam_completion_everywhere", bool_or)
+    set_field("org_roam_dailies_capture_templates", table_or)
+    set_field("org_roam_dailies_directory", string_or)
+    set_field("org_roam_db_extra_links_elements", list_or)
+    set_field("org_roam_db_extra_links_exclude_keys", list_or)
+    set_field("org_roam_db_update_on_save", bool_or)
+    set_field("org_roam_directory", string_or)
+    set_field("org_roam_graph_edge_extra_config", string_or)
+    set_field("org_roam_graph_executable", string_or)
+    set_field("org_roam_graph_extra_config", string_or)
+    set_field("org_roam_graph_filetype", string_or)
+    set_field("org_roam_graph_node_extra_config", string_or)
+    set_field("org_roam_graph_viewer", string_or)
+    set_field("org_roam_node_display_template", string_or)
+end
+
 return M
