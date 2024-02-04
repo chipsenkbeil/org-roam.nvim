@@ -6,7 +6,7 @@ local utils = require("org-roam.utils")
 -- Abstraction for an org-roam file.
 -------------------------------------------------------------------------------
 
----@class org-roam.File
+---@class org-roam.database.File
 ---@field private __path string normalized path to the file
 ---@field private __checksum? string checksum (sha256) of file's contents
 ---@field private __mtime? integer last mod time measured as seconds since 01/01/1970
@@ -23,7 +23,7 @@ M.__index = M
 ---
 ---@param path string
 ---@param opts? {checksum?:boolean, mtime?:boolean, strict?:boolean}
----@return org-roam.File
+---@return org-roam.database.File
 function M:new(path, opts)
     opts = opts or {}
 

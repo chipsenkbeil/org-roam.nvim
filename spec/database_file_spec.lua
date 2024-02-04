@@ -19,8 +19,8 @@ local function with_temp_file(f, contents)
     assert(ok, err)
 end
 
-describe("File", function()
-    local File = require("org-roam.file")
+describe("database.file", function()
+    local File = require("org-roam.database.file")
 
     describe("new()", function()
         it("should fail if strict and file does not exist", function()
