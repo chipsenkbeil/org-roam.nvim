@@ -21,7 +21,7 @@ local M = {}
 ---
 ---Note: cannot be called within fast callbacks.
 ---
----Accepts options to configure how to wait for writing to finish.
+---Accepts options to configure how to wait.
 ---
 ---* `time`: the milliseconds to wait for writing to finish.
 ---  Defaults to waiting forever.
@@ -83,7 +83,7 @@ end
 ---
 ---Note: cannot be called within fast callbacks.
 ---
----Accepts options to configure how to wait for writing to finish.
+---Accepts options to configure how to wait.
 ---
 ---* `time`: the milliseconds to wait for writing to finish.
 ---  Defaults to waiting forever.
@@ -152,7 +152,7 @@ end
 ---
 ---Note: cannot be called within fast callbacks.
 ---
----Accepts options to configure how to wait for writing to finish.
+---Accepts options to configure how to wait.
 ---
 ---* `time`: the milliseconds to wait for writing to finish.
 ---  Defaults to waiting forever.

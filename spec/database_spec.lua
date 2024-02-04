@@ -13,18 +13,39 @@ describe("Database", function()
         assert.same(a, b)
     end
 
-    it("should be able to persist to disk", function()
+    it("should be able to persist to disk (synchronously)", function()
         local db = Database:new()
 
         local path = vim.fn.tempname()
-        db:write_to_disk(path)
+        local err = db:write_to_disk_sync(path)
+        assert(not err, err)
 
         -- Check the file was created, and then delete it
         assert(vim.fn.filereadable(path) == 1, "File not found at " .. path)
         os.remove(path)
     end)
 
-    it("should be able to be loaded from disk", function()
+    it("should be able to persist to disk (asynchronously)", function()
+        local db = Database:new()
+
+        local error
+        local is_done = false
+
+        local path = vim.fn.tempname()
+        db:write_to_disk(path, function(err)
+            error = err
+            is_done = true
+        end)
+
+        vim.wait(10000, function() return is_done end)
+        assert(not error, error)
+
+        -- Check the file was created, and then delete it
+        assert(vim.fn.filereadable(path) == 1, "File not found at " .. path)
+        os.remove(path)
+    end)
+
+    it("should be able to be loaded from disk (synchronously)", function()
         local db = Database:new()
 
         -- We save nodes, edges, and indexes, so create all three
@@ -36,10 +57,49 @@ describe("Database", function()
         db:reindex()
 
         local path = vim.fn.tempname()
-        db:write_to_disk(path)
+        db:write_to_disk_sync(path)
 
         -- Load a fresh copy of the database and verify that nodes, edges, and indexes still exist
-        local new_db = Database:load_from_disk(path)
+        local err, new_db = Database:load_from_disk_sync(path)
+        assert(not err, err) ---@cast new_db -nil
+        assert.equals("one", new_db:get(id1))
+        assert.equals("two", new_db:get(id2))
+        assert.same({ [id2] = 1 }, new_db:get_links(id1))
+        assert.same({ [id1] = 1 }, new_db:get_backlinks(id2))
+        assert.same({ id1 }, new_db:find_by_index("first_letter", "o"))
+        assert.same({ id2 }, new_db:find_by_index("first_letter", "t"))
+
+        -- Delete the database
+        os.remove(path)
+    end)
+
+    it("should be able to be loaded from disk (asynchronously)", function()
+        local db = Database:new()
+
+        -- We save nodes, edges, and indexes, so create all three
+        local id1 = db:insert("one")
+        local id2 = db:insert("two")
+
+        db:link(id1, id2)
+        db:new_index("first_letter", function(node) return node:sub(1, 1) end)
+        db:reindex()
+
+        local path = vim.fn.tempname()
+        db:write_to_disk_sync(path)
+
+        local error, new_db
+        local is_done = false
+
+        -- Load a fresh copy of the database and verify that nodes, edges, and indexes still exist
+        Database:load_from_disk(path, function(err, d)
+            error = err
+            new_db = d
+            is_done = true
+        end)
+
+        vim.wait(10000, function() return is_done end)
+        assert(not error, error) ---@cast new_db -nil
+
         assert.equals("one", new_db:get(id1))
         assert.equals("two", new_db:get(id2))
         assert.same({ [id2] = 1 }, new_db:get_links(id1))

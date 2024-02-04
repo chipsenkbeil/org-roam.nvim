@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 return {
+    async = require("org-roam.utils.async"),
     io = require("org-roam.utils.io"),
     iterator = require("org-roam.utils.iterator"),
     queue = require("org-roam.utils.queue"),

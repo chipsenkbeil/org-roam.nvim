@@ -64,42 +64,116 @@ function M:new_index(name, indexer)
     return self
 end
 
----Loads database from disk. Will fail with an assertion error if something goes wrong.
+---Synchronously loads database from disk.
+---
+---Note: cannot be called within fast callbacks.
+---
+---Accepts options to configure how to wait.
+---
+---* `time`: the milliseconds to wait for writing to finish.
+---  Defaults to waiting forever.
+---* `interval`: the millseconds between attempts to check that writing
+---  has finished. Defaults to 200 milliseconds.
 ---@param path string where to find the database
----@return org-roam.database.Database
-function M:load_from_disk(path)
-    local db = M:new()
+---@param opts? {time?:integer,interval?:integer}
+---@return string|nil err, org-roam.database.Database|nil db
+function M:load_from_disk_sync(path, opts)
+    opts = opts or {}
 
-    -- Load the file, read the data, and close the file
-    local handle = assert(io.open(path, "rb"), "Failed to open " .. path)
-    local data = assert(handle:read("*a"), "Failed to read from " .. path)
-    handle:close()
+    local f = utils.async.wrap(
+        M.load_from_disk,
+        {
+            time = opts.time,
+            interval = opts.interval,
+            n = 2,
+        }
+    )
 
-    -- Decode the data into Lua and set it as the nodes
-    local __data = assert(vim.mpack.decode(data), "Failed to decode database")
-    db.__nodes = __data.nodes
-    db.__inbound = __data.inbound
-    db.__outbound = __data.outbound
-    db.__indexes = __data.indexes
-
-    return db
+    return f(self, path)
 end
 
----Writes database to disk. Will fail with an assertion error if something goes wrong.
+---Asynchronously loads database from disk.
+---@param path string where to find the database
+---@param cb fun(err:string|nil, db:org-roam.database.Database|nil)
+function M:load_from_disk(path, cb)
+    utils.io.read_file(path, function(err, data)
+        if err then
+            cb(err)
+            return
+        end
+
+        assert(data, "impossible: data nil")
+
+        -- Decode the data into Lua and set it as the nodes
+        ---@type table|nil
+        local __data = vim.mpack.decode(data)
+
+        if not __data then
+            cb("Failed to decode database")
+            return
+        end
+
+        local db = M:new()
+
+        ---@diagnostic disable-next-line:invisible
+        db.__nodes = __data.nodes
+        ---@diagnostic disable-next-line:invisible
+        db.__inbound = __data.inbound
+        ---@diagnostic disable-next-line:invisible
+        db.__outbound = __data.outbound
+        ---@diagnostic disable-next-line:invisible
+        db.__indexes = __data.indexes
+
+        cb(nil, db)
+    end)
+end
+
+---Synchronously writes database to disk.
+---
+---Note: cannot be called within fast callbacks.
+---
+---Accepts options to configure how to wait.
+---
+---* `time`: the milliseconds to wait for writing to finish.
+---  Defaults to waiting forever.
+---* `interval`: the millseconds between attempts to check that writing
+---  has finished. Defaults to 200 milliseconds.
 ---@param path string where to store the database
-function M:write_to_disk(path)
-    ---@type string
-    local data = assert(vim.mpack.encode({
+---@param opts? {time?:integer,interval?:integer}
+---@return string|nil err
+function M:write_to_disk_sync(path, opts)
+    opts = opts or {}
+
+    local f = utils.async.wrap(
+        M.write_to_disk,
+        {
+            time = opts.time,
+            interval = opts.interval,
+            n = 2,
+        }
+    )
+
+    return f(self, path)
+end
+
+---Asynchronously writes database to disk.
+---@param path string where to store the database
+---@param cb fun(err:string|nil)
+function M:write_to_disk(path, cb)
+    ---@type string|nil
+    local data = vim.mpack.encode({
         nodes = self.__nodes,
         inbound = self.__inbound,
         outbound = self.__outbound,
         indexes = self.__indexes,
-    }), "Failed to encode database")
+    })
 
-    -- Open the file to create/overwite, write the data, and close the file
-    local handle = assert(io.open(path, "wb"), "Failed to open " .. path)
-    assert(handle:write(data), "Failed to write to " .. path)
-    handle:close()
+    if not data then
+        cb("Failed to encode database")
+        return
+    end
+
+    utils.io.write_file(path, data, cb)
 end
 
 ---Inserts non-false data into the database as a node with no edges.
