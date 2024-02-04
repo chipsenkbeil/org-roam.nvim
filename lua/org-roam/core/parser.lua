@@ -302,6 +302,7 @@ function M.parse(contents)
     ---@type org-roam.core.parser.File
     local file = { drawers = {}, filetags = {}, links = {} }
     for _, tree in ipairs(trees) do
+        ---@diagnostic disable-next-line:missing-parameter
         for pattern, match, _ in query:iter_matches(tree:root(), ref.value) do
             -- Currently, we handle four different patterns:
             --
