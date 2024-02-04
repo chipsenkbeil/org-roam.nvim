@@ -2,113 +2,48 @@
 
 Port of org-roam to neovim using orgmode.
 
-** Running tests
- 
- A /makefile/ is provided to support running tests. It will download [[https://github.com/nvim-lua/plenary.nvim][plenary.nvim]]
- into the /vendor/ directory.
- 
- #+begin_src bash
- make test
- #+end_src
- 
-** Tasks
+** Installation
 
-*** TODO Async file loading/parsing/updating
-  
-  Can we make an async file parser/scanner for changes? Thought is that we
-  have the parser support reading and parsing a single file, and then
-  yielding using coroutine logic.
-  
-  We would use neovim's scheduling API to queue up the coroutine to run
-  parsing logic, yield, and queue up the function again.
-  
-** Notes
+*** lazy.nvim
+
+    #+begin_src lua
+    {
+      "chipsenkbeil/org-roam.nvim",
+      dependencies = { "nvim-orgmode/orgmode" },
+      config = function()
+        require("org-roam").setup({
+          org_roam_directory = "~/orgfiles",
+        })
+      end
+    }
+    #+end_src
+
+*** packer.nvim
+
+    #+begin_src lua
+    use {
+      "chipsenkbeil/org-roam.nvim",
+      requires = { "nvim-orgmode/orgmode" },
+      config = function()
+        require("org-roam"):setup({
+          org_roam_directory = "~/orgfiles",
+        })
+      end
+    }
+    #+end_src
+
+** Usage
+
+   TODO I'll get to this once the plugin is ready for usage.
+
+** Developer & Contributor Instructions
+
+*** Running tests
+
+   A /makefile/ is provided to support running tests. It will download [[https://github.com/nvim-lua/plenary.nvim][plenary.nvim]]
+   into the /vendor/ directory.
+
+   #+begin_src bash 
+   make test 
+   #+end_src
  
- Using treesitter, we can understand where our cursor is in org syntax and
- use queries to figure out data such as outbound links to other org files.
- 
- This is an example of a =treesitter-highlight= syntax, but query could be
- used to search sections and body.
- 
- #+begin_src scm
- (body (drawer) @OrgDrawer)
- (section (property_drawer) @OrgPropertyDrawer)
- #+end_src
- 
- The orgmode plugin provides a basic API that I think we can use like this:
- 
- #+begin_src lua
- local api = require("orgmode.api")
- local file = api.current()
- 
- -- Iterate over top-level headlines to see which one we're in???
- for _, headline in ipairs(file.headlines) do
-   -- This is a range
-   local pos = headline.position
- end
- #+end_src
- 
- Alternatively, there is a wrapper to the treesitter API that the orgmode
- plugin provides, and an example is setting tags:
- 
- #+begin_src lua
- local ts_org = require("orgmode.treesitter")
- function OrgHeadline:set_tags(tags)
-   return self:_do_action(function()
-      -- This will fail if there is no headline,
-      -- and this works by using require("orgmode.treesitter.headline").from_cursor({row, col})
-      local headline = ts_org.closest_headline()
-      return headline:set_tags(string.format(":%s:", table.concat(tags, ":")))
-   end)
- end
- #+end_src
- 
- The treesitter code underneath makes modifications using a utility method:
- 
- #+begin_src lua
- local ts = vim.treesitter
- 
- -- Can take a buffer (or 0 for current buf) or string
- ts.get_node_text(ts_node, 0)
- 
- -- From orgmode.utils.treesitter, used to overwrite parts of a buffer's text.
- -- Given nodes tell us ranges
- --
- -- @param front_trim boolean
- function M.set_node_text(node, text, front_trim)
-    local lines = vim.split(text, '\n', true)
- 
-    -- StartRow, StartCol, EndRow, EndCol
-    local sr, sc, er, ec = node:range()
-    if string.len(text) == 0 then
-        if front_trim then
-            sc = math.max(sc - 1, 0)
-        else
-            ec = ec + 1
-        end
-    end
-    pcall(vim.api.nvim_buf_set_text, 0, sr, sc, er, ec, lines)
- end
- #+end_src
- 
- We can create a treesitter language tree using ~vim.treesitter.get_string_parser()~
- 
- #+begin_src lua
- -- This will parse the trees
- local trees = vim.treesitter.get_string_parser("<org text>", "org", {}):parse()
- 
- -- orgmode plugin has an abstraction for this that gives us a wrapper
- -- from_content(content:table, category?:string, filename?:string, is_archive_file?:boolean):File|nil
- --
- -- I believe content is string lines as the first part within from_content
- -- performs local str_content = table.concat(content, '\n')
- --
- -- There's an even higher-level wrapper of File.load(path, callback)
- -- where callback is passed nil or a File. But not sure about the error invocation
- -- on catch. File not found errors are ignored, but everything else is not.
- --
- -- But unfortunately the File returned does not have any details on property drawers,
- -- so we will have to result to detecting with treesitter and parsing the content
- -- ourselves so we can learn and modify.
- local file = require("orgmode.parser.file").from_content(content, nil, nil, nil)
- #+end_src
