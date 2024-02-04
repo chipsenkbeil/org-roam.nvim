@@ -291,7 +291,7 @@ describe("Database", function()
         assert.same(expected, actual)
     end)
 
-    it("should support traversal of nodes", function()
+    it("should support iterating over nodes from a starting node", function()
         ---Sorts tuple lists a and b by their id fields and then asserts they are the same.
         ---@param a {[1]: string, [2]: integer}[]
         ---@param b {[1]: string, [2]: integer}[]
@@ -325,15 +325,15 @@ describe("Database", function()
             { id3, 1, n = 2 },
             { id4, 1, n = 2 },
             { id5, 2, n = 2 },
-        }, db:traverse({ start_node_id = id1 }):collect())
+        }, db:iter_nodes({ start_node_id = id1 }):collect())
 
         -- Traversing on 2 or 3 will only find itself because we do not traverse backlinks
         same_tuple_lists({
             { id2, 0, n = 2 },
-        }, db:traverse({ start_node_id = id2 }):collect())
+        }, db:iter_nodes({ start_node_id = id2 }):collect())
         same_tuple_lists({
             { id3, 0, n = 2 },
-        }, db:traverse({ start_node_id = id3 }):collect())
+        }, db:iter_nodes({ start_node_id = id3 }):collect())
 
         -- Traversing on 4 can achieve the same thanks to some bi-directional links
         same_tuple_lists({
@@ -342,23 +342,23 @@ describe("Database", function()
             { id5, 1, n = 2 },
             { id2, 2, n = 2 },
             { id3, 2, n = 2 },
-        }, db:traverse({ start_node_id = id4 }):collect())
+        }, db:iter_nodes({ start_node_id = id4 }):collect())
 
         -- Traversing on 5 will only find nodes it points to and not traverse across backlinks
         same_tuple_lists({
             { id5, 0, n = 2 },
             { id3, 1, n = 2 },
-        }, db:traverse({ start_node_id = id5 }):collect())
+        }, db:iter_nodes({ start_node_id = id5 }):collect())
 
         -- Traversing on 6 will only find itself because there is nothing linked
         same_tuple_lists({
             { id6, 0, n = 2 },
-        }, db:traverse({ start_node_id = id6 }):collect())
+        }, db:iter_nodes({ start_node_id = id6 }):collect())
 
         -- Limiting maximum nodes should exit once that count has been reached
         same_tuple_lists({
             { id1, 0, n = 2 },
-        }, db:traverse({ start_node_id = id1, max_nodes = 1 }):collect())
+        }, db:iter_nodes({ start_node_id = id1, max_nodes = 1 }):collect())
 
         -- Limiting maximum distance should restrict traversal to closer nodes
         same_tuple_lists({
@@ -366,13 +366,13 @@ describe("Database", function()
             { id2, 1, n = 2 },
             { id3, 1, n = 2 },
             { id4, 1, n = 2 },
-        }, db:traverse({ start_node_id = id1, max_distance = 1 }):collect())
+        }, db:iter_nodes({ start_node_id = id1, max_distance = 1 }):collect())
 
         -- Filtering should support blocking out traversal to nodes
         same_tuple_lists({
             { id1, 0, n = 2 },
             { id3, 1, n = 2 },
-        }, db:traverse({
+        }, db:iter_nodes({
             start_node_id = id1,
             filter = function(id, _)
                 return id ~= id2 and id ~= id4
@@ -380,7 +380,7 @@ describe("Database", function()
         }):collect())
     end)
 
-    it("should support finding paths between nodes", function()
+    it("should support iterating through paths between nodes", function()
         local db = Database:new()
         local id1 = db:insert("one")
         local id2 = db:insert("two")
@@ -409,5 +409,66 @@ describe("Database", function()
         -- Find paths going from 1 -> 6
         it = db:iter_paths(id1, id6)
         assert.is_nil(it:next())
+
+        -- Find paths going from 4 -> 3
+        local paths = db:iter_paths(id4, id3):collect()
+        same_lists({
+            { id4, id1, id3 },
+            { id4, id5, id3 },
+        }, paths, function(a, b)
+            if #a ~= #b then
+                return #a < #b
+            end
+
+            for i = 1, #a do
+                local aa = a[i]
+                local bb = b[i]
+
+                if aa ~= bb then
+                    return aa < bb
+                end
+            end
+
+            return false
+        end)
+
+        -- Limit paths going from 1 -> 3
+        it = db:iter_paths(id1, id3, { max_distance = 1 })
+        assert.same({ id1, id3 }, it:next())
+        assert.is_nil(it:next())
+
+        -- Go to self 1 -> 1
+        it = db:iter_paths(id1, id1)
+        assert.same({ id1 }, it:next())
+        assert.is_nil(it:next())
+    end)
+
+    it("should be able to find a path between nodes", function()
+        local db = Database:new()
+        local id1 = db:insert("one")
+        local id2 = db:insert("two")
+        local id3 = db:insert("three")
+        local id4 = db:insert("four")
+
+        -- Link up our database of nodes in this way
+        --
+        -- 2 <- 1 -> 3 -> 4
+        db:link(id1, id2, id3)
+        db:link(id3, id4)
+
+        -- Find paths
+        assert.same({ id1 }, db:find_path(id1, id1))
+        assert.same({ id1, id2 }, db:find_path(id1, id2))
+        assert.same({ id1, id3 }, db:find_path(id1, id3))
+        assert.same({ id1, id3, id4 }, db:find_path(id1, id4))
+        assert.is_nil(db:find_path(id1, id4, { max_distance = 1 }))
+        assert.same({ id3, id4 }, db:find_path(id3, id4))
+        assert.is_nil(db:find_path(id2, id1))
+        assert.is_nil(db:find_path(id3, id1))
+        assert.is_nil(db:find_path(id2, id3))
+        assert.is_nil(db:find_path(id2, id4))
+        assert.is_nil(db:find_path(id4, id3))
+        assert.is_nil(db:find_path(id4, id2))
+        assert.is_nil(db:find_path(id4, id1))
     end)
 end)
