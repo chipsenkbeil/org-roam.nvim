@@ -50,7 +50,7 @@
 ---| fun(path:string) funtion to be invoked with the file path.
 
 ---@alias org-roam.config.org_roam_node_display_template
----| string configures display formatting for node.
+---| string configures display formatting for node (default "${title}").
 
 -------------------------------------------------------------------------------
 -- FUNCTION DEFINITIONS
