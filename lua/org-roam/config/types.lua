@@ -1,5 +1,11 @@
 ---@meta
 -------------------------------------------------------------------------------
+-- TYPES.LUA
+--
+-- Lua language server types for configuration variables and functions.
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
 -- VARIABLE DEFINITIONS
 -------------------------------------------------------------------------------
 
@@ -8,6 +14,9 @@
 
 ---@alias org-roam.config.org_roam_dailies_capture_templates
 ---| table<string, table> mirrors org capture templates, but for org-roam.
+
+---@alias org-roam.config.org_roam_directory
+---| string path to the directory that will contain org-roam files.
 
 ---@alias org-roam.config.org_roam_dailies_directory
 ---| string path to daily-notes, relative to org-roam-directory.
@@ -40,7 +49,7 @@
 ---| string path to the program (defaults to browser) to view the SVG.
 ---| fun(path:string) funtion to be invoked with the file path.
 
----@alias org-roam.config.org_roam_node_display_tempLate
+---@alias org-roam.config.org_roam_node_display_template
 ---| string configures display formatting for node.
 
 -------------------------------------------------------------------------------
