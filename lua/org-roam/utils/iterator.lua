@@ -84,6 +84,20 @@ function M:next()
     end
 end
 
+---Transforms this iterator by mapping each value using the provided function.
+---
+---Note that this does NOT clone the existing iterator and invoking `next`
+---on the created iterator will also advance the existing iterator.
+---@param f fun(...):...
+---@return org-roam.utils.Iterator
+function M:map(f)
+    return M:new(function()
+        if self:has_next() then
+            return f(self:next())
+        end
+    end, { allow_nil = self.__allow_nil })
+end
+
 ---Collects all remaining values from the iterator by continually calling next
 ---until the iterator has finished.
 ---

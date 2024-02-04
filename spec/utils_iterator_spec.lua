@@ -99,6 +99,27 @@ describe("utils.Iterator", function()
         assert.is_nil(it:next())
     end)
 
+    it("should support mapping values", function()
+        local count = 0
+        local it = Iterator:new(function()
+            if count < 3 then
+                count = count + 1
+                return count
+            end
+        end)
+
+        -- Trigger has_next so we have a cached value
+        -- to verify that mapping after this point
+        -- will still work
+        it:has_next()
+
+        it = it:map(function(n)
+            return "num:" .. tostring(n)
+        end)
+
+        assert.same({ "num:1", "num:2", "num:3" }, it:collect())
+    end)
+
     it("should support collecting into a list by repeatedly advancing the iterator", function()
         local count = 0
         local it = Iterator:new(function()
