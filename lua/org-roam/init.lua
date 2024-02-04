@@ -30,25 +30,25 @@ function M.setup(opts)
     local File = require("org-roam.core.database.file")
     local db_path = vim.fn.stdpath("data") .. "/org-roam.nvim/" .. "db.msgpack"
     if not File:new(db_path):exists() then
-        notify("Creating database", vim.log.levels.INFO, { title = "org-roam" })
+        notify("Creating database", vim.log.levels.INFO)
         local db = Database:new()
 
-        notify("Scanning for org files", vim.log.levels.INFO, { title = "org-roam" })
+        notify("Scanning for org files", vim.log.levels.INFO)
         -- TODO: Walk through the org-roam directory, parse each file, and add it to the database
 
         db:write_to_disk(db_path, function(err)
             if err then
-                notify(err, vim.log.levels.ERROR, { title = "org-roam" })
+                notify(err, vim.log.levels.ERROR)
                 return
             end
 
-            notify("Database saved to " .. db_path, vim.log.levels.INFO, { title = "org-roam" })
+            notify("Database saved to " .. db_path, vim.log.levels.INFO)
         end)
     else
-        notify("Loading database from " .. db_path, vim.log.levels.INFO, { title = "org-roam" })
+        notify("Loading database from " .. db_path, vim.log.levels.INFO)
         Database:load_from_disk(db_path, function(err, db)
             if err then
-                notify(err, vim.log.levels.ERROR, { title = "org-roam" })
+                notify(err, vim.log.levels.ERROR)
                 return
             end
 

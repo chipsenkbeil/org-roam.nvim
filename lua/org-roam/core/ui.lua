@@ -14,7 +14,11 @@ local M = {}
 ---@param opts? table
 function M.notify(msg, level, opts)
     vim.schedule(function()
-        vim.notify(msg, level, opts)
+        vim.notify(
+            msg,
+            level,
+            vim.tbl_extend("force", opts or {}, { title = "org-roam" })
+        )
     end)
 end
 
