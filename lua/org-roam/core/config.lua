@@ -160,12 +160,21 @@ function M:new(opts)
 end
 
 ---@type org-roam.core.config.Config
-local GLOBAL_CONFIG = M:new({ org_roam_directory = "" })
+local GLOBAL_CONFIG
 
 ---Retrieves the global configuration.
 ---@return org-roam.core.config.Config
 function M:global()
-    return GLOBAL_CONFIG
+    return assert(GLOBAL_CONFIG, table.concat({
+        "Global configuration not initialized!",
+        "Have you run require(\"org-roam\").setup({ org_roam_directory = \"...\" })",
+    }, " "))
+end
+
+---@private
+---@param config org-roam.core.config.Config
+function M:__set_global(config)
+    GLOBAL_CONFIG = config
 end
 
 return M
