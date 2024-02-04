@@ -7,14 +7,43 @@
 -------------------------------------------------------------------------------
 -- DETAILS ABOUT ORG-ROAM NODES
 -------------------------------------------------------------------------------
+-- Nodes have an id
+--
+-- :PROPERTIES:
+-- :ID: <ID>
+-- :END:
+--
+-- This can be a file node or headline.
+--
+-- Other properties (all optional)
+-- :ROAM_EXCLUDE: t (if set to non-nil value, does a thing)
+-- :ROAM_ALIASES: <text>
+-- :ROAM_REFS: <ref>
+--
+-- Format for refs is one of
+--
+-- https://example.com (some website)
+-- @thrun2005probabilistic (unique citation key)
+-- [cite:@thrun2005probabilistic] (org-cite)
+-- cite:thrun2005probabilistic (org-ref)
+--
+-- Note that text for aliases and refs is space-delimited, but supports
+-- double-quotes to group spaced items together.
+--
+-- :ROAM_ALIASES: "one item" "two item" three four
+-- :ROAM_REFS: @my_ref https://example.com/
+--
+-------------------------------------------------------------------------------
+-- DETAILS ABOUT ORG-ROAM NODE PROPERTIES
+-------------------------------------------------------------------------------
 --
 -- * Cached org-mode properties *
 --
 --     - outline level
---     - todo state
---     - priority
---     - scheduled
---     - deadline
+--     - todo state (unsupported)
+--     - priority (unsupported)
+--     - scheduled (unsupported)
+--     - deadline (unsupported)
 --     - tags
 --
 -- * Custom org-roam properties *
@@ -39,13 +68,13 @@
 -------------------------------------------------------------------------------
 
 ---@class org-roam.node.Node
----@field id string
----@field file string
----@field title string
----@field aliases string[]
----@field tags string[]
----@field level integer (0 means top-level)
----@field linked org-roam.node.Node[]
+---@field id string #unique id associated with the node
+---@field file string #path to file where node is located
+---@field title string #title of node, defaulting to file name
+---@field aliases string[] #alternative titles associated with node
+---@field tags string[] #tags tied to node
+---@field level integer #heading level (0 means top-level)
+---@field linked string[] #ids of nodes referenced by this node
 local M = {}
 M.__index = M
 
