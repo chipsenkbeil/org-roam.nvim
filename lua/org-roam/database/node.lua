@@ -67,7 +67,7 @@
 --
 -------------------------------------------------------------------------------
 
----@class org-roam.node.Node
+---@class org-roam.database.Node
 ---@field id string #unique id associated with the node
 ---@field file string #path to file where node is located
 ---@field title string #title of node, defaulting to file name
@@ -78,7 +78,7 @@
 local M = {}
 M.__index = M
 
----@class org-roam.node.Node.NewOpts
+---@class org-roam.database.Node.NewOpts
 ---@field id string
 ---@field file string
 ---@field title? string
@@ -88,8 +88,8 @@ M.__index = M
 ---@field linked? string[]
 
 ---Creates a new node.
----@param opts org-roam.node.Node.NewOpts
----@return org-roam.node.Node
+---@param opts org-roam.database.Node.NewOpts
+---@return org-roam.database.Node
 function M:new(opts)
     local instance = {}
     setmetatable(instance, M)

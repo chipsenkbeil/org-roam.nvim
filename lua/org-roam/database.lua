@@ -11,13 +11,13 @@ local utils = require("org-roam.utils")
 --       all nodes. I don't expect this to be available for years, but the
 --       tracking issue is here: https://github.com/LuaLS/lua-language-server/issues/1861
 --
----@alias org-roam.database.Node any
+---@alias org-roam.database.Data any
 
 ---@alias org-roam.database.IndexName string
 
----@alias org-roam.database.NodeId string
+---@alias org-roam.database.Id string
 
----@alias org-roam.database.NodeIdMap table<org-roam.database.NodeId, boolean>
+---@alias org-roam.database.IdMap table<org-roam.database.Id, boolean>
 
 ---@alias org-roam.database.IndexKey
 ---| boolean
@@ -28,14 +28,14 @@ local utils = require("org-roam.utils")
 ---| org-roam.database.IndexKey
 ---| org-roam.database.IndexKey[]
 
----@alias org-roam.database.Indexer fun(node:org-roam.database.Node):(org-roam.database.IndexKeys|nil)
+---@alias org-roam.database.Indexer fun(data:org-roam.database.Data):(org-roam.database.IndexKeys|nil)
 
 ---@class org-roam.database.Database
----@field private __nodes table<org-roam.database.NodeId, org-roam.database.Node>
----@field private __outbound table<org-roam.database.NodeId, org-roam.database.NodeIdMap> mapping of node -> node by id
----@field private __inbound table<org-roam.database.NodeId, org-roam.database.NodeIdMap> mapping of node <- node by id
----@field private __indexers table<org-roam.database.NodeId, org-roam.database.Indexer> table of labels -> indexers to run when inserting or refreshing a node
----@field private __indexes table<org-roam.database.IndexName, table<org-roam.database.IndexKey, org-roam.database.NodeIdMap>> mapping of some identifier to ids of associated nodes
+---@field private __nodes table<org-roam.database.Id, org-roam.database.Data>
+---@field private __outbound table<org-roam.database.Id, org-roam.database.IdMap> mapping of node -> node by id
+---@field private __inbound table<org-roam.database.Id, org-roam.database.IdMap> mapping of node <- node by id
+---@field private __indexers table<org-roam.database.Id, org-roam.database.Indexer> table of labels -> indexers to run when inserting or refreshing a node
+---@field private __indexes table<org-roam.database.IndexName, table<org-roam.database.IndexKey, org-roam.database.IdMap>> mapping of some identifier to ids of associated nodes
 local M = {}
 M.__index = M
 
@@ -178,15 +178,15 @@ end
 
 ---Inserts non-false data into the database as a node with no edges.
 ---If an id is provided in options, will be used, otherwise a new id is generated.
----@param node org-roam.database.Node
----@param opts? {id?:org-roam.database.NodeId}
----@return org-roam.database.NodeId id #the id of the inserted node
-function M:insert(node, opts)
-    assert(node ~= nil, "Cannot insert nil value as node")
+---@param data org-roam.database.Data
+---@param opts? {id?:org-roam.database.Id}
+---@return org-roam.database.Id id #the id of the inserted node
+function M:insert(data, opts)
+    assert(data ~= nil, "Cannot insert nil value as data")
 
     opts = opts or {}
 
-    ---@type org-roam.database.NodeId
+    ---@type org-roam.database.Id
     local id = opts.id
 
     -- If we aren't given an id with the node, create one
@@ -195,7 +195,7 @@ function M:insert(node, opts)
     end
 
     -- Perform the actual insertion of the node
-    self.__nodes[id] = node
+    self.__nodes[id] = data
     self.__outbound[id] = {}
     self.__inbound[id] = {}
 
@@ -208,8 +208,8 @@ function M:insert(node, opts)
 end
 
 ---Removes a node from the database by its id, disconnecting it from any other nodes.
----@param id org-roam.database.NodeId
----@return org-roam.database.Node|nil #the removed node, or nil if none with id found
+---@param id org-roam.database.Id
+---@return org-roam.database.Data|nil #the removed node's data, or nil if none with id found
 function M:remove(id)
     -- Find every node pointing to this node, unlink it
     for backlink_id, _ in pairs(self:get_backlinks(id)) do
@@ -232,15 +232,15 @@ function M:remove(id)
 end
 
 ---Retrieves node from the database by its id.
----@param id org-roam.database.NodeId
----@return org-roam.database.Node|nil #the node, or nil if none with id found
+---@param id org-roam.database.Id
+---@return org-roam.database.Data|nil #the node's data, or nil if none with id found
 function M:get(id)
     return self.__nodes[id]
 end
 
 ---Retrieves one or more nodes from the database by their ids.
----@param ... org-roam.database.NodeId ids of nodes to retrieve
----@return table<org-roam.database.NodeId, org-roam.database.Node[]> #mapping of id -> node
+---@param ... org-roam.database.Id ids of nodes to retrieve
+---@return table<org-roam.database.Id, org-roam.database.Data[]> #mapping of id -> node data
 function M:get_many(...)
     local nodes = {}
 
@@ -254,7 +254,7 @@ end
 ---Retrieves ids of nodes from the database by some index.
 ---@param name org-roam.database.IndexName name of the index
 ---@param cmp org-roam.database.IndexKey|fun(key:org-roam.database.IndexKey):boolean
----@return org-roam.database.NodeId[] #ids of nodes that matched by index
+---@return org-roam.database.Id[] #ids of nodes that matched by index
 function M:find_by_index(name, cmp)
     ---@type string[]
     local ids = {}
@@ -287,7 +287,7 @@ end
 ---Takes optional list of names of indexers to use, otherwise uses all indexers.
 ---Takes optional flag `remove`, which if true will not reindex but instead remove indexes for nodes.
 ---
----@param opts? {nodes?:org-roam.database.NodeId[], indexes?:org-roam.database.IndexName[], remove?:boolean}
+---@param opts? {nodes?:org-roam.database.Id[], indexes?:org-roam.database.IndexName[], remove?:boolean}
 ---@return org-roam.database.Database #reference to updated database
 function M:reindex(opts)
     opts = opts or {}
@@ -354,8 +354,8 @@ end
 
 ---@private
 ---Retrieves ids of nodes linked to by the node in inbound or outbound direction.
----@param opts {root:org-roam.database.NodeId, max_depth?:integer, direction:"inbound"|"outbound"}
----@return table<org-roam.database.NodeId, integer> #ids of found nodes mapped to the total steps away from specified node
+---@param opts {root:org-roam.database.Id, max_depth?:integer, direction:"inbound"|"outbound"}
+---@return table<org-roam.database.Id, integer> #ids of found nodes mapped to the total steps away from specified node
 function M:__get_links_in_direction(opts)
     local root_id = opts.root
     local max_depth = opts.max_depth
@@ -405,26 +405,26 @@ function M:__get_links_in_direction(opts)
 end
 
 ---Retrieves ids of nodes linked to by the node with the specified id.
----@param id org-roam.database.NodeId
+---@param id org-roam.database.Id
 ---@param opts? {max_depth?:integer} # max_depth indicates how many nodes away to look (default 1)
----@return table<org-roam.database.NodeId, integer> #ids of found nodes mapped to the total steps away from specified node
+---@return table<org-roam.database.Id, integer> #ids of found nodes mapped to the total steps away from specified node
 function M:get_links(id, opts)
     opts = opts or {}
     return self:__get_links_in_direction({ root = id, max_depth = opts.max_depth, direction = "outbound" })
 end
 
 ---Retrieves ids of nodes that link to the node with the specified id.
----@param id org-roam.database.NodeId
+---@param id org-roam.database.Id
 ---@param opts? {max_depth?:integer} # max_depth indicates how many nodes away to look (default 1)
----@return table<org-roam.database.NodeId, integer> #ids of found nodes mapped to the total steps away from specified node
+---@return table<org-roam.database.Id, integer> #ids of found nodes mapped to the total steps away from specified node
 function M:get_backlinks(id, opts)
     opts = opts or {}
     return self:__get_links_in_direction({ root = id, max_depth = opts.max_depth, direction = "inbound" })
 end
 
 ---Creates outbound edges from node `id`. Only in the direction of node[id] -> node.
----@param id org-roam.database.NodeId id of node
----@param ... org-roam.database.NodeId ids of nodes to form edges (node[id] -> node)
+---@param id org-roam.database.Id id of node
+---@param ... org-roam.database.Id ids of nodes to form edges (node[id] -> node)
 function M:link(id, ...)
     -- Grab the outbound edges from `node`, which are cached by id
     local outbound = self.__outbound[id] or {}
@@ -444,9 +444,9 @@ function M:link(id, ...)
 end
 
 ---Removes outbound edges from node `id`.
----@param id org-roam.database.NodeId id of node
----@param ... org-roam.database.NodeId ids of nodes to remove edges (node[id] -> node); if none provided, all outbound edges removed
----@return org-roam.database.NodeId[] #list of ids of nodes where an outbound edge was removed
+---@param id org-roam.database.Id id of node
+---@param ... org-roam.database.Id ids of nodes to remove edges (node[id] -> node); if none provided, all outbound edges removed
+---@return org-roam.database.Id[] #list of ids of nodes where an outbound edge was removed
 function M:unlink(id, ...)
     -- Grab the outbound edges, which are cached by id
     local outbound = self.__outbound[id] or {}
@@ -487,10 +487,10 @@ function M:unlink(id, ...)
 end
 
 ---@class org-roam.database.Database.IterNodesOpts
----@field start_node_id org-roam.database.NodeId
+---@field start_node_id org-roam.database.Id
 ---@field max_nodes? integer
 ---@field max_distance? integer
----@field filter? fun(id:org-roam.database.NodeId, distance:integer):boolean
+---@field filter? fun(id:org-roam.database.Id, distance:integer):boolean
 
 ---Traverses across nodes in the database, returning an iterator of tuples
 ---comprised of traversed node ids and their distance from the starting
@@ -504,7 +504,7 @@ function M:iter_nodes(opts)
     local MAX_DISTANCE = opts.max_distance or math.huge
     local filter = opts.filter or function() return true end
 
-    ---@type table<org-roam.database.NodeId, boolean>
+    ---@type table<org-roam.database.Id, boolean>
     local visited = {}
     local queue = utils.queue({ { opts.start_node_id, 0 } })
     local count = 0
@@ -514,7 +514,7 @@ function M:iter_nodes(opts)
         --       we get a node id and distance to return as the
         --       next iterator value, or the queue becomes empty.
         while count < MAX_NODES and not queue:is_empty() do
-            ---@type org-roam.database.NodeId, integer
+            ---@type org-roam.database.Id, integer
             local id, distance = utils.table.unpack(queue:pop_front())
 
             if distance <= MAX_DISTANCE and not visited[id] and filter(id, distance) then
@@ -536,8 +536,8 @@ end
 ---Finds paths using BFS between the starting and ending nodes, returning
 ---an iterator over lists of node ids representing complete paths from start
 ---to end.
----@param start_node_id org-roam.database.NodeId
----@param end_node_id org-roam.database.NodeId
+---@param start_node_id org-roam.database.Id
+---@param end_node_id org-roam.database.Id
 ---@param opts? {max_distance?:integer}
 ---@return org-roam.utils.Iterator
 function M:iter_paths(start_node_id, end_node_id, opts)
@@ -596,10 +596,10 @@ end
 ---Finds a path using BFS between the starting and ending nodes, returning
 ---the first path found as a list of node ids from start to end, or nil
 ---if no path found.
----@param start_node_id org-roam.database.NodeId
----@param end_node_id org-roam.database.NodeId
+---@param start_node_id org-roam.database.Id
+---@param end_node_id org-roam.database.Id
 ---@param opts? {max_distance?:integer}
----@return org-roam.database.NodeId[]|nil
+---@return org-roam.database.Id[]|nil
 function M:find_path(start_node_id, end_node_id, opts)
     return self:iter_paths(start_node_id, end_node_id, opts):next()
 end
