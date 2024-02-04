@@ -1,4 +1,4 @@
-describe("utils.Iterator", function()
+describe("utils.iterator", function()
     local Iterator = require("org-roam.utils.iterator")
 
     it("should return next item by invoking user-provided function", function()

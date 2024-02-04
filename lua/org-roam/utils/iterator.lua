@@ -85,8 +85,7 @@ function M:next()
     if self:has_next() then
         local results = assert(self.__last, "Has next, but last is nil")
         self.__last = nil
-        results.n = nil
-        return unpack(results)
+        return unpack(results, 1, results.n)
     end
 end
 

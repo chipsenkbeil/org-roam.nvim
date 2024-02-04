@@ -4,6 +4,8 @@
 -- Utilities to do input/output operations.
 -------------------------------------------------------------------------------
 
+local async = require("org-roam.utils.async")
+
 -- 0o644 (rw-r--r--)
 -- Owner can read and write.
 -- Group can read.
@@ -21,25 +23,27 @@ local M = {}
 ---
 ---Accepts options to configure how to wait for writing to finish.
 ---
----    1. timeout:  the milliseconds to wait for writing to finish. Defaults
----                 to waiting forever.
+---    1. time:     the milliseconds to wait for writing to finish.
+---                 Defaults to waiting forever.
 ---    2. interval: the millseconds between attempts to check that writing
 ---                 has finished. Defaults to 200 milliseconds.
 ---@param path string
 ---@param data string|string[]
----@param opts? {timeout?:integer,interval?:integer}
+---@param opts? {time?:integer,interval?:integer}
 ---@return string|nil err
 function M.write_file_sync(path, data, opts)
     opts = opts or {}
 
-    local TIMEOUT = opts.timeout or math.huge
-    local INTERVAL = opts.interval
+    local f = async.wrap(
+        M.write_file,
+        {
+            time = opts.time,
+            interval = opts.interval,
+            n = 2,
+        }
+    )
 
-    local results = { done = false }
-    M.write_file(path, data, function(err)
-    end)
-
-    vim.wait()
+    return f(path, data)
 end
 
 ---Write some data asynchronously to disk, creating the file or overwriting
@@ -73,6 +77,34 @@ function M.write_file(path, data, cb)
             end)
         end)
     end)
+end
+
+---Reads data synchronously to disk.
+---
+---Note: cannot be called within fast callbacks.
+---
+---Accepts options to configure how to wait for writing to finish.
+---
+---    1. time:     the milliseconds to wait for writing to finish.
+---                 Defaults to waiting forever.
+---    2. interval: the millseconds between attempts to check that writing
+---                 has finished. Defaults to 200 milliseconds.
+---@param path string
+---@param opts? {time?:integer,interval?:integer}
+---@return string|nil err, string|nil data
+function M.read_file_sync(path, opts)
+    opts = opts or {}
+
+    local f = async.wrap(
+        M.read_file,
+        {
+            time = opts.time,
+            interval = opts.interval,
+            n = 1,
+        }
+    )
+
+    return f(path)
 end
 
 ---Read some data asynchronously from disk.

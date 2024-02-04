@@ -21,14 +21,18 @@ function M.pack(...)
     end
 end
 
----@param tbl table
----@return ...
-function M.unpack(tbl)
+---@generic T
+---@param list T[]
+---@param i? integer
+---@param j? integer
+---@return T ...
+---@nodiscard
+function M.unpack(list, i, j)
     if type(table.unpack) == "function" then
-        return table.unpack(tbl)
+        return table.unpack(list, i, j)
     else
         ---@diagnostic disable-next-line:undefined-global
-        return unpack(tbl)
+        return unpack(list, i, j)
     end
 end
 
