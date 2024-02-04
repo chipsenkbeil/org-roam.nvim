@@ -1,4 +1,4 @@
-describe("utils.Queue", function()
+describe("utils.queue", function()
     local Queue = require("org-roam.utils.queue")
 
     it("should be empty by default", function()
