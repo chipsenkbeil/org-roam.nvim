@@ -110,46 +110,29 @@ function M:peek_back()
 end
 
 ---Returns an iterator over the queue's contents from front to back.
----
----The iterator returns the next element, and an integer indicating
----the position relative to other queue items. For example, the front
----of the queue would be 1, the next item would be 2, etc.
----
----Once the iterator is finished, subsequent calls will return nil.
----@return fun():any,integer|nil
+---@return org-roam.utils.Iterator
 function M:iter()
     local i = self.__front
     local back = self.__back
-    local pos = 0
 
     -- Keep a reference to the data table (not a full copy)
     local data = self.__data
 
-    return function()
+    local next = function()
         if i <= back then
             local value = data[i]
             i = i + 1
-            pos = pos + 1
-            return value, pos
+            return value
         end
     end
+
+    return require("org-roam.utils.iterator"):new(next, { allow_nil = true })
 end
 
 ---Returns a copy of the queue's contents from front to back as a list.
 ---@return any[]
 function M:contents()
-    local contents = {}
-    local it = self:iter()
-
-    while true do
-        local value, pos = it()
-        if not pos then
-            break
-        end
-        table.insert(contents, value)
-    end
-
-    return contents
+    return self:iter():collect()
 end
 
 return M
