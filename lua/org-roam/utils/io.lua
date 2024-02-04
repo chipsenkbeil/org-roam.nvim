@@ -23,10 +23,10 @@ local M = {}
 ---
 ---Accepts options to configure how to wait for writing to finish.
 ---
----    1. time:     the milliseconds to wait for writing to finish.
----                 Defaults to waiting forever.
----    2. interval: the millseconds between attempts to check that writing
----                 has finished. Defaults to 200 milliseconds.
+---* `time`: the milliseconds to wait for writing to finish.
+---  Defaults to waiting forever.
+---* `interval`: the millseconds between attempts to check that writing
+---  has finished. Defaults to 200 milliseconds.
 ---@param path string
 ---@param data string|string[]
 ---@param opts? {time?:integer,interval?:integer}
@@ -85,10 +85,10 @@ end
 ---
 ---Accepts options to configure how to wait for writing to finish.
 ---
----    1. time:     the milliseconds to wait for writing to finish.
----                 Defaults to waiting forever.
----    2. interval: the millseconds between attempts to check that writing
----                 has finished. Defaults to 200 milliseconds.
+---* `time`: the milliseconds to wait for writing to finish.
+---  Defaults to waiting forever.
+---* `interval`: the millseconds between attempts to check that writing
+---  has finished. Defaults to 200 milliseconds.
 ---@param path string
 ---@param opts? {time?:integer,interval?:integer}
 ---@return string|nil err, string|nil data
@@ -144,6 +144,45 @@ function M.read_file(path, cb)
             end)
         end)
     end)
+end
+
+---Obtains information about the file pointed to by `path`. Read, write, or
+---execute permission of the named file is not required, but all directories
+---listed in the path name leading to the file must be searchable.
+---
+---Note: cannot be called within fast callbacks.
+---
+---Accepts options to configure how to wait for writing to finish.
+---
+---* `time`: the milliseconds to wait for writing to finish.
+---  Defaults to waiting forever.
+---* `interval`: the millseconds between attempts to check that writing
+---  has finished. Defaults to 200 milliseconds.
+---@param path string
+---@param opts? {time?:integer,interval?:integer}
+---@return string|nil err, uv.aliases.fs_stat_table|nil stat
+function M.stat_sync(path, opts)
+    opts = opts or {}
+
+    local f = async.wrap(
+        M.stat,
+        {
+            time = opts.time,
+            interval = opts.interval,
+            n = 1,
+        }
+    )
+
+    return f(path)
+end
+
+---Obtains information about the file pointed to by `path`. Read, write, or
+---execute permission of the named file is not required, but all directories
+---listed in the path name leading to the file must be searchable.
+---@param path string
+---@param cb fun(err:string|nil, stat:uv.aliases.fs_stat_table|nil)
+function M.stat(path, cb)
+    vim.loop.fs_stat(path, cb)
 end
 
 return M

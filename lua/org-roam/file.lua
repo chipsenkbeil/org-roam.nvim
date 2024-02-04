@@ -1,3 +1,5 @@
+local utils = require("org-roam.utils")
+
 -------------------------------------------------------------------------------
 -- FILE.LUA
 --
@@ -104,31 +106,17 @@ function M:checksum(opts)
         -- Clear old checksum
         self.__checksum = nil
 
-        -- Attempt to load file's contents
-        local f, err = io.open(self.__path, "r")
+        local err, data = utils.io.read_file_sync(self.__path)
         if err then
             if opts.strict then
-                error("Failed to open " .. self.__path .. ": " .. err)
+                error(err)
             else
                 return
             end
         end
 
-        ---@type string|nil
-        local contents = assert(f, "Missing file"):read("*a")
-        if not contents then
-            if opts.strict then
-                error("Failed to read " .. self.__path)
-            else
-                return
-            end
-        end
-
-        -- NOTE: For some reason, no matter how I check the content type,
-        --       I still get an error about string|nil, so we are suppressing.
-        --
-        ---@diagnostic disable-next-line: param-type-mismatch
-        self.__checksum = vim.fn.sha256(contents)
+        assert(data, "impossible: missing data")
+        self.__checksum = vim.fn.sha256(data)
     end
 
     return self.__checksum
@@ -146,9 +134,9 @@ function M:mtime(opts)
         self.__mtime = nil
 
         -- Attempt to set new modification time
-        local mtime = vim.fn.getftime(self.__path)
-        if mtime ~= -1 then
-            self.__mtime = mtime
+        local _, stat = utils.io.stat_sync(self.__path)
+        if stat then
+            self.__mtime = stat.mtime.sec
         end
     end
 
