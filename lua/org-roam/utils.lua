@@ -139,4 +139,11 @@ function M.async_write_file(path, contents, cb)
     end)
 end
 
+---Creates a new queue.
+---@param data? any[]
+---@return org-roam.utils.Queue
+function M.queue(data)
+    return require("org-roam.utils.queue"):new(data)
+end
+
 return M

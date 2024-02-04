@@ -1,6 +1,18 @@
 describe("Database", function()
     local Database = require("org-roam.database")
 
+    ---Sorts lists a and b using some comparator and then asserts they are the same.
+    ---NOTE: The comparator must provide a unique ordering for each list.
+    ---@generic T
+    ---@param a T[]
+    ---@param b T[]
+    ---@param cmp fun(a:T, b:T):boolean
+    local function same_lists(a, b, cmp)
+        table.sort(a, cmp)
+        table.sort(b, cmp)
+        assert.same(a, b)
+    end
+
     it("should be able to persist to disk", function()
         local db = Database:new()
 
@@ -277,5 +289,83 @@ describe("Database", function()
         table.sort(expected)
         table.sort(actual)
         assert.same(expected, actual)
+    end)
+
+    it("should support traversal of nodes", function()
+        ---Sorts tuple lists a and b by their id fields and then asserts they are the same.
+        ---@param a {[1]: string, [2]: integer}[]
+        ---@param b {[1]: string, [2]: integer}[]
+        local function same_tuple_lists(a, b)
+            same_lists(a, b, function(x, y) return x[1] < y[1] end)
+        end
+
+        local db = Database:new()
+        local id1 = db:insert("one")
+        local id2 = db:insert("two")
+        local id3 = db:insert("three")
+        local id4 = db:insert("four")
+        local id5 = db:insert("five")
+        local id6 = db:insert("six")
+
+        -- Link up our database of nodes in this way
+        --
+        -- 2 <- 1 -> 3    6
+        --      ^    ^
+        --      |    |
+        --      V    |
+        --      4 -> 5
+        db:link(id1, id2, id3, id4)
+        db:link(id4, id1, id5)
+        db:link(id5, id3)
+
+        -- Traversing on 1 will navigate to all nodes directly and indirectly connected
+        same_tuple_lists({
+            { id1, 0 },
+            { id2, 1 },
+            { id3, 1 },
+            { id4, 1 },
+            { id5, 2 },
+        }, db:traverse({ start_node_id = id1 }))
+
+        -- Traversing on 2 or 3 will only find itself because we do not traverse backlinks
+        same_tuple_lists({ { id2, 0 } }, db:traverse({ start_node_id = id2 }))
+        same_tuple_lists({ { id3, 0 } }, db:traverse({ start_node_id = id3 }))
+
+        -- Traversing on 4 can achieve the same thanks to some bi-directional links
+        same_tuple_lists({
+            { id4, 0 },
+            { id1, 1 },
+            { id5, 1 },
+            { id2, 2 },
+            { id3, 2 },
+        }, db:traverse({ start_node_id = id4 }))
+
+        -- Traversing on 5 will only find nodes it points to and not traverse across backlinks
+        same_tuple_lists({ { id5, 0 }, { id3, 1 } }, db:traverse({ start_node_id = id5 }))
+
+        -- Traversing on 6 will only find itself because there is nothing linked
+        same_tuple_lists({ { id6, 0 } }, db:traverse({ start_node_id = id6 }))
+
+        -- Limiting maximum nodes should exit once that count has been reached
+        same_tuple_lists({ { id1, 0 } }, db:traverse({ start_node_id = id1, max_nodes = 1 }))
+
+        -- Limiting maximum distance should restrict traversal to closer nodes
+        same_tuple_lists({
+            { id1, 0 },
+            { id2, 1 },
+            { id3, 1 },
+            { id4, 1 },
+        }, db:traverse({ start_node_id = id1, max_distance = 1 }))
+
+        -- Filtering should support blocking out traversal to nodes
+        same_tuple_lists({
+            { id1, 0 },
+            { id3, 1 },
+        }, db:traverse({
+            start_node_id = id1,
+            filter = function(id, _)
+                return id ~= id2 and id ~= id4
+            end,
+        }))
     end)
 end)
