@@ -7,6 +7,9 @@
 ---@class org-roam.Utils
 local M = {}
 
+---@type org-roam.utils.IO
+M.io = require("org-roam.utils.io")
+
 ---@param m integer
 ---@param n integer
 ---@return integer
@@ -116,39 +119,6 @@ function M.async_read_file(path, cb)
                         vim.notify(err, vim.log.levels.WARN)
                     end
                 end)
-            end)
-        end)
-    end)
-end
-
----Write some content asynchronously to disk.
----The file is closed asynchronously once the contents have been written.
----@param path string
----@param contents string|string[]
----@param cb fun(err:string|nil)
-function M.async_write_file(path, contents, cb)
-    -- Open or create file with 0o644 (rw-r--r--)
-    vim.loop.fs_open(path, "w", tonumber(644, 8), function(err, fd)
-        if err then
-            cb(err)
-            return
-        end
-
-        assert(fd, "Impossible: file descriptor missing")
-
-        vim.loop.fs_write(fd, contents, -1, function(err)
-            if err then
-                cb(err)
-                return
-            end
-
-            vim.loop.fs_close(fd, function(err)
-                if err then
-                    cb(err)
-                    return
-                end
-
-                cb(nil)
             end)
         end)
     end)
