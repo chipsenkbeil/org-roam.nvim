@@ -117,7 +117,7 @@ function M:insert(node, opts)
 
     -- If we aren't given an id with the node, create one
     if type(id) ~= "string" then
-        id = utils.uuid_v4()
+        id = utils.random.uuid_v4()
     end
 
     -- Perform the actual insertion of the node
@@ -441,7 +441,7 @@ function M:iter_nodes(opts)
         --       next iterator value, or the queue becomes empty.
         while count < MAX_NODES and not queue:is_empty() do
             ---@type org-roam.database.NodeId, integer
-            local id, distance = utils.unpack(queue:pop_front())
+            local id, distance = utils.table.unpack(queue:pop_front())
 
             if distance <= MAX_DISTANCE and not visited[id] and filter(id, distance) then
                 visited[id] = true

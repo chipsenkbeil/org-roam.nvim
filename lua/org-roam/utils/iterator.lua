@@ -4,15 +4,21 @@
 -- Abstraction for an iterator of values.
 -------------------------------------------------------------------------------
 
-local pack = require("org-roam.utils").pack
-local unpack = require("org-roam.utils").unpack
+local pack = require("org-roam.utils.table").pack
+local unpack = require("org-roam.utils.table").unpack
 
 ---@class org-roam.utils.Iterator
 ---@field private __allow_nil boolean
 ---@field private __last {n:integer, [integer]:any}|nil
 ---@field private __next fun():...
-local M = {}
+---@overload fun(f:(fun():...), opts?:{allow_nil?:boolean}):org-roam.utils.Iterator
+local M = setmetatable({}, {
+    __call = function(tbl, ...)
+        return tbl:new(...)
+    end,
+})
 M.__index = M
+
 
 ---Creates a new iterator using the provided function to feed in values.
 ---Once the function returns nothing, the iterator will mark itself finished.

@@ -13,6 +13,18 @@ describe("utils.Iterator", function()
         assert.equals(3, it:next())
     end)
 
+    it("should support being created by calling the class as a function", function()
+        local i = 0
+        local it = Iterator(function()
+            i = i + 1
+            return i
+        end)
+
+        assert.equals(1, it:next())
+        assert.equals(2, it:next())
+        assert.equals(3, it:next())
+    end)
+
     it("should advance the iterator until nothing is returned", function()
         local count = 0
         local it = Iterator:new(function()

@@ -1,22 +1,55 @@
 describe("utils.IO", function()
-    local utils = require("org-roam.utils")
+    local utils_io = require("org-roam.utils.io")
 
-    describe("async_write_file", function()
+    ---Reads contents of a temporary file and then deletes it.
+    ---@param path string
+    ---@param opts? {keep?:boolean}
+    ---@return string
+    local function read_temp_file_sync(path, opts)
+        opts = opts or {}
+        local f = assert(io.open(path, "r"))
+        local data = f:read("*a")
+        f:close()
+
+        if not opts.keep then
+            os.remove(path)
+        end
+
+        return data
+    end
+
+    ---@param ...string|number
+    ---@return string path
+    local function write_temp_file_sync(...)
+        local path = vim.fn.tempname()
+        local f = assert(io.open(path, "w"))
+        f:write(...)
+        f:close()
+        return path
+    end
+
+    describe("read_file", function()
+        it("should fail if file does not exist", function()
+        end)
+
+        it("should read full file's contents", function()
+        end)
+    end)
+
+    describe("write_file", function()
         it("should create a file if none exists", function()
             local error
             local is_done = false
 
             local path = vim.fn.tempname()
-            utils.io.async_write_file(path, "hello world", function(err)
+            utils_io.write_file(path, "hello world", function(err)
                 error = err
                 is_done = true
             end)
 
             vim.wait(10000, function() return is_done end)
 
-            local f = assert(io.open(path, "r"))
-            local contents = f:read("*a")
-            f:close()
+            local contents = read_temp_file_sync(path)
 
             assert.is_nil(error)
             assert.equals("hello world", contents)
@@ -26,21 +59,16 @@ describe("utils.IO", function()
             local error
             local is_done = false
 
-            local path = vim.fn.tempname()
-            local f = assert(io.open(path, "w"))
-            f:write("test")
-            f:close()
+            local path = write_temp_file_sync("test")
 
-            utils.io.async_write_file(path, "hello world", function(err)
+            utils_io.write_file(path, "hello world", function(err)
                 error = err
                 is_done = true
             end)
 
             vim.wait(10000, function() return is_done end)
 
-            f = assert(io.open(path, "r"))
-            local contents = f:read("*a")
-            f:close()
+            local contents = read_temp_file_sync(path)
 
             assert.is_nil(error)
             assert.equals("hello world", contents)

@@ -8,7 +8,12 @@
 ---@field private __front integer #pointer to position of first element
 ---@field private __back integer #pointer to position of last element
 ---@field private __data { [integer]: any }
-local M = {}
+---@overload fun(data?:any[]):org-roam.utils.Queue
+local M = setmetatable({}, {
+    __call = function(tbl, ...)
+        return tbl:new(...)
+    end,
+})
 M.__index = M
 
 ---Creates a new queue.

@@ -7,6 +7,12 @@ describe("utils.Queue", function()
         assert.equals(0, queue:len())
     end)
 
+    it("should support being created by calling the class as a function", function()
+        local queue = Queue()
+        assert.is_true(queue:is_empty())
+        assert.equals(0, queue:len())
+    end)
+
     it("should support being populated from a list", function()
         local queue = Queue:new({ 1, 2, 3 })
         assert.is_false(queue:is_empty())
