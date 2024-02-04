@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 ---@class org-roam.OrgRoam
+---@field db org-roam.core.database.Database
 local M = {}
 
 ---Called to initialize the org-roam plugin.
@@ -20,6 +21,39 @@ function M.setup(opts)
         if not vim.tbl_contains(exclude, key) then
             config[key] = value
         end
+    end
+
+    local notify = require("org-roam.core.ui").notify
+
+    -- Load our database, creating it if it does not exist
+    local Database = require("org-roam.core.database")
+    local File = require("org-roam.core.database.file")
+    local db_path = vim.fn.stdpath("data") .. "/org-roam.nvim/" .. "db.msgpack"
+    if not File:new(db_path):exists() then
+        notify("Creating database", vim.log.levels.INFO, { title = "org-roam" })
+        local db = Database:new()
+
+        notify("Scanning for org files", vim.log.levels.INFO, { title = "org-roam" })
+        -- TODO: Walk through the org-roam directory, parse each file, and add it to the database
+
+        db:write_to_disk(db_path, function(err)
+            if err then
+                notify(err, vim.log.levels.ERROR, { title = "org-roam" })
+                return
+            end
+
+            notify("Database saved to " .. db_path, vim.log.levels.INFO, { title = "org-roam" })
+        end)
+    else
+        notify("Loading database from " .. db_path, vim.log.levels.INFO, { title = "org-roam" })
+        Database:load_from_disk(db_path, function(err, db)
+            if err then
+                notify(err, vim.log.levels.ERROR, { title = "org-roam" })
+                return
+            end
+
+            print(vim.inspect(db))
+        end)
     end
 end
 
