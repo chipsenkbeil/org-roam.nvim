@@ -1,6 +1,10 @@
 * org-roam.nvim
 
-Port of org-roam to neovim using orgmode.
+  Port of org-roam to neovim using orgmode.
+
+  - [[Installation]]
+  - [[Usage]]
+  - [[Developer & Contributor Instructions]]
 
 ** Installation
 
@@ -38,12 +42,12 @@ Port of org-roam to neovim using orgmode.
 
 ** Developer & Contributor Instructions
 
-*** Running tests
-
-   A /makefile/ is provided to support running tests. It will download [[https://github.com/nvim-lua/plenary.nvim][plenary.nvim]]
-   into the /vendor/ directory.
-
-   #+begin_src bash 
-   make test 
-   #+end_src
+*** Running tests <<dev-running-tests>>
  
+    A /makefile/ is provided to support running tests. It will download [[https://github.com/nvim-lua/plenary.nvim][plenary.nvim]]
+    into the /vendor/ directory.
+ 
+    #+begin_src bash 
+    make test 
+    #+end_src
+  
