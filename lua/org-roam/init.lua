@@ -5,7 +5,7 @@
 -------------------------------------------------------------------------------
 
 ---@class org-roam.OrgRoam
----@field db org-roam.core.database.Database
+---@field database org-roam.core.database.Database
 local M = {}
 
 ---Called to initialize the org-roam plugin.
@@ -30,6 +30,10 @@ function M.setup(opts)
     local File = require("org-roam.core.database.file")
     local db_path = vim.fn.stdpath("data") .. "/org-roam.nvim/" .. "db.msgpack"
     if not File:new(db_path):exists() then
+        -- Need to create path to database
+        local plugin_data_dir = vim.fs.dirname(db_path)
+        vim.fn.mkdir(plugin_data_dir, "p")
+
         notify("Creating database", vim.log.levels.INFO)
         local db = Database:new()
 
@@ -43,6 +47,7 @@ function M.setup(opts)
             end
 
             notify("Database saved to " .. db_path, vim.log.levels.INFO)
+            M.database = assert(db, "impossible: database unavailable after loaded")
         end)
     else
         notify("Loading database from " .. db_path, vim.log.levels.INFO)
@@ -52,7 +57,7 @@ function M.setup(opts)
                 return
             end
 
-            print(vim.inspect(db))
+            M.database = assert(db, "impossible: database unavailable after loaded")
         end)
     end
 end
