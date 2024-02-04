@@ -26,6 +26,29 @@ local function string_or(value, default)
     end
 end
 
+---@param value any
+---@param default table
+---@return table
+local function table_or(value, default)
+    if type(value) == "table" then
+        return value
+    else
+        return default
+    end
+end
+
+---@generic T
+---@param value any
+---@param default T[]
+---@return T[]
+local function list_or(value, default)
+    if type(value) == "table" and vim.tbl_islist(value) then
+        return value
+    else
+        return default
+    end
+end
+
 ---@class org-roam.config.Config
 ---
 ---@field org_roam_completion_everywhere org-roam.config.org_roam_completion_everywhere
@@ -69,19 +92,23 @@ M.__index = M
 ---
 ---# List of settings and their default values
 ---
----* `org_roam_completion_everywhere`: *false*
----* `org_roam_dailies_capture_templates`: TODO
----* `org_roam_dailies_directory`: *daily*
----* `org_roam_db_extra_links_elements`: TODO
----* `org_roam_db_extra_links_exclude_keys`: TODO
----* `org_roam_db_update_on_save`: *true*
----* `org_roam_graph_edge_extra_config`: TODO
----* `org_roam_graph_executable`: TODO
----* `org_roam_graph_extra_config`: TODO
----* `org_roam_graph_filetype`: TODO
----* `org_roam_graph_node_extra_config`: TODO
----* `org_roam_graph_viewer`: TODO
----* `org_roam_node_display_template`: TODO
+---* `org_roam_completion_everywhere`:          *false*
+---* `org_roam_dailies_capture_templates`:      `{d = {
+---                                             description = "default",
+---                                             template = "* %?",
+---                                             target = "%<%Y-%m-%d>.org",
+---                                             }}`
+---* `org_roam_dailies_directory`:              *"daily"*
+---* `org_roam_db_extra_links_elements`:        *{}*
+---* `org_roam_db_extra_links_exclude_keys`:    *{}*
+---* `org_roam_db_update_on_save`:              *true*
+---* `org_roam_graph_edge_extra_config`:        *""*
+---* `org_roam_graph_executable`:               *"dot"*
+---* `org_roam_graph_extra_config`:             *""*
+---* `org_roam_graph_filetype`:                 *"svg"*
+---* `org_roam_graph_node_extra_config`:        *""*
+---* `org_roam_graph_viewer`:                   *"firefox"*
+---* `org_roam_node_display_template`:          *"${title}"*
 ---
 ---@param opts org-roam.config.Config.NewOpts
 ---@return org-roam.config.Config
@@ -91,23 +118,43 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
 
+    ---@generic T
+    ---@param name string
+    ---@param f fun(value:any, default:T):T
+    ---@param default T
+    local function set_field(name, f, default)
+        instance[name] = f(opts[name], default)
+    end
+
     -- Set required configuration fields
-    instance.org_roam_directory = opts.org_roam_directory
+    set_field("org_roam_directory", string_or, "")
 
     -- Set optional configuration fields
-    instance.org_roam_completion_everywhere = bool_or(opts.org_roam_completion_everywhere, false)
-    instance.org_roam_dailies_capture_templates = opts.org_roam_dailies_capture_templates
-    instance.org_roam_dailies_directory = string_or(opts.org_roam_dailies_directory, "dailies")
-    instance.org_roam_db_extra_links_elements = opts.org_roam_db_extra_links_elements
-    instance.org_roam_db_extra_links_exclude_keys = opts.org_roam_db_extra_links_exclude_keys
-    instance.org_roam_db_update_on_save = bool_or(opts.org_roam_db_update_on_save, true)
-    instance.org_roam_graph_edge_extra_config = opts.org_roam_graph_edge_extra_config
-    instance.org_roam_graph_executable = opts.org_roam_graph_executable
-    instance.org_roam_graph_extra_config = opts.org_roam_graph_extra_config
-    instance.org_roam_graph_filetype = opts.org_roam_graph_filetype
-    instance.org_roam_graph_node_extra_config = opts.org_roam_graph_node_extra_config
-    instance.org_roam_graph_viewer = opts.org_roam_graph_viewer
-    instance.org_roam_node_display_template = opts.org_roam_node_display_template
+    set_field("org_roam_completion_everywhere", bool_or, false)
+    set_field("org_roam_dailies_capture_templates", table_or, {
+        -- TODO: org-roam uses :target (
+        --       file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n")
+        --
+        --       I don't presently see how to handle `file+head` or the title
+        --       portion, which would get injected once when creating the file,
+        --       can work.
+        d = {
+            description = "default",
+            template = "* %?",
+            target = "%<%Y-%m-%d>.org",
+        }
+    })
+    set_field("org_roam_dailies_directory", string_or, "dailies")
+    set_field("org_roam_db_extra_links_elements", list_or, {})
+    set_field("org_roam_db_extra_links_exclude_keys", list_or, {})
+    set_field("org_roam_db_update_on_save", bool_or, true)
+    set_field("org_roam_graph_edge_extra_config", string_or, "")
+    set_field("org_roam_graph_executable", string_or, "dot")
+    set_field("org_roam_graph_extra_config", string_or, "")
+    set_field("org_roam_graph_filetype", string_or, "svg")
+    set_field("org_roam_graph_node_extra_config", string_or, "")
+    set_field("org_roam_graph_viewer", string_or, "firefox")
+    set_field("org_roam_node_display_template", string_or, "${title}")
 
     return instance
 end
