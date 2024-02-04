@@ -412,7 +412,7 @@ function M:unlink(id, ...)
     return ids
 end
 
----@class org-roam.database.Database.TraverseOpts
+---@class org-roam.database.Database.IterNodesOpts
 ---@field start_node_id org-roam.database.NodeId
 ---@field max_nodes? integer
 ---@field max_distance? integer
@@ -421,9 +421,9 @@ end
 ---Traverses across nodes in the database, returning an iterator of tuples
 ---comprised of traversed node ids and their distance from the starting
 ---node.
----@param opts org-roam.database.Database.TraverseOpts
+---@param opts org-roam.database.Database.IterNodesOpts
 ---@return org-roam.utils.Iterator
-function M:traverse(opts)
+function M:iter_nodes(opts)
     assert(opts and opts.start_node_id, "Missing starting node id")
 
     local MAX_NODES = opts.max_nodes or math.huge
@@ -479,9 +479,6 @@ function M:iter_paths(start_node_id, end_node_id, opts)
     -- we can lookup cycles by key before they occur.
     local queue = utils.queue({ { [start_node_id] = 1, last = start_node_id } })
 
-    -- TODO: Implement find_path to use BFS, building up potential paths in a queue,
-    --       popping off the next path whose last element is checked for children,
-    --       and then for each child if not the end will be appended to a new list
     return utils.iterator(function()
         -- NOTE: While we have a loop, this should only run until we get a
         --       path to return as the next iterator value, or the queue becomes
