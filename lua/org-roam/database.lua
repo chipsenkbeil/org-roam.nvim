@@ -439,7 +439,6 @@ function M:traverse(opts)
     local queue = utils.queue({ { opts.start_node_id, 0 } })
 
     while #nodes < MAX_NODES and not queue:is_empty() do
-        -- Pop off end of queue to avoid reallocating to shirt everything
         ---@type org-roam.database.NodeId, integer
         local id, distance = utils.unpack(queue:pop_front())
 
@@ -469,10 +468,6 @@ function M:find_path(start_node_id, end_node_id, opts)
 
     local MAX_DISTANCE = opts.max_distance or math.huge
 
-    -- TODO: Create an iterator class in utilities that provides a standard interface
-    --       of has_next, next, and collect
-    -- TODO: Rewrite iter on queue to return the iterator
-    -- TODO: Rewrite traverse to return an iterator instead of collecting
     -- TODO: Implement find_path to use BFS, building up potential paths in a queue,
     --       popping off the next path whose last element is checked for children,
     --       and then for each child if not the end will be appended to a new list
