@@ -10,11 +10,17 @@ local M = {}
 ---Called to initialize the org-roam plugin.
 ---@param opts org-roam.core.config.Config.NewOpts
 function M.setup(opts)
-    local Config = require("org-roam.core.config")
-    local config = Config:new(opts)
+    local Instance = require("org-roam.core.config.instance")
+    local instance = Instance:new(opts)
 
-    ---@diagnostic disable-next-line:invisible
-    Config:__set_global(config)
+    -- Merge our configuration options into our global config
+    local config = require("org-roam.core.config")
+    local exclude = { "new", "__index" }
+    for key, value in pairs(instance) do
+        if not vim.tbl_contains(exclude, key) then
+            config[key] = value
+        end
+    end
 end
 
 return M
