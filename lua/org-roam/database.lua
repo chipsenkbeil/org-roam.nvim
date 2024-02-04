@@ -28,7 +28,7 @@ local utils = require("org-roam.utils")
 ---| org-roam.database.IndexKey
 ---| org-roam.database.IndexKey[]
 
----@alias org-roam.database.Indexer fun(node:org-roam.database.Node):org-roam.database.IndexKeys
+---@alias org-roam.database.Indexer fun(node:org-roam.database.Node):(org-roam.database.IndexKeys|nil)
 
 ---@class org-roam.database.Database
 ---@field private __nodes table<org-roam.database.NodeId, org-roam.database.Node>
@@ -413,60 +413,49 @@ function M:unlink(id, ...)
 end
 
 ---@class org-roam.database.Database.TraverseOpts
----@field depth? integer the maximum depth of traversal. 0 means to stop at the root. 1 means ot stop at the immediate connections.
----@field destination? org-roam.database.NodeId id of the node which, once reached, will stop traversing. Paths are built up internally such that only nodes between the root and destination will be returned.
----@field filter? fun(id:org-roam.database.NodeId, depth:integer):boolean function that takes in nodes as they are traversed, returning false if they should be ignored, true if they should be kept.
+---@field start_node_id org-roam.database.NodeId
+---@field max_nodes? integer
+---@field max_distance? integer
+---@field filter? fun(id:org-roam.database.NodeId, distance:integer):boolean
 
----Traverses across nodes in the database.
----@param root org-roam.database.NodeId id of the root/starting node
+---@alias org-roam.database.Database.TraverseList {[1]: org-roam.database.NodeId, [2]: integer}[]
+
+---Traverses across nodes in the database, returning a list of tuples
+---comprised of traversed node ids and their distance from the starting
+---node.
 ---@param opts org-roam.database.Database.TraverseOpts
----@return {[1]: org-roam.database.NodeId, [2]: integer}[]
-function M:traverse(root, opts)
-    assert(opts.depth ~= nil
-        or opts.destination ~= nil
-        or opts.filter ~= nil, "Missing traversal option")
+---@return org-roam.database.Database.TraverseList
+function M:traverse(opts)
+    assert(opts and opts.start_node_id, "Missing starting node id")
 
-    ---@type {[1]: org-roam.database.NodeId, [2]: integer}[]
-    local results = { { root, 0 } }
-    local i = 1 -- Keep track of which result we are traversing
+    local MAX_NODES = opts.max_nodes or math.huge
+    local MAX_DISTANCE = opts.max_distance or math.huge
+    local filter = opts.filter or function() return true end
 
-    while i <= #results do
-        local skip = false
-        local id = results[i][1]
-        local depth = results[i][2]
+    ---@type org-roam.database.Database.TraverseList
+    local nodes = {}
+    ---@type table<org-roam.database.NodeId, boolean>
+    local visited = {}
+    local queue = utils.queue({ { opts.start_node_id, 0 } })
 
-        -- Once we reach the desired depth, we don't traverse anymore
-        if opts.depth and depth >= opts.depth then
-            skip = true
-        end
+    while #nodes < MAX_NODES and not queue:is_empty() do
+        -- Pop off end of queue to avoid reallocating to shirt everything
+        ---@type org-roam.database.NodeId, integer
+        local id, distance = unpack(queue:pop_front())
 
-        -- Otherwise,
+        if distance <= MAX_DISTANCE and not visited[id] and filter(id, distance) then
+            visited[id] = true
+            table.insert(nodes, { id, distance })
 
-        local next = {}
-        for _, id in ipairs(queue) do
-            local skip = false
-
-            -- Check if we have found our node
-            if opts.destination and opts.destination == id then
-                break
-            end
-
-            -- Check if we want to traverse this node
-            if opts.filter and not opts.filter(id, depth) then
-                skip = true
-            end
-
-            -- At this stage, we have visited the node, so add it,
-            -- check if it is our destination, and if not get
-            -- the outbound links to traverse next
-            if not skip then
-                ---@type org-roam.database.NodeId[]
-                local links = vim.tbl_key(self:get_links(id))
+            if distance + 1 <= MAX_DISTANCE then
+                for link_id, _ in pairs(self:get_links(id)) do
+                    queue:push_back({ link_id, distance + 1 })
+                end
             end
         end
     end
 
-    return results
+    return nodes
 end
 
 return M
