@@ -25,6 +25,23 @@ describe("utils.iterator", function()
         assert.equals(3, it:next())
     end)
 
+    it("should support advancing by calling itself (instance only)", function()
+        local i = 0
+        local it = Iterator(function()
+            i = i + 1
+            if i < 4 then
+                return i
+            end
+        end)
+
+        local results = {}
+        for n in it do
+            table.insert(results, n)
+        end
+
+        assert.same({ 1, 2, 3 }, results)
+    end)
+
     it("should advance the iterator until nothing is returned", function()
         local count = 0
         local it = Iterator:new(function()
@@ -130,6 +147,27 @@ describe("utils.iterator", function()
         end)
 
         assert.same({ "num:1", "num:2", "num:3" }, it:collect())
+    end)
+
+    it("should support filtering values", function()
+        local count = 0
+        local it = Iterator:new(function()
+            count = count + 1
+            if count <= 10 then
+                return count
+            end
+        end)
+
+        -- Trigger has_next so we have a cached value
+        -- to verify that filtering after this point
+        -- will still work
+        it:has_next()
+
+        it = it:filter(function(n)
+            return n % 2 == 0
+        end)
+
+        assert.same({ 2, 4, 6, 8, 10 }, it:collect())
     end)
 
     it("should support collecting into a list by repeatedly advancing the iterator", function()

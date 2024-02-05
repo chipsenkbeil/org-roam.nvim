@@ -4,7 +4,11 @@
 -- Utilities to do input/output operations.
 -------------------------------------------------------------------------------
 
+local uv = vim.loop
+
 local async = require("org-roam.core.utils.async")
+local Iterator = require("org-roam.core.utils.iterator")
+local Queue = require("org-roam.core.utils.queue")
 
 -- 0o644 (rw-r--r--)
 -- Owner can read and write.
@@ -12,6 +16,20 @@ local async = require("org-roam.core.utils.async")
 -- Other can read.
 ---@diagnostic disable-next-line:param-type-mismatch
 local DEFAULT_WRITE_PERMISSIONS = tonumber(644, 8)
+
+-- From plenary.nvim, determines the path separator.
+local SEP = (function()
+    if jit then
+        local os = string.lower(jit.os)
+        if os ~= "windows" then
+            return "/"
+        else
+            return "\\"
+        end
+    else
+        return package.config:sub(1, 1)
+    end
+end)()
 
 ---@class org-roam.core.utils.IO
 local M = {}
@@ -53,7 +71,7 @@ end
 ---@param cb fun(err:string|nil)
 function M.write_file(path, data, cb)
     -- Open or create file with 0o644 (rw-r--r--)
-    vim.loop.fs_open(path, "w", DEFAULT_WRITE_PERMISSIONS, function(err, fd)
+    uv.fs_open(path, "w", DEFAULT_WRITE_PERMISSIONS, function(err, fd)
         if err then
             cb(err)
             return
@@ -61,13 +79,13 @@ function M.write_file(path, data, cb)
 
         assert(fd, "Impossible: file descriptor missing")
 
-        vim.loop.fs_write(fd, data, -1, function(err)
+        uv.fs_write(fd, data, -1, function(err)
             if err then
                 cb(err)
                 return
             end
 
-            vim.loop.fs_close(fd, function(err)
+            uv.fs_close(fd, function(err)
                 if err then
                     cb(err)
                     return
@@ -111,7 +129,7 @@ end
 ---@param path string
 ---@param cb fun(err:string|nil, data:string|nil)
 function M.read_file(path, cb)
-    vim.loop.fs_open(path, "r", 0, function(err, fd)
+    uv.fs_open(path, "r", 0, function(err, fd)
         if err then
             cb(err)
             return
@@ -119,7 +137,7 @@ function M.read_file(path, cb)
 
         assert(fd, "Impossible: file descriptor missing")
 
-        vim.loop.fs_fstat(fd, function(err, stat)
+        uv.fs_fstat(fd, function(err, stat)
             if err then
                 cb(err)
                 return
@@ -127,13 +145,13 @@ function M.read_file(path, cb)
 
             assert(stat, "Impossible: file stat missing")
 
-            vim.loop.fs_read(fd, stat.size, 0, function(err, data)
+            uv.fs_read(fd, stat.size, 0, function(err, data)
                 if err then
                     cb(err)
                     return
                 end
 
-                vim.loop.fs_close(fd, function(err)
+                uv.fs_close(fd, function(err)
                     if err then
                         cb(err)
                         return
@@ -182,7 +200,85 @@ end
 ---@param path string
 ---@param cb fun(err:string|nil, stat:uv.aliases.fs_stat_table|nil)
 function M.stat(path, cb)
-    vim.loop.fs_stat(path, cb)
+    uv.fs_stat(path, cb)
+end
+
+---Joins one or more paths together as one.
+---If any path is absolute, it will replace the currently-constructed path.
+---@param ...string
+---@return string path
+function M.join_path(...)
+    local path = ""
+
+    --- From plenary.nvim, determines if the path is absolute.
+    ---@param filename string
+    ---@return boolean
+    local is_absolute = function(filename)
+        if SEP == "\\" then
+            return string.match(filename, "^[%a]:\\.*$") ~= nil
+        end
+        return string.sub(filename, 1, 1) == SEP
+    end
+
+    for _, p in ipairs({ ... }) do
+        if path == "" or is_absolute(p) then
+            path = p
+        else
+            path = path .. SEP .. p
+        end
+    end
+
+    return path
+end
+
+---@alias org-roam.core.utils.io.WalkEntryType
+---|'"file"'
+---|'"directory"'
+---|'"link"'
+---|'"fifo"'
+---|'"socket"'
+---|'"char"'
+---|'"block"'
+---|'"unknown"'
+
+---@class org-roam.core.utils.io.WalkEntry
+---@field name string #entry name, which is path portion within search
+---@field filename string #name stripped down to use filename
+---@field path string #full path to file
+---@field type org-roam.core.utils.io.WalkEntryType
+
+---@class org-roam.core.utils.io.WalkOpts
+---@field depth integer|nil #how deep the traverse (default 1)
+---@field skip (fun(dir_name: string): boolean)|nil #predicate
+
+---Walks the provided `path`, returning an iterator over the entries.
+---
+---Traversal has no guaranteed order, and a directory's contents are
+---fully traversed before entering subdirectories.
+---@param path string
+---@param opts? org-roam.core.utils.io.WalkOpts
+---@return org-roam.core.utils.Iterator
+function M.walk(path, opts)
+    opts = opts or {}
+
+    ---@param name string?
+    ---@param type ("directory"|"file")?
+    ---@return org-roam.core.utils.io.WalkEntry?
+    local function map_entry(name, type)
+        if name and type then
+            return {
+                name     = name,
+                filename = vim.fs.basename(name),
+                path     = M.join_path(path, name),
+                type     = type,
+            }
+        end
+    end
+
+    return Iterator:new(vim.fs.dir(path, {
+        depth = opts.depth,
+        skip = opts.skip,
+    })):map(map_entry)
 end
 
 return M

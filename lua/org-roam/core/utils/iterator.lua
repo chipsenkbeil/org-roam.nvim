@@ -13,12 +13,12 @@ local unpack = require("org-roam.core.utils.table").unpack
 ---@field private __next fun():...
 ---@overload fun(f:(fun():...), opts?:{allow_nil?:boolean}):org-roam.core.utils.Iterator
 local M = setmetatable({}, {
+    ---Class-only implementation to mirror call to `Iterator:new()`.
     __call = function(tbl, ...)
         return tbl:new(...)
     end,
 })
 M.__index = M
-
 
 ---Creates a new iterator using the provided function to feed in values.
 ---Once the function returns nothing, the iterator will mark itself finished.
@@ -44,6 +44,12 @@ function M:new(f, opts)
     instance.__next = f
 
     return instance
+end
+
+---Mirrors call to `Iterator:next()`.
+---@return ...
+function M:__call()
+    return self:next()
 end
 
 ---Checks if the iterator has another value available.
@@ -99,6 +105,23 @@ function M:map(f)
     return M:new(function()
         if self:has_next() then
             return f(self:next())
+        end
+    end, { allow_nil = self.__allow_nil })
+end
+
+---Transforms this iterator by only including values that pass the filter.
+---
+---Note that this does NOT clone the existing iterator and invoking `next`
+---on the created iterator will also advance the existing iterator.
+---@param f fun(...):boolean
+---@return org-roam.core.utils.Iterator
+function M:filter(f)
+    return M:new(function()
+        while self:has_next() do
+            local tbl = pack(self:next())
+            if f(unpack(tbl, 1, tbl.n)) then
+                return unpack(tbl, 1, tbl.n)
+            end
         end
     end, { allow_nil = self.__allow_nil })
 end

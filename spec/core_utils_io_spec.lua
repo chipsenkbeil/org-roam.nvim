@@ -1,11 +1,12 @@
 describe("utils.io", function()
     local utils_io = require("org-roam.core.utils.io")
+    local uv = vim.loop
 
     ---Reads data of a temporary file and then deletes it.
     ---@param path string
     ---@param opts? {keep?:boolean}
     ---@return string
-    local function read_temp_file_sync(path, opts)
+    local function read_temp_file(path, opts)
         opts = opts or {}
         local f = assert(io.open(path, "r"))
         local data = f:read("*a")
@@ -18,13 +19,35 @@ describe("utils.io", function()
         return data
     end
 
+    ---@param path string
     ---@param ...string|number
     ---@return string path
-    local function write_temp_file_sync(...)
-        local path = vim.fn.tempname()
+    local function write_temp_file(path, ...)
         local f = assert(io.open(path, "w"))
         f:write(...)
         f:close()
+        return path
+    end
+
+    ---@param ...string|number
+    ---@return string path
+    local function create_temp_file(...)
+        local path = vim.fn.tempname()
+        write_temp_file(path, ...)
+        return path
+    end
+
+    ---Creates a new temporary directory.
+    ---@param ...string
+    ---@return string path
+    local function create_temp_dir(...)
+        local tempname = vim.fn.tempname()
+        local root = vim.fs.dirname(tempname)
+        local filename = "temp-" .. vim.fs.basename(tempname)
+
+        local name = utils_io.join_path(...)
+        local path = utils_io.join_path(root, name ~= "" and name or filename)
+        assert(vim.fn.mkdir(path, "p"), "Failed to create " .. path)
         return path
     end
 
@@ -37,7 +60,7 @@ describe("utils.io", function()
         end)
 
         it("should read full file's data", function()
-            local path = write_temp_file_sync("hello world")
+            local path = create_temp_file("hello world")
             local err, data = utils_io.read_file_sync(path)
             assert.is_nil(err)
             assert.equals("hello world", data)
@@ -66,7 +89,7 @@ describe("utils.io", function()
             local error, data
             local is_done = false
 
-            local path = write_temp_file_sync("hello world")
+            local path = create_temp_file("hello world")
             utils_io.read_file(path, function(err, d)
                 error = err
                 data = d
@@ -87,17 +110,17 @@ describe("utils.io", function()
             local err = utils_io.write_file_sync(path, "hello world")
             assert.is_nil(err)
 
-            local data = read_temp_file_sync(path)
+            local data = read_temp_file(path)
             assert.equals("hello world", data)
         end)
 
         it("should overwrite a file if it exists", function()
-            local path = write_temp_file_sync("test")
+            local path = create_temp_file("test")
 
             local err = utils_io.write_file_sync(path, "hello world")
             assert.is_nil(err)
 
-            local data = read_temp_file_sync(path)
+            local data = read_temp_file(path)
             assert.equals("hello world", data)
         end)
     end)
@@ -115,7 +138,7 @@ describe("utils.io", function()
 
             vim.wait(10000, function() return is_done end)
 
-            local data = read_temp_file_sync(path)
+            local data = read_temp_file(path)
 
             assert.is_nil(error)
             assert.equals("hello world", data)
@@ -125,7 +148,7 @@ describe("utils.io", function()
             local error
             local is_done = false
 
-            local path = write_temp_file_sync("test")
+            local path = create_temp_file("test")
 
             utils_io.write_file(path, "hello world", function(err)
                 error = err
@@ -134,7 +157,7 @@ describe("utils.io", function()
 
             vim.wait(10000, function() return is_done end)
 
-            local data = read_temp_file_sync(path)
+            local data = read_temp_file(path)
 
             assert.is_nil(error)
             assert.equals("hello world", data)
@@ -150,7 +173,7 @@ describe("utils.io", function()
         end)
 
         it("should retrieve information about the file at path", function()
-            local path = write_temp_file_sync("test")
+            local path = create_temp_file("test")
             local err, stat = utils_io.stat_sync(path)
             assert.is_nil(err)
             assert.is_not_nil(stat) ---@cast stat -nil
@@ -184,7 +207,7 @@ describe("utils.io", function()
             local error, stat
             local is_done = false
 
-            local path = write_temp_file_sync("test")
+            local path = create_temp_file("test")
             utils_io.stat(path, function(err, s)
                 error = err
                 stat = s
@@ -200,6 +223,90 @@ describe("utils.io", function()
             -- which in this case is validating the modification time
             local expected = vim.fn.getftime(path)
             assert.equals(expected, stat.mtime.sec)
+        end)
+    end)
+
+    describe("join_path", function()
+        it("should return empty string if no arguments provided", function()
+            assert.equals("", utils_io.join_path())
+        end)
+
+        it("should combine paths using system separator", function()
+            local sep = string.lower(vim.trim(uv.os_uname().sysname)) == "windows"
+                and "\\" or "/"
+
+            assert.equals(
+                "path" .. sep .. "to" .. sep .. "file",
+                utils_io.join_path("path", "to", "file")
+            )
+        end)
+
+        it("should replace ongoing path with absolute path provided", function()
+            local sep = string.lower(vim.trim(uv.os_uname().sysname)) == "windows"
+                and "\\" or "/"
+
+            assert.equals(
+                sep .. "to" .. sep .. "file",
+                utils_io.join_path("path", sep .. "to", "file")
+            )
+        end)
+    end)
+
+    describe("walk", function()
+        it("should return an iterator over directory entries", function()
+            local join = utils_io.join_path
+
+            -- /root
+            -- /root/dir1
+            -- /root/dir1/file1
+            -- /root/dir1/file2
+            -- /root/dir2
+            local root = create_temp_dir()
+            local dir1 = create_temp_dir(root, "dir1")
+            local file1 = write_temp_file(join(dir1, "file1"), "hello")
+            local file2 = write_temp_file(join(dir1, "file2"), "world")
+            local dir2 = create_temp_dir(root, "dir2")
+
+            -- Get everything by using `math.huge` as depth limit
+            local entries = utils_io.walk(root, { depth = math.huge }):collect()
+            table.sort(entries, function(a, b)
+                ---@cast a org-roam.core.utils.io.WalkEntry
+                ---@cast b org-roam.core.utils.io.WalkEntry
+                return a.path < b.path
+            end)
+            assert.same({
+                { filename = "dir1",  name = "dir1",                path = dir1,  type = "directory" },
+                { filename = "file1", name = join("dir1", "file1"), path = file1, type = "file" },
+                { filename = "file2", name = join("dir1", "file2"), path = file2, type = "file" },
+                { filename = "dir2",  name = "dir2",                path = dir2,  type = "directory" },
+            }, entries)
+        end)
+
+        it("should limit entries no deeper than the depth specified", function()
+            local join = utils_io.join_path
+
+            -- /root
+            -- /root/dir1
+            -- /root/dir1/file1
+            -- /root/dir1/file2
+            -- /root/dir2
+            local root = create_temp_dir()
+            local dir1 = create_temp_dir(root, "dir1")
+            write_temp_file(join(dir1, "file1"), "hello")
+            write_temp_file(join(dir1, "file2"), "world")
+            local dir2 = create_temp_dir(root, "dir2")
+
+            -- Limit depth to 1 so we just get directories
+            local entries = utils_io.walk(root, { depth = 1 }):collect()
+            table.sort(entries, function(a, b)
+                ---@cast a org-roam.core.utils.io.WalkEntry
+                ---@cast b org-roam.core.utils.io.WalkEntry
+                return a.path < b.path
+            end)
+            assert.same({
+                { filename = "dir1", name = "dir1", path = dir1, type = "directory" },
+                { filename = "dir2", name = "dir2", path = dir2, type = "directory" },
+            }, entries)
         end)
     end)
 end)
