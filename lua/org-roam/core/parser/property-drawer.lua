@@ -30,4 +30,27 @@ function M:new(opts)
     return instance
 end
 
+---Finds the property with the specified name, returning its value.
+---@param name string
+---@param opts? {case_insensitive?:boolean}
+---@return string|nil
+function M:find(name, opts)
+    opts = opts or {}
+
+    if opts.case_insensitive then
+        name = string.lower(name)
+    end
+
+    for _, property in ipairs(self.properties) do
+        local prop_name = vim.trim(property.name:text())
+        if opts.case_insensitive then
+            prop_name = string.lower(prop_name)
+        end
+
+        if name == prop_name then
+            return vim.trim(property.value:text())
+        end
+    end
+end
+
 return M

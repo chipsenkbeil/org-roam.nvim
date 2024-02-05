@@ -29,6 +29,22 @@ function M:new(start, end_)
     return instance
 end
 
+---Returns total bytes represented by the range.
+---@return integer
+function M:size()
+    return self.end_.offset - self.start.offset + 1
+end
+
+---Returns true if the `range` will fit within this range.
+---@param range org-roam.core.parser.Range
+---@return boolean
+function M:contains(range)
+    return (
+        self.start.offset <= range.start.offset
+        and self.end_.offset >= range.end_.offset
+    )
+end
+
 ---Creates a range from a treesitter node.
 ---@param node TSNode
 ---@return org-roam.core.parser.Range
