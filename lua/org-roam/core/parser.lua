@@ -28,6 +28,7 @@ local QUERY_CAPTURE_TYPES = {
     TOP_LEVEL_PROPERTY_DRAWER              = "top-level-drawer",
     TOP_LEVEL_PROPERTY_DRAWER_NAME         = "top-level-drawer-name",
     TOP_LEVEL_PROPERTY_DRAWER_CONTENTS     = "top-level-drawer-contents",
+    SECTION                                = "section",
     SECTION_PROPERTY_DRAWER_HEADLINE       = "property-drawer-headline",
     SECTION_PROPERTY_DRAWER_HEADLINE_STARS = "property-drawer-headline-stars",
     SECTION_PROPERTY_DRAWER_HEADLINE_TAGS  = "property-drawer-headline-tags",
@@ -253,24 +254,19 @@ function M.parse(contents)
     --       https://github.com/nvim-orgmode/orgmode/blob/master/queries/org/markup.scm
     ---@type Query
     local query = vim.treesitter.query.parse("org", [=[
-        (
-            (drawer
-                name: (expr) @top-level-drawer-name
-                contents: (contents) @top-level-drawer-contents) @top-level-drawer
-            (#eq? @top-level-drawer-name "PROPERTIES")
-        )
+        ((drawer
+            name: (expr) @top-level-drawer-name
+            contents: (contents) @top-level-drawer-contents) @top-level-drawer
+            (#eq? @top-level-drawer-name "PROPERTIES"))
         (section
             (headline
                 stars: (stars) @property-drawer-headline-stars
                 tags: ((tag_list)? @property-drawer-headline-tags)) @property-drawer-headline
-            (property_drawer) @property-drawer
-        )
-        (
-            (directive
-                name: (expr) @directive-name
-                value: (value) @directive-value)
-            (#org-roam-eq-case-insensitive? @directive-name "filetags")
-        )
+            (property_drawer) @property-drawer) @section
+        ((directive
+            name: (expr) @directive-name
+            value: (value) @directive-value)
+            (#org-roam-eq-case-insensitive? @directive-name "filetags"))
         [
             (paragraph
                 ((expr "[" @hyperlink.start . "[" _) (expr _ "]" . "]" @hyperlink.end)
@@ -376,7 +372,10 @@ function M.parse(contents)
                 for id, node in pairs(match) do
                     local name = query.captures[id]
 
-                    if name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_HEADLINE then
+                    if name == QUERY_CAPTURE_TYPES.SECTION then
+                        -- TODO: The below, but also we need to figure out for top-level property drawer....
+                        error("TODO: store something about a section so we can map links to property nodes")
+                    elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_HEADLINE then
                         heading_range = Range:from_node(node)
                     elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_HEADLINE_STARS then
                         local stars = vim.treesitter.get_node_text(node, ref.value)
