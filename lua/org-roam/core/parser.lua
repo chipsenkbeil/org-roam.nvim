@@ -11,6 +11,7 @@ local PropertyDrawer      = require("org-roam.core.parser.property-drawer")
 local Property            = require("org-roam.core.parser.property")
 local Range               = require("org-roam.core.parser.range")
 local Ref                 = require("org-roam.core.parser.ref")
+local Section             = require("org-roam.core.parser.section")
 local Slice               = require("org-roam.core.parser.slice")
 
 local utils               = require("org-roam.core.utils")
@@ -44,6 +45,7 @@ local QUERY_CAPTURE_TYPES = {
 ---@class org-roam.core.parser.File
 ---@field filetags string[]
 ---@field drawers org-roam.core.parser.PropertyDrawer[]
+---@field sections org-roam.core.parser.Section[]
 ---@field links org-roam.core.parser.Link[]
 
 ---@class org-roam.core.parser
@@ -296,7 +298,7 @@ function M.parse(contents)
     ]=])
 
     ---@type org-roam.core.parser.File
-    local file = { drawers = {}, filetags = {}, links = {} }
+    local file = { drawers = {}, sections = {}, filetags = {}, links = {} }
     for _, tree in ipairs(trees) do
         ---@diagnostic disable-next-line:missing-parameter
         for pattern, match, _ in query:iter_matches(tree:root(), ref.value) do
@@ -364,6 +366,7 @@ function M.parse(contents)
                 local heading_range
                 local heading_stars
                 local heading_tag_list
+                local section_range
 
                 -- TODO: Due to https://github.com/neovim/neovim/issues/17060, we cannot use iter_matches
                 --       with a quantification using + in our query as the multiple node matches do not
@@ -373,8 +376,7 @@ function M.parse(contents)
                     local name = query.captures[id]
 
                     if name == QUERY_CAPTURE_TYPES.SECTION then
-                        -- TODO: The below, but also we need to figure out for top-level property drawer....
-                        error("TODO: store something about a section so we can map links to property nodes")
+                        section_range = Range:from_node(node)
                     elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_HEADLINE then
                         heading_range = Range:from_node(node)
                     elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_HEADLINE_STARS then
@@ -420,11 +422,14 @@ function M.parse(contents)
                     heading = Heading:new(heading_range, heading_stars, heading_tag_list)
                 end
 
-                table.insert(file.drawers, PropertyDrawer:new({
-                    range = range,
-                    properties = properties,
-                    heading = heading,
-                }))
+                table.insert(file.sections, Section:new(
+                    assert(section_range, "impossible: failed to find section range"),
+                    PropertyDrawer:new({
+                        range = range,
+                        properties = properties,
+                        heading = heading,
+                    })
+                ))
             elseif pattern == QUERY_TYPES.FILETAGS then
                 for id, node in pairs(match) do
                     local name = query.captures[id]
