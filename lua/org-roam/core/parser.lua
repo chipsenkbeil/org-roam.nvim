@@ -45,7 +45,7 @@ local QUERY_CAPTURE_TYPES = {
 ---@field drawers org-roam.core.parser.PropertyDrawer[]
 ---@field links org-roam.core.parser.Link[]
 
----@class org-roam.core.Parser
+---@class org-roam.core.parser
 ---@field private __is_initialized boolean
 local M                   = {
     __is_initialized = false,
@@ -514,7 +514,7 @@ end
 ---@param path string
 ---@param cb fun(err:string|nil, file:org-roam.core.parser.File|nil)
 function M.parse_file(path, cb)
-    utils.async_read_file(path, function(err, contents)
+    utils.io.read_file(path, function(err, contents)
         cb(err, contents and M.parse(contents))
     end)
 end
