@@ -7,22 +7,28 @@
 ---@class org-roam.core.parser.Heading
 ---@field range org-roam.core.parser.Range
 ---@field stars integer
+---@field item? org-roam.core.parser.Slice
 ---@field tags? org-roam.core.parser.Slice
 local M = {}
 M.__index = M
 
+---@class org-roam.core.parser.Heading.NewOpts
+---@field range org-roam.core.parser.Range
+---@field stars integer
+---@field item org-roam.core.parser.Slice|nil
+---@field tags org-roam.core.parser.Slice|nil
+
 ---Creates a new heading.
----@param range org-roam.core.parser.Range
----@param stars integer
----@param tags org-roam.core.parser.Slice|nil
+---@param opts org-roam.core.parser.Heading.NewOpts
 ---@return org-roam.core.parser.Heading
-function M:new(range, stars, tags)
+function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
 
-    instance.range = range
-    instance.stars = stars
-    instance.tags = tags
+    instance.range = opts.range
+    instance.stars = opts.stars
+    instance.item = opts.item
+    instance.tags = opts.tags
 
     return instance
 end

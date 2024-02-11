@@ -32,6 +32,7 @@ local TEST_ORG_CONTENTS = vim.trim([=[
   :END:
 
 #+FILETAGS: :a:b:c:
+#+TITLE: some title
 ]=])
 
 describe("Parser", function()
@@ -40,12 +41,14 @@ describe("Parser", function()
   it("should parse an org file correctly", function()
     local output = Parser.parse(TEST_ORG_CONTENTS)
 
+    -- Verify that we have the title parsed if specified
+    assert.equals("some title", output.title)
+
     -------------------------------
     -- TOP-LEVEL PROPERTY DRAWER --
     -------------------------------
 
     -- Check our top-level property drawer
-    assert.is_nil(output.drawers[1].heading)
     assert.equals(2, #output.drawers[1].properties)
 
     -- Check position of first property
@@ -104,65 +107,65 @@ describe("Parser", function()
     assert.equals(12, output.drawers[1].properties[2].value:end_column())
     assert.equals(62, output.drawers[1].properties[2].value:end_byte_offset())
 
-    ------------------------------
-    -- HEADLINE PROPERTY DRAWER --
-    ------------------------------
+    --------------------------------------
+    -- SECTION HEADLINE PROPERTY DRAWER --
+    --------------------------------------
 
     -- Check position of first property
-    assert.equals(12, output.drawers[2].properties[1].range.start.row)
-    assert.equals(2, output.drawers[2].properties[1].range.start.column)
-    assert.equals(143, output.drawers[2].properties[1].range.start.offset)
-    assert.equals(12, output.drawers[2].properties[1].range.end_.row)
-    assert.equals(10, output.drawers[2].properties[1].range.end_.column)
-    assert.equals(151, output.drawers[2].properties[1].range.end_.offset)
+    assert.equals(12, output.sections[1].property_drawer.properties[1].range.start.row)
+    assert.equals(2, output.sections[1].property_drawer.properties[1].range.start.column)
+    assert.equals(143, output.sections[1].property_drawer.properties[1].range.start.offset)
+    assert.equals(12, output.sections[1].property_drawer.properties[1].range.end_.row)
+    assert.equals(10, output.sections[1].property_drawer.properties[1].range.end_.column)
+    assert.equals(151, output.sections[1].property_drawer.properties[1].range.end_.offset)
 
     -- Check the position of the first name (all should be zero-based)
-    assert.equals("ID", output.drawers[2].properties[1].name:text())
-    assert.equals("ID", output.drawers[2].properties[1].name:text({ refresh = true }))
-    assert.equals(12, output.drawers[2].properties[1].name:start_row())
-    assert.equals(3, output.drawers[2].properties[1].name:start_column())
-    assert.equals(144, output.drawers[2].properties[1].name:start_byte_offset())
-    assert.equals(12, output.drawers[2].properties[1].name:end_row())
-    assert.equals(4, output.drawers[2].properties[1].name:end_column())
-    assert.equals(145, output.drawers[2].properties[1].name:end_byte_offset())
+    assert.equals("ID", output.sections[1].property_drawer.properties[1].name:text())
+    assert.equals("ID", output.sections[1].property_drawer.properties[1].name:text({ refresh = true }))
+    assert.equals(12, output.sections[1].property_drawer.properties[1].name:start_row())
+    assert.equals(3, output.sections[1].property_drawer.properties[1].name:start_column())
+    assert.equals(144, output.sections[1].property_drawer.properties[1].name:start_byte_offset())
+    assert.equals(12, output.sections[1].property_drawer.properties[1].name:end_row())
+    assert.equals(4, output.sections[1].property_drawer.properties[1].name:end_column())
+    assert.equals(145, output.sections[1].property_drawer.properties[1].name:end_byte_offset())
 
     -- Check the position of the first value (all should be zero-based)
-    assert.equals("5678", output.drawers[2].properties[1].value:text())
-    assert.equals("5678", output.drawers[2].properties[1].value:text({ refresh = true }))
-    assert.equals(12, output.drawers[2].properties[1].value:start_row())
-    assert.equals(7, output.drawers[2].properties[1].value:start_column())
-    assert.equals(148, output.drawers[2].properties[1].value:start_byte_offset())
-    assert.equals(12, output.drawers[2].properties[1].value:end_row())
-    assert.equals(10, output.drawers[2].properties[1].value:end_column())
-    assert.equals(151, output.drawers[2].properties[1].value:end_byte_offset())
+    assert.equals("5678", output.sections[1].property_drawer.properties[1].value:text())
+    assert.equals("5678", output.sections[1].property_drawer.properties[1].value:text({ refresh = true }))
+    assert.equals(12, output.sections[1].property_drawer.properties[1].value:start_row())
+    assert.equals(7, output.sections[1].property_drawer.properties[1].value:start_column())
+    assert.equals(148, output.sections[1].property_drawer.properties[1].value:start_byte_offset())
+    assert.equals(12, output.sections[1].property_drawer.properties[1].value:end_row())
+    assert.equals(10, output.sections[1].property_drawer.properties[1].value:end_column())
+    assert.equals(151, output.sections[1].property_drawer.properties[1].value:end_byte_offset())
 
     -- Check position of second property
-    assert.equals(13, output.drawers[2].properties[2].range.start.row)
-    assert.equals(2, output.drawers[2].properties[2].range.start.column)
-    assert.equals(155, output.drawers[2].properties[2].range.start.offset)
-    assert.equals(13, output.drawers[2].properties[2].range.end_.row)
-    assert.equals(14, output.drawers[2].properties[2].range.end_.column)
-    assert.equals(167, output.drawers[2].properties[2].range.end_.offset)
+    assert.equals(13, output.sections[1].property_drawer.properties[2].range.start.row)
+    assert.equals(2, output.sections[1].property_drawer.properties[2].range.start.column)
+    assert.equals(155, output.sections[1].property_drawer.properties[2].range.start.offset)
+    assert.equals(13, output.sections[1].property_drawer.properties[2].range.end_.row)
+    assert.equals(14, output.sections[1].property_drawer.properties[2].range.end_.column)
+    assert.equals(167, output.sections[1].property_drawer.properties[2].range.end_.offset)
 
     -- Check the position of the second name (all should be zero-based)
-    assert.equals("OTHER", output.drawers[2].properties[2].name:text())
-    assert.equals("OTHER", output.drawers[2].properties[2].name:text({ refresh = true }))
-    assert.equals(13, output.drawers[2].properties[2].name:start_row())
-    assert.equals(3, output.drawers[2].properties[2].name:start_column())
-    assert.equals(156, output.drawers[2].properties[2].name:start_byte_offset())
-    assert.equals(13, output.drawers[2].properties[2].name:end_row())
-    assert.equals(7, output.drawers[2].properties[2].name:end_column())
-    assert.equals(160, output.drawers[2].properties[2].name:end_byte_offset())
+    assert.equals("OTHER", output.sections[1].property_drawer.properties[2].name:text())
+    assert.equals("OTHER", output.sections[1].property_drawer.properties[2].name:text({ refresh = true }))
+    assert.equals(13, output.sections[1].property_drawer.properties[2].name:start_row())
+    assert.equals(3, output.sections[1].property_drawer.properties[2].name:start_column())
+    assert.equals(156, output.sections[1].property_drawer.properties[2].name:start_byte_offset())
+    assert.equals(13, output.sections[1].property_drawer.properties[2].name:end_row())
+    assert.equals(7, output.sections[1].property_drawer.properties[2].name:end_column())
+    assert.equals(160, output.sections[1].property_drawer.properties[2].name:end_byte_offset())
 
     -- Check the position of the second value (all should be zero-based)
-    assert.equals("world", output.drawers[2].properties[2].value:text())
-    assert.equals("world", output.drawers[2].properties[2].value:text({ refresh = true }))
-    assert.equals(13, output.drawers[2].properties[2].value:start_row())
-    assert.equals(10, output.drawers[2].properties[2].value:start_column())
-    assert.equals(163, output.drawers[2].properties[2].value:start_byte_offset())
-    assert.equals(13, output.drawers[2].properties[2].value:end_row())
-    assert.equals(14, output.drawers[2].properties[2].value:end_column())
-    assert.equals(167, output.drawers[2].properties[2].value:end_byte_offset())
+    assert.equals("world", output.sections[1].property_drawer.properties[2].value:text())
+    assert.equals("world", output.sections[1].property_drawer.properties[2].value:text({ refresh = true }))
+    assert.equals(13, output.sections[1].property_drawer.properties[2].value:start_row())
+    assert.equals(10, output.sections[1].property_drawer.properties[2].value:start_column())
+    assert.equals(163, output.sections[1].property_drawer.properties[2].value:start_byte_offset())
+    assert.equals(13, output.sections[1].property_drawer.properties[2].value:end_row())
+    assert.equals(14, output.sections[1].property_drawer.properties[2].value:end_column())
+    assert.equals(167, output.sections[1].property_drawer.properties[2].value:end_byte_offset())
 
     ----------------------------------------
     -- HEADLINE PROPERTY DRAWER WITH TAGS --
@@ -170,10 +173,10 @@ describe("Parser", function()
 
     -- NOTE: I'm lazy, so we're just checking a couple of specifics here
     --       since we've already tested ranges earlier for drawers.
-    assert.equals("ID", output.drawers[3].properties[1].name:text())
-    assert.equals("9999", output.drawers[3].properties[1].value:text())
-    assert.equals(":tag1:tag2:", output.drawers[3].heading.tags:text())
-    assert.same({ "tag1", "tag2" }, output.drawers[3].heading:tag_list())
+    assert.equals("ID", output.sections[2].property_drawer.properties[1].name:text())
+    assert.equals("9999", output.sections[2].property_drawer.properties[1].value:text())
+    assert.equals(":tag1:tag2:", output.sections[2].heading.tags:text())
+    assert.same({ "tag1", "tag2" }, output.sections[2].heading:tag_list())
 
     ------------------------
     -- FILETAGS DIRECTIVE --
