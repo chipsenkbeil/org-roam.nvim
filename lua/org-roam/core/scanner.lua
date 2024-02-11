@@ -42,24 +42,20 @@ function M.scan(path, cb)
                         local id = drawer:find("id", { case_insensitive = true })
 
                         if id then
-                            local aliases = drawer:find("ROAM_ALIASES", {
+                            local aliases_text = drawer:find("ROAM_ALIASES", {
                                 case_insensitive = true,
                             })
 
-                            if aliases then
-                                -- TODO: Write logic to parse aliases, and general org text
-                                --
-                                -- a b c would be three separate aliases
-                                -- "a b c" would be a single alias
-                                -- a "b c" d would be three separate aliases
-                            end
+                            local aliases = aliases_text
+                                and utils.parser.parse_property_value(aliases_text)
+                                or {}
 
                             file_node = Node:new({
                                 range = nil,
                                 id = id,
                                 file = entry.path,
-                                --title = "", -- TODO: get #+title directive
-                                aliases = {},
+                                title = file.title,
+                                aliases = aliases,
                                 tags = vim.deepcopy(file.filetags),
                                 level = 0,
                                 linked = {},
@@ -77,28 +73,24 @@ function M.scan(path, cb)
                         })
 
                         if id then
-                            local heading = section.property_drawer.heading
-                            local aliases = section.property_drawer:find("ROAM_ALIASES", {
+                            local heading = section.heading
+                            local aliases_text = section.property_drawer:find("ROAM_ALIASES", {
                                 case_insensitive = true,
                             })
 
-                            if aliases then
-                                -- TODO: Write logic to parse aliases, and general org text
-                                --
-                                -- a b c would be three separate aliases
-                                -- "a b c" would be a single alias
-                                -- a "b c" d would be three separate aliases
-                            end
+                            local aliases = aliases_text
+                                and utils.parser.parse_property_value(aliases_text)
+                                or {}
 
                             table.insert(section_nodes, {
                                 section.range,
                                 Node:new({
                                     id = id,
                                     file = entry.path,
-                                    --title = "", -- TODO: Parse heading content
-                                    aliases = {},
+                                    title = vim.trim(heading.item:text()),
+                                    aliases = aliases,
                                     tags = vim.deepcopy(file.filetags),
-                                    level = heading and heading.stars,
+                                    level = heading.stars,
                                     linked = {},
                                 })
                             })
@@ -106,8 +98,10 @@ function M.scan(path, cb)
                     end
 
                     -- Figure out which node contains the link
-                    -- NOTE: We are doing a naive scan here, so performance
-                    --       is going to suck.
+                    -- TODO: We are doing a naive scan here, so performance
+                    --       is going to suck. We should revisit to make
+                    --       this better down the line. Maybe sort by
+                    --       range size.
                     for _, link in ipairs(file.links) do
                         -- Look through ALL of our section nodes to find
                         -- the closest based on size. If none contain,

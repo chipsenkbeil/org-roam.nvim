@@ -21,7 +21,8 @@ local QUERY_TYPES         = {
     TOP_LEVEL_PROPERTY_DRAWER = 1,
     SECTION_PROPERTY_DRAWER = 2,
     FILETAGS = 3,
-    REGULAR_LINK = 4,
+    TITLE = 4,
+    REGULAR_LINK = 5,
 }
 
 ---@enum org-roam.core.parser.QueryCaptureTypes
@@ -33,6 +34,7 @@ local QUERY_CAPTURE_TYPES = {
     SECTION_PROPERTY_DRAWER_HEADLINE       = "property-drawer-headline",
     SECTION_PROPERTY_DRAWER_HEADLINE_STARS = "property-drawer-headline-stars",
     SECTION_PROPERTY_DRAWER_HEADLINE_TAGS  = "property-drawer-headline-tags",
+    SECTION_PROPERTY_DRAWER_HEADLINE_ITEM  = "property-drawer-headline-item",
     SECTION_PROPERTY_DRAWER                = "property-drawer",
     SECTION_PROPERTY_DRAWER_PROPERTY       = "property",
     SECTION_PROPERTY_DRAWER_PROPERTY_NAME  = "property-name",
@@ -43,6 +45,7 @@ local QUERY_CAPTURE_TYPES = {
 }
 
 ---@class org-roam.core.parser.File
+---@field title string|nil
 ---@field filetags string[]
 ---@field drawers org-roam.core.parser.PropertyDrawer[]
 ---@field sections org-roam.core.parser.Section[]
@@ -263,12 +266,17 @@ function M.parse(contents)
         (section
             (headline
                 stars: (stars) @property-drawer-headline-stars
-                tags: ((tag_list)? @property-drawer-headline-tags)) @property-drawer-headline
+                tags: ((tag_list)? @property-drawer-headline-tags)
+                item: ((item)? @property-drawer-headline-item)) @property-drawer-headline
             (property_drawer) @property-drawer) @section
         ((directive
             name: (expr) @directive-name
             value: (value) @directive-value)
             (#org-roam-eq-case-insensitive? @directive-name "filetags"))
+        ((directive
+            name: (expr) @directive-name
+            value: (value) @directive-value)
+            (#org-roam-eq-case-insensitive? @directive-name "title"))
         [
             (paragraph
                 ((expr "[" @hyperlink.start . "[" _) (expr _ "]" . "]" @hyperlink.end)
@@ -313,7 +321,7 @@ function M.parse(contents)
             --
             -- 3. Directive: this shows up when we find a directive anywhere
             --               within the contents. Currently, we limit
-            --               the match to be a filetags directive.
+            --               the match to be a filetags and title directives.
             --
             -- 4. Regular Link: this shows up when we find a regular link.
             --                  Angle, plain, and radio links do not match.
@@ -365,6 +373,7 @@ function M.parse(contents)
                 local properties = {}
                 local heading_range
                 local heading_stars
+                local heading_item
                 local heading_tag_list
                 local section_range
 
@@ -390,6 +399,13 @@ function M.parse(contents)
                             ref,
                             Range:from_node(node),
                             { cache = tag_list }
+                        )
+                    elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER_HEADLINE_ITEM then
+                        local item = vim.treesitter.get_node_text(node, ref.value)
+                        heading_item = Slice:new(
+                            ref,
+                            Range:from_node(node),
+                            { cache = item }
                         )
                     elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER then
                         range = Range:from_node(node)
@@ -419,11 +435,17 @@ function M.parse(contents)
                 ---@type org-roam.core.parser.Heading|nil
                 local heading
                 if heading_range and heading_stars then
-                    heading = Heading:new(heading_range, heading_stars, heading_tag_list)
+                    heading = Heading:new({
+                        range = heading_range,
+                        stars = heading_stars,
+                        item = heading_item,
+                        tags = heading_tag_list,
+                    })
                 end
 
                 table.insert(file.sections, Section:new(
                     assert(section_range, "impossible: failed to find section range"),
+                    assert(heading, "impossible: failed to find section heading"),
                     PropertyDrawer:new({
                         range = range,
                         properties = properties,
@@ -435,15 +457,23 @@ function M.parse(contents)
                     local name = query.captures[id]
 
                     if name == QUERY_CAPTURE_TYPES.DIRECTIVE_VALUE then
-                        local tags = vim.split(
-                            vim.treesitter.get_node_text(node, ref.value),
-                            ":",
-                            { trimempty = true }
+                        local tags = utils.parser.parse_tags(
+                            vim.treesitter.get_node_text(node, ref.value)
                         )
 
                         for _, tag in ipairs(tags) do
                             table.insert(file.filetags, tag)
                         end
+                    end
+                end
+            elseif pattern == QUERY_TYPES.TITLE then
+                for id, node in pairs(match) do
+                    local name = query.captures[id]
+
+                    if name == QUERY_CAPTURE_TYPES.DIRECTIVE_VALUE then
+                        file.title = vim.trim(
+                            vim.treesitter.get_node_text(node, ref.value)
+                        )
                     end
                 end
             elseif pattern == QUERY_TYPES.REGULAR_LINK then
