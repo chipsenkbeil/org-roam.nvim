@@ -253,6 +253,13 @@ describe("utils.io", function()
     end)
 
     describe("walk", function()
+        it("should return an iterator that yields nothing if provided path is a file", function()
+            local file = create_temp_file("hello")
+
+            local entries = utils_io.walk(file, { depth = math.huge }):collect()
+            assert.same({}, entries)
+        end)
+
         it("should return an iterator over directory entries", function()
             local join = utils_io.join_path
 
