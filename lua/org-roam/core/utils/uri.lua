@@ -24,7 +24,13 @@ local DEFAULT_QUERY_DELIMITER = "&"
 ---@field path string
 ---@field query? org-roam.core.utils.uri.Query
 ---@field fragment? org-roam.core.utils.uri.Fragment
-local M = {}
+---@overload fun(opts:org-roam.core.utils.Uri.NewOpts):org-roam.core.utils.Uri
+local M = setmetatable({}, {
+    ---Class-only implementation to mirror call to `Uri:new()`.
+    __call = function(tbl, ...)
+        return tbl:new(...)
+    end,
+})
 M.__index = M
 
 ---@class org-roam.core.utils.Uri.NewOpts
@@ -159,6 +165,56 @@ function M:query_params(opts)
     end
 
     return query_table
+end
+
+---Converts back into a string.
+---@return string
+function M:as_string()
+    local parts = {}
+
+    -- scheme:
+    table.insert(parts, self.scheme)
+    table.insert(parts, ":")
+
+    -- authority if we have it
+    if self.authority then
+        table.insert(parts, "//")
+
+        if self.authority.userinfo then
+            table.insert(parts, self.authority.userinfo.username)
+
+            if self.authority.userinfo.password then
+                table.insert(parts, ":")
+                table.insert(parts, self.authority.userinfo.password)
+            end
+
+            table.insert(parts, "@")
+        end
+
+        table.insert(parts, self.authority.host)
+
+        if self.authority.port then
+            table.insert(parts, ":")
+            table.insert(parts, tostring(self.authority.port))
+        end
+    end
+
+    -- path, which should exist (even if empty)
+    table.insert(parts, self.path)
+
+    -- query if we have it
+    if self.query then
+        table.insert(parts, "?")
+        table.insert(parts, self.query)
+    end
+
+    -- fragment if we have it
+    if self.fragment then
+        table.insert(parts, "#")
+        table.insert(parts, self.fragment)
+    end
+
+    return table.concat(parts, "")
 end
 
 return M
