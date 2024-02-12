@@ -82,12 +82,14 @@ function M.scan(path, cb)
                                 and utils.parser.parse_property_value(aliases_text)
                                 or {}
 
+                            local title = heading.item and vim.trim(heading.item:text()) or nil
+
                             table.insert(section_nodes, {
                                 section.range,
                                 Node:new({
                                     id = id,
                                     file = entry.path,
-                                    title = vim.trim(heading.item:text()),
+                                    title = title,
                                     aliases = aliases,
                                     tags = vim.deepcopy(file.filetags),
                                     level = heading.stars,
@@ -103,26 +105,36 @@ function M.scan(path, cb)
                     --       this better down the line. Maybe sort by
                     --       range size.
                     for _, link in ipairs(file.links) do
-                        -- Look through ALL of our section nodes to find
-                        -- the closest based on size. If none contain,
-                        -- then use the file node.
-                        local size = math.huge
-                        local target_node
-                        for _, tbl in ipairs(section_nodes) do
-                            local range = tbl[1]
-                            local node = tbl[2]
-                            if range:size() < size and range:contains(link.range) then
-                                size = range:size()
-                                target_node = node
+                        local link_path = vim.trim(link.path)
+                        local link_id = string.match(link_path, "^id:(.+)$")
+
+                        -- For now, we only consider links that are
+                        -- standard org id links, nothing else. This
+                        -- differs from org-roam in Emacs, where they
+                        -- cache all links and use the non-id links
+                        -- externally.
+                        if link_id then
+                            -- Look through ALL of our section nodes to find
+                            -- the closest based on size. If none contain,
+                            -- then use the file node.
+                            local size = math.huge
+                            local target_node
+                            for _, tbl in ipairs(section_nodes) do
+                                local range = tbl[1]
+                                local node = tbl[2]
+                                if range:size() < size and range:contains(link.range) then
+                                    size = range:size()
+                                    target_node = node
+                                end
                             end
-                        end
 
-                        if not target_node then
-                            target_node = file_node
-                        end
+                            if not target_node then
+                                target_node = file_node
+                            end
 
-                        if target_node then
-                            table.insert(target_node.linked, link.path)
+                            if target_node then
+                                table.insert(target_node.linked, link_id)
+                            end
                         end
                     end
 
