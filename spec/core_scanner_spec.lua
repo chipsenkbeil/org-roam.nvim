@@ -1,6 +1,6 @@
 describe("core.scanner", function()
     local join_path = require("org-roam.core.utils.io").join_path
-    local scanner = require("org-roam.core.scanner")
+    local Scanner = require("org-roam.core.scanner")
 
     local ORG_FILES_DIR = (function()
         local str = debug.getinfo(2, "S").source:sub(2)
