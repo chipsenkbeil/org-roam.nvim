@@ -8,33 +8,30 @@ describe("core.scanner", function()
     end)()
 
     it("should support scanning a directory for org files", function()
-        local is_done = false
         local error
 
         ---@type {[string]:org-roam.core.database.Node}
         local nodes = {}
 
-        scanner.scan(ORG_FILES_DIR, function(err, node)
-            -- Only catch the first error to report back
-            if not error then
-                error = err
-            end
+        local scanner = Scanner
+            :new({ ORG_FILES_DIR })
+            :on_scan(function(scan)
+                for _, node in ipairs(scan.nodes) do
+                    if node then
+                        -- We shouldn't have the same node twice
+                        if nodes[node.id] then
+                            error = "Already have node " .. node.id
+                        end
 
-            if node then
-                -- We shouldn't have the same node twice
-                if nodes[node.id] then
-                    error = "Already have node " .. node.id
+                        nodes[node.id] = node
+                    end
                 end
+            end)
+            :on_error(function(err) error = err end)
+            :start()
 
-                nodes[node.id] = node
-            end
-
-            -- Scan is called one last time once finished with no arguments
-            is_done = err == nil and node == nil
-        end)
-
-        vim.wait(1000, function() return is_done end)
-        assert(is_done, "Scanner failed to complete in time")
+        vim.wait(1000, function() return not scanner:is_running() end)
+        assert(not scanner:is_running(), "Scanner failed to complete in time")
         assert(not error, error)
 
         ---@type org-roam.core.database.Node
