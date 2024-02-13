@@ -6,6 +6,7 @@
 
 return {
     async    = require("org-roam.core.utils.async"),
+    emitter  = require("org-roam.core.utils.emitter"),
     io       = require("org-roam.core.utils.io"),
     iterator = require("org-roam.core.utils.iterator"),
     parser   = require("org-roam.core.utils.parser"),
