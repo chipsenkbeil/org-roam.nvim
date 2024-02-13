@@ -5,43 +5,129 @@
 -- into a database.
 -------------------------------------------------------------------------------
 
-local Node   = require("org-roam.core.database.node")
-local parser = require("org-roam.core.parser")
-local utils  = require("org-roam.core.utils")
+local Emitter = require("org-roam.core.utils.emitter")
+local Node    = require("org-roam.core.database.node")
+local parser  = require("org-roam.core.parser")
+local utils   = require("org-roam.core.utils")
 
-local uv     = vim.loop
+local uv      = vim.loop
 
 ---@class org-roam.core.Scanner
-local M      = {}
-M.__index    = M
+---@field private emitter org-roam.core.utils.Emitter #used to emit scans
+---@field private paths string[] #paths to scan
+---@field private running boolean #true if scanning paths
+local M       = {}
+M.__index     = M
 
 ---Creates a new instance of the scanner.
----@param opts? {watch?:boolean}
+---@param paths string[]
 ---@return org-roam.core.Scanner
-function M:new(opts)
-    opts = opts or {}
+function M:new(paths)
     local instance = {}
     setmetatable(instance, M)
+    instance.emitter = Emitter:new()
+    instance.paths = paths
+    instance.running = false
 
     return instance
 end
 
----Register callback to be invoked when a node is updated.
----@param f fun()
-function M:on_update(f)
+---Register callback to be invoked when a file is scanned.
+---This can be triggered during the initial scan or when a file is changed.
+---@param cb fun(scan:{path:string, nodes:org-roam.core.database.Node[]})
+---@return org-roam.core.Scanner
+function M:on_scan(cb)
+    self.emitter:on("scanner:scan", cb)
+    return self
 end
 
----Scans the provided `path` for org files, parses them, and derives roam nodes.
----
----The `cb` is invoked once per file, or when an error is encountered.
----
----Once scanning is finished, the `cb` is invoked one final time with no arguments.
----@param path string
----@param cb fun(err:string|nil, nodes:org-roam.core.database.Node[]|nil)
-function M:scan()
-    error("todo")
+---Register callback to be invoked when initial scanning has finished.
+---@param cb fun()
+---@return org-roam.core.Scanner
+function M:on_done(cb)
+    self.emitter:on("scanner:done", cb)
+    return self
 end
 
+---Register callback to be invoked when an unexpected error occurs.
+---@param cb fun(err:string)
+---@return org-roam.core.Scanner
+function M:on_error(cb)
+    self.emitter:on("scanner:error", cb)
+    return self
+end
+
+---Start scanning paths for nodes.
+---@return org-roam.core.Scanner
+function M:start()
+    self.running = true
+
+    local scan_cnt = 0
+    local scan_max = #self.paths
+
+    local function if_done_then_emit()
+        if self.running and scan_cnt == scan_max then
+            self.running = false
+            self.emitter:emit("scanner:done")
+        end
+    end
+
+    -- In case we have no paths
+    if_done_then_emit()
+
+    for _, path in ipairs(self.paths) do
+        if vim.fn.isdirectory(path) == 1 then
+            self:__scan_dir(path, function(err, results)
+                scan_cnt = scan_cnt + 1
+                if err then
+                    self.emitter:emit("scanner:error", err)
+                end
+
+                if results then
+                    self.emitter:emit("scanner:scan", {
+                        path = results.entry.path,
+                        nodes = results.nodes,
+                    })
+                end
+                if_done_then_emit()
+            end)
+        else
+            self:__scan_file(path, function(err, nodes)
+                scan_cnt = scan_cnt + 1
+                if err then
+                    self.emitter:emit("scanner:error", err)
+                end
+
+                if nodes then
+                    self.emitter:emit("scanner:scan", {
+                        path = path,
+                        nodes = nodes,
+                    })
+                end
+                if_done_then_emit()
+            end)
+        end
+    end
+
+    return self
+end
+
+---Stop scanning paths for nodes.
+function M:stop()
+    if self.running then
+        self.running = false
+        self.emitter:emit("scanner:done")
+    end
+end
+
+---Returns true if scanner is currently doing a scan.
+---@return boolean
+function M:is_running()
+    return self.running
+end
+
+---Performs a one-time scan of a directory, parsing each org file found,
+---invoking the provided callback once per file.
 ---@private
 ---@param path string
 ---@param cb fun(err:string|nil, results:{entry:org-roam.core.utils.io.WalkEntry, nodes:org-roam.core.database.Node[]}|nil)
@@ -51,7 +137,7 @@ function M:__scan_dir(path, cb)
         :filter(function(entry) return vim.endswith(entry.filename, ".org") end)
 
     local function do_parse()
-        if it:has_next() then
+        if self.running and it:has_next() then
             ---@type org-roam.core.utils.io.WalkEntry
             local entry = it:next()
 
@@ -77,6 +163,8 @@ function M:__scan_dir(path, cb)
     do_parse()
 end
 
+---Performs a one-time scan of a file, parsing it,
+---and invoking the provided callback once per file.
 ---@private
 ---@param path string
 ---@param cb fun(err:string|nil, nodes:org-roam.core.database.Node[]|nil)
