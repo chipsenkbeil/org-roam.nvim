@@ -13,5 +13,6 @@ return {
     queue    = require("org-roam.core.utils.queue"),
     random   = require("org-roam.core.utils.random"),
     table    = require("org-roam.core.utils.table"),
+    tree     = require("org-roam.core.utils.tree"),
     uri      = require("org-roam.core.utils.uri"),
 }

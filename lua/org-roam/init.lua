@@ -94,7 +94,7 @@ function M.setup(opts)
 
         do_parse()
     else
-        notify("Loading database from " .. db_path, vim.log.levels.INFO)
+        notify("Loading database from " .. db_path, vim.log.levels.DEBUG)
         Database:load_from_disk(db_path, function(err, db)
             if err then
                 notify(err, vim.log.levels.ERROR)
