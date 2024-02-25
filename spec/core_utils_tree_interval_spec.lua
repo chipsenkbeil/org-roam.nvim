@@ -17,10 +17,15 @@ describe("utils.tree.interval", function()
         --     / \
         --    d   e
         assert.equals("a", tree.data)
+        assert.equals(1, tree:depth())
         assert.equals("b", tree.left.data)
+        assert.equals(2, tree.left:depth())
         assert.equals("c", tree.right.data)
+        assert.equals(2, tree.right:depth())
         assert.equals("d", tree.left.left.data)
+        assert.equals(3, tree.left.left:depth())
         assert.equals("e", tree.left.right.data)
+        assert.equals(3, tree.left.right:depth())
     end)
 
     it("should support querying for tree nodes that intersect with a point", function()
@@ -37,7 +42,7 @@ describe("utils.tree.interval", function()
         local function values_at_point(i)
             return vim.tbl_map(function(node)
                 return node.data
-            end, tree:find_intersects(i))
+            end, tree:find_all({ i, match = "intersects" }))
         end
 
         assert.same({}, values_at_point(-1))
@@ -71,7 +76,7 @@ describe("utils.tree.interval", function()
         local function values_at_interval(i, j)
             return vim.tbl_map(function(node)
                 return node.data
-            end, tree:find_intersects(i, j))
+            end, tree:find_all({ i, j, match = "intersects" }))
         end
 
         -- Test intervals that have the same start and end
