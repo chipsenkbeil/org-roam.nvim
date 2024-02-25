@@ -22,6 +22,8 @@ M.__index = M
 ---@return org-roam.core.utils.Queue
 function M:new(data)
     local instance = {}
+
+    ---@diagnostic disable-next-line:param-type-mismatch
     setmetatable(instance, M)
     instance.__data = {}
     instance.__front = 0
@@ -89,7 +91,7 @@ function M:push_back(value)
     self.__data[back] = value
 end
 
----Removes value from the front of the queue.
+---Removes value from the back of the queue.
 ---Will throw an error if the queue is empty.
 ---@return any
 function M:pop_back()
