@@ -32,6 +32,7 @@
 -------------------------------------------------------------------------------
 
 local Queue = require("org-roam.core.utils.queue")
+local unpack = require("org-roam.core.utils.table").unpack
 
 ---An augmented tree using intervals as defined in
 ---[Wikipedia](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree).
@@ -87,6 +88,7 @@ function M:range()
     return { self._start, self._end }
 end
 
+---Returns depth of node in the tree with 1 being the root node.
 ---@return integer
 function M:depth()
     return self._depth
@@ -97,29 +99,34 @@ function M:__tostring()
     return vim.inspect(self)
 end
 
----@private
 ---Returns comparsing of tree intervals.
 ---
----* -1 means this tree has an interval that either starts before or ends earlier.
----* 0 means this tree has the exact same interval.
----* 1 means this tree has an interval that either starts after or ends later.
+---* -1 means tree A has an interval that either starts before or ends earlier than tree B.
+---* 0 means tree A has the exact same interval as tree B.
+---* 1 means tree A has an interval that either starts after or ends later than tree B.
 ---
----@param tree org-roam.core.utils.tree.IntervalTree
+---@param a org-roam.core.utils.tree.IntervalTree
+---@param b org-roam.core.utils.tree.IntervalTree
 ---@return -1|0|1 cmp
-function M:__cmp_tree_interval(tree)
-    if self._start < tree._start then
+local function cmp_tree_interval(a, b)
+    ---@type integer, integer
+    local a_start, a_end = unpack(a:range())
+    ---@type integer, integer
+    local b_start, b_end = unpack(b:range())
+
+    if a_start < b_start then
         return -1
     end
 
-    if self._start > tree._start then
+    if a_start > b_start then
         return 1
     end
 
     -- Starts are the same, so figure out
     -- based on the end instead
-    if self._end < tree._end then
+    if a_end < b_end then
         return -1
-    elseif self._end > tree._end then
+    elseif a_end > b_end then
         return 1
     else
         return 0
@@ -148,16 +155,18 @@ function M:insert(start, end_, data)
         -- then we go left, otherwise we go right. If there is no
         -- tree node in that direction, we insert ourselves and flag
         -- to stop the loop, otherwise continue traversal.
-        local cmp = cur:__cmp_tree_interval(tree)
+        local cmp = cmp_tree_interval(cur, tree)
         if cmp == 1 and cur.left then
             cur = cur.left
         elseif cmp == 1 then
             cur.left = tree
+            cur.left._depth = cur._depth + 1
             cur = nil
         elseif cur.right then
             cur = cur.right
         else
             cur.right = tree
+            cur.right._depth = cur._depth + 1
             cur = nil
         end
     end
@@ -165,16 +174,63 @@ function M:insert(start, end_, data)
     return tree
 end
 
----Returns all tree nodes whose interval intersects with the point or interval specified.
+---Function used to find matches during a search.
+---@alias org-roam.core.utils.tree.interval.MatchFn fun(node:org-roam.core.utils.tree.IntervalTree, start:integer|nil, end_:integer|nil):boolean
+
+---@class org-roam.core.utils.tree.interval.FindOpts
+---@field [1] integer|nil #lower bound (inclusive) of interval to use for search
+---@field [2] integer|nil #upper bound (inclusive) of interval to use for search
+---@field limit? integer #maximum nodes to find before stopping; defaults to unlimited
+---@field match? "c"|"contains"|"i"|"intersects"|org-roam.core.utils.tree.interval.MatchFn
+
+---Returns all tree nodes who follow matching rules with the point or interval specified.
 ---Traverses using breadth-first search, so nodes are sorted by depth.
----@param start integer #inclusive start of point (or interval if end provided)
----@param end_ integer|nil #inclusive end of interval
+---@param opts? org-roam.core.utils.tree.interval.FindOpts
 ---@return org-roam.core.utils.tree.IntervalTree[]
-function M:find_intersects(start, end_)
+function M:find_all(opts)
+    opts = opts or {}
     local nodes = {}
 
+    local start = opts[1]
+    local end_ = opts[2]
+    local limit = opts.limit or math.huge
+
+    ---@type org-roam.core.utils.tree.interval.MatchFn|nil
+    local is_match
+    if opts.match == "c" or opts.match == "contains" then
+        ---@param node org-roam.core.utils.tree.IntervalTree
+        ---@param i integer|nil
+        ---@param j integer|nil
+        ---@return boolean
+        is_match = function(node, i, j)
+            if i == nil then
+                return false
+            end
+
+            return node:contains(i, j)
+        end
+    elseif opts.match == "i" or opts.match == "intersects" then
+        ---@param node org-roam.core.utils.tree.IntervalTree
+        ---@param i integer|nil
+        ---@param j integer|nil
+        ---@return boolean
+        is_match = function(node, i, j)
+            if i == nil then
+                return false
+            end
+
+            return node:intersects(i, j)
+        end
+    elseif type(opts) == "function" then
+        is_match = opts
+    else
+        is_match = function()
+            return true
+        end
+    end
+
     local queue = Queue:new({ self })
-    while not queue:is_empty() do
+    while not queue:is_empty() and #nodes < limit do
         ---@type org-roam.core.utils.tree.IntervalTree
         local cur = queue:pop_front()
 
@@ -183,7 +239,7 @@ function M:find_intersects(start, end_)
         -- node then we have nothing to do here
         if start <= cur._max then
             -- Add current tree node if point/interval intersects
-            if cur:intersects(start, end_) then
+            if is_match(cur, start, end_) then
                 table.insert(nodes, cur)
             end
 
@@ -202,6 +258,35 @@ function M:find_intersects(start, end_)
     end
 
     return nodes
+end
+
+---Finds the first node that matches provided options.
+---NOTE: Because of breadth-first search, this should be the shallowest node.
+---
+---See `find_all` for more details.
+---@param opts? org-roam.core.utils.tree.interval.FindOpts
+---@return org-roam.core.utils.tree.IntervalTree|nil
+function M:find_first(opts)
+    local nodes = self:find_all(vim.tbl_extend(
+        "keep",
+        { limit = 1 },
+        opts or {}
+    ))
+    return nodes[1]
+end
+
+---Finds the last node that matches provided options.
+---NOTE: Because of breadth-first search, this should be the deepest node.
+---
+---See `find_all` for more details.
+---@param opts? org-roam.core.utils.tree.interval.FindOpts
+---@return org-roam.core.utils.tree.IntervalTree|nil
+function M:find_last(opts)
+    local nodes = self:find_all(opts)
+
+    -- NOTE: Because of breadth-first search, the last node should
+    --       be the deepest (or tied as deepest) of all nodes
+    return nodes[#nodes]
 end
 
 ---Checks if this tree's interval contains entirely the specified point or interval.

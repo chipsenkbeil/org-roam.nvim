@@ -196,7 +196,6 @@ function M:__scan_file(path, cb)
                     or {}
 
                 file_node = Node:new({
-                    range = nil,
                     id = id,
                     file = path,
                     title = file.title,
@@ -292,7 +291,7 @@ function M:__scan_file(path, cb)
             end
         end
 
-        ---@type org-roam.core.database.Node
+        ---@type org-roam.core.database.Node[]
         local nodes = {}
         if file_node then
             table.insert(nodes, file_node)
