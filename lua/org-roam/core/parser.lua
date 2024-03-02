@@ -541,6 +541,46 @@ function M.parse(contents)
             end
         end
     end
+
+    -- TODO: I'm not sure if it's a bug or not - I couldn't reproduce using Lua
+    --       as the treesitter language - but having two optional fields results
+    --       in this pattern being triggered twice: once with tags and once with
+    --       item.
+    --
+    --       Because of this situation, we need to merge duplicates of sections
+    --       that each have either tags or item. We do this by using the section
+    --       range, which should be unique, to look up a pre-existing section.
+    ---@type table<string,org-roam.core.parser.Section>
+    local sections_by_range = {}
+    for _, section in ipairs(file.sections) do
+        local key = string.format(
+            "%s,%s",
+            section.range.start.offset,
+            section.range.end_.offset
+        )
+
+        -- If we already have a section, then update
+        -- tags and items if they are missing and
+        -- we have them
+        local other = sections_by_range[key]
+        if other then
+            if other.heading.tags then
+                section.heading.tags = other.heading.tags
+            end
+            if other.heading.item then
+                section.heading.item = other.heading.item
+            end
+        end
+        sections_by_range[key] = section
+    end
+
+    -- Rebuild section list in order of appearance
+    local sections = vim.tbl_values(sections_by_range)
+    table.sort(sections, function(a, b)
+        return a.range.start.offset < b.range.start.offset
+    end)
+    file.sections = sections
+
     return file
 end
 
