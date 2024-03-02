@@ -210,7 +210,18 @@ function M:__scan_file(path, cb)
             end
         end
 
-        -- Second, for each section, check if it has a node
+        -- Second, build an interval tree of our sections so we
+        -- can look up tags that apply
+        local tags_tree = utils.tree.interval:from_list(vim.tbl_map(function(section)
+            ---@cast section org-roam.core.parser.Section
+            return {
+                section.range.start.offset,
+                section.range.end_.offset,
+                section.heading:tag_list(),
+            }
+        end, file.sections))
+
+        -- Third, for each section, check if it has a node
         for _, section in ipairs(file.sections) do
             local id = section.property_drawer:find("id", {
                 case_insensitive = true,
@@ -232,10 +243,19 @@ function M:__scan_file(path, cb)
                 -- the file tags, any tags from ancestor headings, and
                 -- then this heading
                 local tags = vim.deepcopy(file.filetags)
-
-                for _, tag in ipairs(heading:tag_list()) do
-                    table.insert(tags, tag)
+                local nodes = tags_tree:find_all({
+                    section.range.start.offset,
+                    section.range.end_.offset,
+                    match = "contains",
+                })
+                for _, node in ipairs(nodes) do
+                    for _, tag in ipairs(node.data) do
+                        ---@cast tag string
+                        table.insert(tags, tag)
+                    end
                 end
+
+                table.sort(tags)
 
                 table.insert(section_nodes, {
                     section.range,
