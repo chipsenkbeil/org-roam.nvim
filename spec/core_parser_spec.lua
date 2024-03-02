@@ -232,8 +232,14 @@ describe("Parser", function()
     assert(not err, err)
     assert(file)
 
-    -- We aren't checking the entire thing fully
+    -- NOTE: We aren't checking the entire thing fully
     assert.equals(1, #file.drawers)
     assert.equals(2, #file.sections)
+
+    -- Verify section merging (bug workaround) is working as expected
+    assert.equals("node two", file.sections[1].heading.item:text())
+    assert.equals(":d:e:f:", file.sections[1].heading.tags:text())
+    assert.equals("node three", file.sections[2].heading.item:text())
+    assert.equals(":g:h:i:", file.sections[2].heading.tags:text())
   end)
 end)
