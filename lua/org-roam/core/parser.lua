@@ -4,15 +4,13 @@
 -- Parsing logic to extract information from org files.
 -------------------------------------------------------------------------------
 
-local Directive           = require("org-roam.core.parser.directive")
 local Heading             = require("org-roam.core.parser.heading")
-local Link                = require("org-roam.core.parser.link")
 local PropertyDrawer      = require("org-roam.core.parser.property-drawer")
-local Property            = require("org-roam.core.parser.property")
 local Range               = require("org-roam.core.parser.range")
 local Ref                 = require("org-roam.core.parser.ref")
 local Section             = require("org-roam.core.parser.section")
 local Slice               = require("org-roam.core.parser.slice")
+local putils              = require("org-roam.core.parser.utils")
 
 local utils               = require("org-roam.core.utils")
 
@@ -22,7 +20,7 @@ local QUERY_TYPES         = {
     SECTION_PROPERTY_DRAWER = 2,
     FILETAGS = 3,
     TITLE = 4,
-    REGULAR_LINK = 5,
+    CONTENTS = 5,
 }
 
 ---@enum org-roam.core.parser.QueryCaptureTypes
@@ -41,7 +39,6 @@ local QUERY_CAPTURE_TYPES = {
     SECTION_PROPERTY_DRAWER_PROPERTY_VALUE = "property-value",
     DIRECTIVE_NAME                         = "directive-name",
     DIRECTIVE_VALUE                        = "directive-value",
-    REGULAR_LINK                           = "regular-link",
 }
 
 ---@class org-roam.core.parser.File
@@ -62,87 +59,10 @@ function M.init()
         return
     end
 
-    ---Ensures that the nodes are on the same line.
-    ---Pulled from nvim-orgmode/orgmode.
-    ---
-    ---@param start_node TSNode
-    ---@param end_node TSNode
-    ---@return boolean
-    local function on_same_line(start_node, end_node)
-        if not start_node or not end_node then
-            return false
-        end
-
-        local start_line = start_node:range()
-        local end_line = end_node:range()
-
-        return start_line == end_line
-    end
-
-
-    ---Ensures that the start and end of a regular link actually represent a regular link.
-    ---Pulled from nvim-orgmode/orgmode.
-    local function is_valid_regular_link_range(match, _, source, predicates)
-        local start_node = match[predicates[2]]
-        local end_node = match[predicates[3]]
-
-        local is_valid = on_same_line(start_node, end_node)
-
-        if not is_valid then
-            return false
-        end
-
-        -- Range start is inclusive, end is exclusive, and both are zero-based
-        local _, _, offset_start = start_node:start()
-        local _, _, offset_end = end_node:end_()
-
-        -- TODO: I don't know why we are running into these situations:
-        --
-        -- 1. There is more than one match for the same link.
-        -- 2. One of the matches is missing a starting square bracket.
-        -- 3. There is a space at the end of each matche.
-        --     * "[[...]] "
-        --     * "[...]] "
-        --
-        -- For now, we trim the space so one of these will work...
-        local text = vim.trim(string.sub(source, offset_start + 1, offset_end + 1))
-
-        -- <<< EXCERPT FROM EMACS ORGMODE MANUAL >>>
-        --
-        -- Some '\', '[' and ']' characters in the LINK part need to be
-        -- "escaped", i.e., preceded by another '\' character.  More specifically,
-        -- the following characters, and only them, must be escaped:
-        --
-        -- 1. all '[' and ']' characters,
-        -- 2. every '\' character preceding either ']' or '[',
-        -- 3. every '\' character at the end of the link.
-        --
-        -- Examples:
-        --
-        -- [[link\\]] is valid whereas [[link\]] is not.
-        -- [[link\[]] and [[link\]]] are both valid.
-        -- [[l\i\n\k]] is valid.
-        -- [[l\\i\\n\\k]] is valid.
-        --
-        -- Any combination can be in the description.
-        local _, _, path, description = string.find(text, "^%[%[(.*)%]%[(..*)%]%]$")
-        if not path then
-            _, _, path = string.find(text, "^%[%[(.*)%]%]$")
-        end
-
-        -- If we don't find a link's path in either search above, it is not a link
-        if not path then
-            return false
-        end
-
-        -- Remove cases of \\ and \[ and \] so we can test
-        path = string.gsub(path, "\\[\\%[%]]", "")
-
-        -- Otherwise, we check if there are any invalid \ or dangling [ ] in the path
-        return not string.find(path, "[\\%[%]]")
-    end
-
-    local function eq_case_insensitive(match, _, source, predicates)
+    -- Build out custom predicates
+    vim.treesitter.query.add_predicate("org-roam-eq-case-insensitive?", function(
+        match, _, source, predicates
+    )
         ---@type TSNode
         local node = match[predicates[2]]
 
@@ -150,98 +70,9 @@ function M.init()
         local text = predicates[3]
 
         return string.lower(vim.treesitter.get_node_text(node, source)) == string.lower(text)
-    end
-
-    -- Build out custom predicates so we can further validate our links
-    vim.treesitter.query.add_predicate(
-        "org-roam-is-valid-regular-link-range?",
-        is_valid_regular_link_range
-    )
-    vim.treesitter.query.add_predicate(
-        "org-roam-eq-case-insensitive?",
-        eq_case_insensitive
-    )
+    end)
 
     M.__is_initialized = true
-end
-
----@private
----@param properties org-roam.core.parser.Property[] #where to place new properties
----@param ref org-roam.core.parser.Ref<string> #reference to overall contents
----@param lines string[] #lines to parse
----@param start_row integer
----@param start_offset integer
-local function parse_lines_as_properties(properties, ref, lines, start_row, start_offset)
-    local row = start_row
-    local offset = start_offset
-
-    for _, line in ipairs(lines) do
-        local i, _, name, space, value = string.find(line, ":([^%c%z]+):(%s+)([^%c%z]+)$")
-        if name and value then
-            -- Record where the property starts (could have whitespace in front of it)
-            local property_offset = offset + i - 1
-            local property_column_offset = property_offset - offset
-            local property_len = string.len(name) + string.len(space) + string.len(value) + 2
-
-            -- We parsed a name and value, so now we need to build up the ranges for the
-            -- entire property, which looks like this:
-            --
-            --     range
-            -- |          |
-            -- :NAME: VALUE
-            --  |  |  |   |
-            --  range range
-            --
-            --  To do this, we need to build up the position from an initial offset
-            --  representing the beginning of the line, the length of the name, and
-            --  the length of the value.
-            local property_range = Range:new({
-                row = row,
-                column = property_column_offset,
-                offset = property_offset,
-            }, {
-                row = row,
-                -- NOTE: Subtracting 1 to remove newline from consideration and
-                --       not stretch beyond the total text of the line itself.
-                column = property_column_offset + property_len - 1,
-                offset = property_offset + property_len - 1,
-            })
-
-            -- Name range is within the colons
-            local name_range = Range:new({
-                row = property_range.start.row,
-                column = property_range.start.column + 1,
-                offset = property_range.start.offset + 1,
-            }, {
-                row = property_range.end_.row,
-                column = property_range.start.column + string.len(name),
-                offset = property_range.start.offset + string.len(name),
-            })
-
-            local value_range = Range:new({
-                row = property_range.start.row,
-                column = (name_range.end_.column + 1) + string.len(space) + 1,
-                offset = (name_range.end_.offset + 1) + string.len(space) + 1,
-            }, {
-                row = property_range.end_.row,
-                column = (name_range.end_.column + 1) + string.len(space) + string.len(value),
-                offset = (name_range.end_.offset + 1) + string.len(space) + string.len(value),
-            })
-
-            local property = Property:new({
-                range = property_range,
-                name = Slice:new(ref, name_range, { cache = name }),
-                value = Slice:new(ref, value_range, { cache = value }),
-            })
-            table.insert(properties, property)
-        end
-
-        -- Next line means next row
-        row = row + 1
-
-        -- Advance the offset by the line (including the newline)
-        offset = offset + string.len(line) + 1
-    end
 end
 
 ---@param contents string
@@ -278,30 +109,9 @@ function M.parse(contents)
             value: (value) @directive-value)
             (#org-roam-eq-case-insensitive? @directive-name "title"))
         [
-            (paragraph
-                ((expr "[" @hyperlink.start . "[" _) (expr _ "]" . "]" @hyperlink.end)
-                    (#org-roam-is-valid-regular-link-range? @hyperlink.start @hyperlink.end)))
-            (paragraph
-                (expr "[" @hyperlink.start . "[" _  "]" . "]" @hyperlink.end
-                    (#org-roam-is-valid-regular-link-range? @hyperlink.start @hyperlink.end)))
-            (item
-                ((expr "[" @hyperlink.start . "[" _) (expr _ "]" . "]" @hyperlink.end)
-                    (#org-roam-is-valid-regular-link-range? @hyperlink.start @hyperlink.end)))
-            (item
-                (expr "[" @hyperlink.start . "[" _  "]" . "]" @hyperlink.end
-                    (#org-roam-is-valid-regular-link-range? @hyperlink.start @hyperlink.end)))
-            (cell
-                (contents ((expr "[" @hyperlink.start . "[" _) (expr _ "]" . "]" @hyperlink.end)
-                    (#org-roam-is-valid-regular-link-range? @hyperlink.start @hyperlink.end))))
-            (cell
-                (contents (expr "[" @hyperlink.start . "[" _  "]" . "]" @hyperlink.end
-                    (#org-roam-is-valid-regular-link-range? @hyperlink.start @hyperlink.end))))
-            (drawer
-                (contents ((expr "[" @hyperlink.start . "[" _) (expr _ "]" . "]" @hyperlink.end)
-                    (#org-roam-is-valid-regular-link-range? @hyperlink.start @hyperlink.end))))
-            (drawer
-                (contents (expr "[" @hyperlink.start . "[" _  "]" . "]" @hyperlink.end
-                    (#org-roam-is-valid-regular-link-range? @hyperlink.start @hyperlink.end))))
+            (paragraph) @paragraph
+            (item) @item
+            (contents) @contents
         ]
     ]=])
 
@@ -359,7 +169,13 @@ function M.parse(contents)
                         -- NOTE: We do NOT skip empty lines!
                         local inner = vim.treesitter.get_node_text(node, ref.value)
                         local lines = vim.split(inner, "\n", { plain = true })
-                        parse_lines_as_properties(properties, ref, lines, start_row, start_offset)
+                        putils.parse_lines_as_properties(
+                            properties,
+                            ref,
+                            lines,
+                            start_row,
+                            start_offset
+                        )
                     end
                 end
 
@@ -410,6 +226,12 @@ function M.parse(contents)
                     elseif name == QUERY_CAPTURE_TYPES.SECTION_PROPERTY_DRAWER then
                         range = Range:from_node(node)
 
+                        -- Search for links throughout the contents of the property drawer
+                        --
+                        -- NOTE: This is done outside of the contents pattern so we don't
+                        --       scan property drawers twice!
+                        vim.list_extend(file.links, putils.scan_for_links(range, ref))
+
                         -- Get the lines between the property drawer for us to manually parse
                         -- due to https://github.com/neovim/neovim/issues/17060 preventing us
                         -- from capturing multiple properties using quantification operators.
@@ -428,7 +250,13 @@ function M.parse(contents)
                             end
                         end
 
-                        parse_lines_as_properties(properties, ref, lines, start_row, start_offset)
+                        putils.parse_lines_as_properties(
+                            properties,
+                            ref,
+                            lines,
+                            start_row,
+                            start_offset
+                        )
                     end
                 end
 
@@ -476,68 +304,12 @@ function M.parse(contents)
                         )
                     end
                 end
-            elseif pattern == QUERY_TYPES.REGULAR_LINK then
-                ---@type org-roam.core.parser.Position
-                local start = { row = 0, column = 0, offset = math.huge }
-                ---@type org-roam.core.parser.Position
-                local end_ = { row = 0, column = 0, offset = -1 }
+            elseif pattern == QUERY_TYPES.CONTENTS then
+                -- Create range representing the contents
+                local range = putils.get_pattern_range(match)
 
-                -- Find start and end of match
-                for _, node in pairs(match) do
-                    local start_row, start_col, offset_start = node:start()
-                    local end_row, end_col, offset_end = node:end_()
-
-                    -- NOTE: End column & offset are exclusive, but we want inclusive, so adjust accordingly
-                    end_col = end_col - 1
-                    offset_end = offset_end - 1
-
-                    local cur_start_offset = start.offset
-                    local cur_end_offset = end_.offset
-
-                    start.offset = math.min(start.offset, offset_start)
-                    end_.offset = math.max(end_.offset, offset_end)
-
-                    -- Start changed, so adjust row/col
-                    if start.offset ~= cur_start_offset then
-                        start.row = start_row
-                        start.column = start_col
-                    end
-
-                    -- End changed, so adjust row/col
-                    if end_.offset ~= cur_end_offset then
-                        end_.row = end_row
-                        end_.column = end_col
-                    end
-                end
-
-                -- Create range from match scan
-                local range = Range:new(start, end_)
-
-                -- Get the raw link from the contents
-                local raw_link = string.sub(ref.value, range.start.offset + 1, range.end_.offset + 1)
-
-                -- Because Lua does not support modifiers on group patterns, we test for path & description
-                -- first and then try just path second
-                local _, _, path, description = string.find(raw_link, "^%[%[([^%c%z]*)%]%[([^%c%z]*)%]%]$")
-                if path and description then
-                    local link = Link:new({
-                        kind = "regular",
-                        range = range,
-                        path = path,
-                        description = description,
-                    })
-                    table.insert(file.links, link)
-                else
-                    local _, _, path = string.find(raw_link, "^%[%[([^%c%z]*)%]%]$")
-                    if path then
-                        local link = Link:new({
-                            kind = "regular",
-                            range = range,
-                            path = path,
-                        })
-                        table.insert(file.links, link)
-                    end
-                end
+                -- Search for links throughout the contents
+                vim.list_extend(file.links, putils.scan_for_links(range, ref))
             end
         end
     end

@@ -6,7 +6,6 @@ describe("utils.random", function()
             local uuid = random.uuid_v4()
             local pattern = "^%x%x%x%x%x%x%x%x%-%x%x%x%x%-4%x%x%x%-[89ab]%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$"
 
-            -- print("Checking " .. vim.inspect(uuid))
             local i, j = string.find(uuid, pattern)
 
             -- Check start and end of a 36 character uuid string,
