@@ -8,11 +8,10 @@
 ---@field database org-roam.core.database.Database
 local M = {}
 
----Called to initialize the org-roam plugin.
 ---@param opts org-roam.core.config.Config.NewOpts
-function M.setup(opts)
+local function setup(opts)
     local config = require("org-roam.core.config")
-    local parser = require("org-roam.core.parser")
+    local Scanner = require("org-roam.core.scanner")
     local utils = require("org-roam.core.utils")
 
     -- Normalize the roam directory before storing it
@@ -33,66 +32,30 @@ function M.setup(opts)
         local plugin_data_dir = vim.fs.dirname(db_path)
         vim.fn.mkdir(plugin_data_dir, "p")
 
-        notify("Creating database", vim.log.levels.INFO)
+        notify("Creating database", vim.log.levels.DEBUG)
         local db = Database:new()
 
         notify("Scanning for org files", vim.log.levels.INFO)
-        local it = utils.io.walk(config.org_roam_directory, { depth = math.huge })
-            :filter(function(entry) return entry.type == "file" end)
-            :filter(function(entry) return vim.endswith(entry.filename, ".org") end)
-
-        local function do_parse()
-            if it:has_next() then
-                ---@type org-roam.core.utils.io.WalkEntry
-                local entry = it:next()
-
-                notify("Parsing " .. entry.name, vim.log.levels.INFO)
-                parser.parse_file(entry.path, function(err, file)
+        Scanner:new({ config.org_roam_directory })
+            :on_scan(function(scan)
+                notify("Scanned " .. scan.path, vim.log.levels.DEBUG)
+                for _, node in ipairs(scan.nodes) do
+                    db:insert(node, { id = node.id })
+                end
+            end)
+            :on_error(function(err) notify(err, vim.log.levels.ERROR) end)
+            :on_done(function()
+                db:write_to_disk(db_path, function(err)
                     if err then
                         notify(err, vim.log.levels.ERROR)
-                    elseif file then
-                        -- TODO: We need to revise parsing AGAIN to connect
-                        --       links somehow to the property drawers so
-                        --       we know which node is doing the link...
-                        for _, drawer in ipairs(file.drawers) do
-                            local id
-
-                            -- Find the ID property and load its value
-                            for _, property in ipairs(drawer.properties) do
-                                local name = string.lower(vim.trim(property.name:text()))
-                                if name == "id" then
-                                    id = vim.trim(property.value:text())
-                                    break
-                                end
-                            end
-
-                            -- TODO: Construct the node rather than faking, and
-                            --       then search through links for id: schemes
-                            --       to set as connections.
-                            db:insert("node-" .. id, { id = id })
-                        end
+                        return
                     end
 
-                    -- Repeat by scheduling to parse the next file
-                    vim.schedule(do_parse)
+                    notify("Database saved to " .. db_path, vim.log.levels.INFO)
+                    M.database = assert(db, "impossible: database unavailable after loaded")
                 end)
-
-                -- Exit so we wait for next scheduled parse
-                return
-            end
-
-            db:write_to_disk(db_path, function(err)
-                if err then
-                    notify(err, vim.log.levels.ERROR)
-                    return
-                end
-
-                notify("Database saved to " .. db_path, vim.log.levels.INFO)
-                M.database = assert(db, "impossible: database unavailable after loaded")
             end)
-        end
-
-        do_parse()
+            :start()
     else
         notify("Loading database from " .. db_path, vim.log.levels.DEBUG)
         Database:load_from_disk(db_path, function(err, db)
@@ -104,6 +67,14 @@ function M.setup(opts)
             M.database = assert(db, "impossible: database unavailable after loaded")
         end)
     end
+end
+
+---Called to initialize the org-roam plugin.
+---@param opts org-roam.core.config.Config.NewOpts
+function M.setup(opts)
+    -- NOTE: We need to schedule this and not invoke directly. It's already
+    --       async, and not doing it this way can lead to neovim crashing.
+    vim.schedule(function() setup(opts) end)
 end
 
 return M
