@@ -17,13 +17,19 @@
   - [[link6]]
 
 * Drawer Links
+  :SOME DRAWER:
+  [[link7]]
+  [[link8]]
+  :END:
+
+* Property Drawer Links
   :PROPERTIES:
-  :A: [[link7]]
-  :B: [[link8]]
+  :A: [[link9]]
+  :B: [[link10]]
   :END:
 
 * Table Links
 
   | Name | Link      |
   |------+-----------|
-  | One  | [[link9]] |
+  | One  | [[link11]] |
