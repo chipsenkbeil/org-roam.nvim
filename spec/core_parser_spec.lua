@@ -245,9 +245,9 @@ describe("Parser", function()
 
     -- Verify we get all of the links (catch bug about near end of paragraph
     -- with a period immediately after it
-    assert.equals("id:1", file.links[1].path)
-    assert.equals("id:2", file.links[2].path)
-    assert.equals("id:3", file.links[3].path)
+    assert.equals("id:2", file.links[1].path)
+    assert.equals("id:3", file.links[2].path)
+    assert.equals("id:4", file.links[3].path)
     assert.equals("id:1", file.links[4].path)
     assert.equals("id:3", file.links[5].path)
     assert.equals("id:2", file.links[6].path)
@@ -262,9 +262,6 @@ describe("Parser", function()
     assert(not err, err)
     assert(file)
 
-    print(vim.inspect(vim.tbl_map(function(link)
-      return link.path
-    end, file.links)))
     assert.equals(14, #file.links)
 
     assert.equals("id:1234", file.links[1].path)

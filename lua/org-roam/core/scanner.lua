@@ -75,38 +75,62 @@ function M:start()
     -- In case we have no paths
     if_done_then_emit()
 
+    -- For each path, we kick off a stat check to see if it's a directory
+    -- or a file and process accordingly
     for _, path in ipairs(self.paths) do
-        if vim.fn.isdirectory(path) == 1 then
-            self:__scan_dir(path, function(err, results)
+        uv.fs_stat(path, function(e, stat)
+            -- Special case where we fail to read some path where we
+            -- need to manually increment the count, report an error,
+            -- and potentially emit done status
+            if e then
                 scan_cnt = scan_cnt + 1
-                if err then
-                    self.emitter:emit("scanner:error", err)
-                end
-
-                if results then
-                    self.emitter:emit("scanner:scan", {
-                        path = results.entry.path,
-                        nodes = results.nodes,
-                    })
-                end
+                self.emitter:emit("scanner:error", e)
                 if_done_then_emit()
-            end)
-        else
-            self:__scan_file(path, function(err, nodes)
+                return
+            end
+
+            ---@cast stat -nil
+            if stat.type == "directory" then
+                self:__scan_dir(path, function(err, results)
+                    if err then
+                        self.emitter:emit("scanner:error", err)
+                    end
+
+                    if results then
+                        self.emitter:emit("scanner:scan", {
+                            path = results.entry.path,
+                            nodes = results.nodes,
+                        })
+                    end
+                end, function()
+                    -- Invoked when done scanning directory
+                    scan_cnt = scan_cnt + 1
+                    if_done_then_emit()
+                end)
+            elseif stat.type == "file" then
+                self:__scan_file(path, function(err, nodes)
+                    scan_cnt = scan_cnt + 1
+                    if err then
+                        self.emitter:emit("scanner:error", err)
+                    end
+
+                    if nodes then
+                        self.emitter:emit("scanner:scan", {
+                            path = path,
+                            nodes = nodes,
+                        })
+                    end
+                    if_done_then_emit()
+                end)
+            else
+                -- Situation where this path was neither a file nor a
+                -- directory; therefore, we still increment as processed
+                -- and emit done status if finished, but otherwise do
+                -- nothing else
                 scan_cnt = scan_cnt + 1
-                if err then
-                    self.emitter:emit("scanner:error", err)
-                end
-
-                if nodes then
-                    self.emitter:emit("scanner:scan", {
-                        path = path,
-                        nodes = nodes,
-                    })
-                end
                 if_done_then_emit()
-            end)
-        end
+            end
+        end)
     end
 
     return self
@@ -131,7 +155,8 @@ end
 ---@private
 ---@param path string
 ---@param cb fun(err:string|nil, results:{entry:org-roam.core.utils.io.WalkEntry, nodes:org-roam.core.database.Node[]}|nil)
-function M:__scan_dir(path, cb)
+---@param done fun()
+function M:__scan_dir(path, cb, done)
     local it = utils.io.walk(path, { depth = math.huge })
         :filter(function(entry) return entry.type == "file" end)
         :filter(function(entry) return vim.endswith(entry.filename, ".org") end)
@@ -157,6 +182,8 @@ function M:__scan_dir(path, cb)
 
             -- Exit so we wait for next scheduled parse
             return
+        else
+            vim.schedule(done)
         end
     end
 
@@ -273,9 +300,13 @@ function M:__scan_file(path, cb)
         end
 
         -- Build an interval tree from our section nodes
-        local section_node_tree = utils.tree.interval:from_list(vim.tbl_map(function(t)
-            return { t[1].start.offset, t[1].end_.offset, t[2] }
-        end, section_nodes))
+        ---@type org-roam.core.utils.tree.IntervalTree|nil
+        local section_node_tree
+        if #section_nodes > 0 then
+            section_node_tree = utils.tree.interval:from_list(vim.tbl_map(function(t)
+                return { t[1].start.offset, t[1].end_.offset, t[2] }
+            end, section_nodes))
+        end
 
         -- Figure out which node contains the link
         for _, link in ipairs(file.links) do
@@ -288,11 +319,14 @@ function M:__scan_file(path, cb)
             -- cache all links and use the non-id links
             -- externally.
             if link_id then
-                local target_node = section_node_tree:find_last_data({
-                    link.range.start.offset,
-                    link.range.end_.offset,
-                    match = "contains",
-                })
+                local target_node
+                if section_node_tree then
+                    target_node = section_node_tree:find_last_data({
+                        link.range.start.offset,
+                        link.range.end_.offset,
+                        match = "contains",
+                    })
+                end
 
                 if not target_node then
                     target_node = file_node
