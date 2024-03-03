@@ -252,4 +252,34 @@ describe("Parser", function()
     assert.equals("id:3", file.links[5].path)
     assert.equals("id:2", file.links[6].path)
   end)
+
+  it("should parse links from a variety of locations", function()
+    ---@type string|nil, org-roam.core.parser.File|nil
+    local err, file = async.wait(
+      Parser.parse_file,
+      join_path(ORG_FILES_DIR, "links.org")
+    )
+    assert(not err, err)
+    assert(file)
+
+    print(vim.inspect(vim.tbl_map(function(link)
+      return link.path
+    end, file.links)))
+    assert.equals(14, #file.links)
+
+    assert.equals("id:1234", file.links[1].path)
+    assert.equals("id:5678", file.links[2].path)
+    assert.equals("https://example.com", file.links[3].path)
+    assert.equals("link", file.links[4].path)
+    assert.equals("link2", file.links[5].path)
+    assert.equals("link3", file.links[6].path)
+    assert.equals("link4", file.links[7].path)
+    assert.equals("link5", file.links[8].path)
+    assert.equals("link6", file.links[9].path)
+    assert.equals("link7", file.links[10].path)
+    assert.equals("link8", file.links[11].path)
+    assert.equals("link9", file.links[12].path)
+    assert.equals("link10", file.links[13].path)
+    assert.equals("link11", file.links[14].path)
+  end)
 end)
