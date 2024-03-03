@@ -14,7 +14,11 @@ This is an org file that also serves as an org-roam node.
   :ID: 2
   :END:
 
+  This is a paragraph that links to [[id:1]] and [[id:3]].
+
 ** node three :g:h:i:
   :PROPERTIES:
   :ID: 3
   :END:
+
+   This is a paragraph that links to just [[id:2]].

@@ -275,6 +275,17 @@ function M:find_first(opts)
     return nodes[1]
 end
 
+---Finds the first node that matches provided options, returning its data.
+---NOTE: Because of breadth-first search, this should be the shallowest node.
+---@param opts? org-roam.core.utils.tree.interval.FindOpts
+---@return any|nil
+function M:find_first_data(opts)
+    local node = self:find_first(opts)
+    if node then
+        return node.data
+    end
+end
+
 ---Finds the last node that matches provided options.
 ---NOTE: Because of breadth-first search, this should be the deepest node.
 ---
@@ -287,6 +298,17 @@ function M:find_last(opts)
     -- NOTE: Because of breadth-first search, the last node should
     --       be the deepest (or tied as deepest) of all nodes
     return nodes[#nodes]
+end
+
+---Finds the last node that matches provided options and returns its data.
+---NOTE: Because of breadth-first search, this should be the deepest node.
+---@param opts? org-roam.core.utils.tree.interval.FindOpts
+---@return any|nil
+function M:find_last_data(opts)
+    local node = self:find_last(opts)
+    if node then
+        return node.data
+    end
 end
 
 ---Checks if this tree's interval contains entirely the specified point or interval.

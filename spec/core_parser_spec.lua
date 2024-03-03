@@ -235,11 +235,21 @@ describe("Parser", function()
     -- NOTE: We aren't checking the entire thing fully
     assert.equals(1, #file.drawers)
     assert.equals(2, #file.sections)
+    assert.equals(6, #file.links)
 
     -- Verify section merging (bug workaround) is working as expected
     assert.equals("node two", file.sections[1].heading.item:text())
     assert.equals(":d:e:f:", file.sections[1].heading.tags:text())
     assert.equals("node three", file.sections[2].heading.item:text())
     assert.equals(":g:h:i:", file.sections[2].heading.tags:text())
+
+    -- Verify we get all of the links (catch bug about near end of paragraph
+    -- with a period immediately after it
+    assert.equals("id:1", file.links[1].path)
+    assert.equals("id:2", file.links[2].path)
+    assert.equals("id:3", file.links[3].path)
+    assert.equals("id:1", file.links[4].path)
+    assert.equals("id:3", file.links[5].path)
+    assert.equals("id:2", file.links[6].path)
   end)
 end)

@@ -272,11 +272,12 @@ function M:__scan_file(path, cb)
             end
         end
 
+        -- Build an interval tree from our section nodes
+        local section_node_tree = utils.tree.interval:from_list(vim.tbl_map(function(t)
+            return { t[1].start.offset, t[1].end_.offset, t[2] }
+        end, section_nodes))
+
         -- Figure out which node contains the link
-        -- TODO: We are doing a naive scan here, so performance
-        --       is going to suck. We should revisit to make
-        --       this better down the line. Maybe sort by
-        --       range size.
         for _, link in ipairs(file.links) do
             local link_path = vim.trim(link.path)
             local link_id = string.match(link_path, "^id:(.+)$")
@@ -287,19 +288,11 @@ function M:__scan_file(path, cb)
             -- cache all links and use the non-id links
             -- externally.
             if link_id then
-                -- Look through ALL of our section nodes to find
-                -- the closest based on size. If none contain,
-                -- then use the file node.
-                local size = math.huge
-                local target_node
-                for _, tbl in ipairs(section_nodes) do
-                    local range = tbl[1]
-                    local node = tbl[2]
-                    if range:size() < size and range:contains(link.range) then
-                        size = range:size()
-                        target_node = node
-                    end
-                end
+                local target_node = section_node_tree:find_last_data({
+                    link.range.start.offset,
+                    link.range.end_.offset,
+                    match = "contains",
+                })
 
                 if not target_node then
                     target_node = file_node

@@ -1,0 +1,29 @@
+:PROPERTIES:
+:ID: links-1234
+:END:
+
+* Paragraph Links
+
+  [[id:1234][Link to file node]] is here.
+  [[id:5678][Link to heading node]] is here.
+  [[https://example.com]] is a link without a description.
+  This is a [[link]] embedded within, and [[link2]] also.
+  [[link3]]
+  Nearly at end [[link4]].
+
+* List Links
+
+  - [[link5]]
+  - [[link6]]
+
+* Drawer Links
+  :PROPERTIES:
+  :A: [[link7]]
+  :B: [[link8]]
+  :END:
+
+* Table Links
+
+  | Name | Link      |
+  |------+-----------|
+  | One  | [[link9]] |
