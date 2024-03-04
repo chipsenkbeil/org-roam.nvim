@@ -68,5 +68,8 @@ end
 ---@param opts org-roam.core.config.Config.NewOpts
 ---@param cb fun(db:org-roam.core.database.Database)
 return function(opts, cb)
+    -- NOTE: We must schedule this as some of the operations performed
+    --       will cause neovim to crash on startup when setup is called
+    --       if we do NOT schedule this to run on the main loop later.
     vim.schedule(function() setup(opts, cb) end)
 end

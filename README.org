@@ -50,6 +50,14 @@
    A collection of features to implement in no particular order.
 
    - [ ] Implement [[https://www.orgroam.com/manual.html#The-Org_002droam-Buffer][org-roam buffer]]
+     - [ ] Implement *org-roam-buffer-toggle* (tracks current node at point)
+     - [ ] Implement *org-roam-buffer-display-dedicated* (tracks specific node)
+     - [ ] Implement *Backlinks* widget for buffer
+       - View (preview of) nodes that link to this node
+     - [ ] Implement *Reference Links* widget for buffer
+       - Nodes that reference this node (see [[https://www.orgroam.com/manual.html#Refs][Refs]])
+     - [ ] Implement *Unlinked references* widget for buffer
+       - View nodes that contain text that match the nodes title/alias but are not linked
    - [ ] Implement [[https://www.orgroam.com/manual.html#Citations][citations]]
    - [ ] Implement [[https://www.orgroam.com/manual.html#Completion][completion]]
    - [ ] Implement [[https://www.orgroam.com/manual.html#Encryption][encryption]]
