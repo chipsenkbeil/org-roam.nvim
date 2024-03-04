@@ -251,6 +251,12 @@ function M:get_many(...)
     return nodes
 end
 
+---Returns a list of all ids of nodes within the database.
+---@return org-roam.core.database.Id[]
+function M:ids()
+    return vim.tbl_keys(self.__nodes)
+end
+
 ---Retrieves ids of nodes from the database by some index.
 ---@param name org-roam.core.database.IndexName name of the index
 ---@param cmp org-roam.core.database.IndexKey|fun(key:org-roam.core.database.IndexKey):boolean
@@ -377,7 +383,7 @@ function M:__get_links_in_direction(opts)
     end
 
     -- Populate initial list of node ids to traverse
-    local ids = vim.tbl_keys(edges[root_id])
+    local ids = vim.tbl_keys(edges[root_id] or {})
 
     local step = 1
     while step <= max_depth do
@@ -392,7 +398,7 @@ function M:__get_links_in_direction(opts)
 
                 -- Add all of the outbound edges of that node to the list
                 -- to traverse in the next step
-                for edge_id, _ in pairs(edges[step_id]) do
+                for edge_id, _ in pairs(edges[step_id] or {}) do
                     table.insert(ids, edge_id)
                 end
             end

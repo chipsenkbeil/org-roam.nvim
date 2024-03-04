@@ -4,12 +4,12 @@
 
 ** Table of Contents
 
-   - [[*Installation]]
-    - [[*lazy.nvim]]
-    - [[*packer.nvim]]
-   - [[*Usage]]
-   - [[*Developer & Contributor Instructions]]
-    - [[*Running tests]]
+   - [[Installation]]
+    - [[lazy.nvim]]
+    - [[packer.nvim]]
+   - [[Usage]]
+   - [[Developer & Contributor Instructions]]
+    - [[Running tests]]
 
 ** Installation
 
@@ -45,6 +45,21 @@
 
    TODO I'll get to this once the plugin is ready for usage.
 
+** Roadmap
+
+   A collection of features to implement in no particular order.
+
+*** TODO Implement [[https://www.orgroam.com/manual.html#The-Org_002droam-Buffer][org-roam buffer]]
+*** TODO Implement [[https://www.orgroam.com/manual.html#Citations][citations]]
+*** TODO Implement [[https://www.orgroam.com/manual.html#Completion][completion]]
+*** TODO Implement [[https://www.orgroam.com/manual.html#Encryption][encryption]]
+*** TODO Implement [[https://www.orgroam.com/manual.html#The-Templating-System][templating]]
+*** TODO Implement extensions
+**** TODO [[https://www.orgroam.com/manual.html#org_002droam_002ddailies][org-roam-dailies]]
+**** TODO [[https://www.orgroam.com/manual.html#org_002droam_002dexport][org-roam-export]]
+**** TODO [[https://www.orgroam.com/manual.html#org_002droam_002dgraph][org-roam-graph]]
+**** TODO [[https://www.orgroam.com/manual.html#org_002droam_002dprotocol][org-roam-protocol]]
+ 
 ** Developer & Contributor Instructions
 
 *** Running tests
