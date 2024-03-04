@@ -49,16 +49,16 @@
 
    A collection of features to implement in no particular order.
 
-*** TODO Implement [[https://www.orgroam.com/manual.html#The-Org_002droam-Buffer][org-roam buffer]]
-*** TODO Implement [[https://www.orgroam.com/manual.html#Citations][citations]]
-*** TODO Implement [[https://www.orgroam.com/manual.html#Completion][completion]]
-*** TODO Implement [[https://www.orgroam.com/manual.html#Encryption][encryption]]
-*** TODO Implement [[https://www.orgroam.com/manual.html#The-Templating-System][templating]]
-*** TODO Implement extensions
-**** TODO [[https://www.orgroam.com/manual.html#org_002droam_002ddailies][org-roam-dailies]]
-**** TODO [[https://www.orgroam.com/manual.html#org_002droam_002dexport][org-roam-export]]
-**** TODO [[https://www.orgroam.com/manual.html#org_002droam_002dgraph][org-roam-graph]]
-**** TODO [[https://www.orgroam.com/manual.html#org_002droam_002dprotocol][org-roam-protocol]]
+   - [ ] Implement [[https://www.orgroam.com/manual.html#The-Org_002droam-Buffer][org-roam buffer]]
+   - [ ] Implement [[https://www.orgroam.com/manual.html#Citations][citations]]
+   - [ ] Implement [[https://www.orgroam.com/manual.html#Completion][completion]]
+   - [ ] Implement [[https://www.orgroam.com/manual.html#Encryption][encryption]]
+   - [ ] Implement [[https://www.orgroam.com/manual.html#The-Templating-System][templating]]
+   - [ ] Implement extensions
+     - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002ddailies][org-roam-dailies]]
+     - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002dexport][org-roam-export]]
+     - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002dgraph][org-roam-graph]]
+     - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002dprotocol][org-roam-protocol]]
  
 ** Developer & Contributor Instructions
 
