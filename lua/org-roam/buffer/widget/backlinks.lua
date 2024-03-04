@@ -57,6 +57,32 @@ function M:apply(opts)
                         return
                     end
 
+                    -- TODO: Store linked locations within node data,
+                    --       which we will use to construct the full
+                    --       link versus it just linking to the file.
+                    --
+                    --       Additionally, with that information, we
+                    --       will retrieve a preview of the link by
+                    --       loading the file, parsing it, and
+                    --       extracting the line it is on.
+                    --
+                    --       We also should consider rebuilding this
+                    --       to be async to avoid blocking when
+                    --       loading a bunch of nodes. First thought
+                    --       is supplying a function we call to feed
+                    --       lines to append, and another to indicate
+                    --       being finished. The buffer manager would
+                    --       have some visual to show loading/done.
+                    --
+                    --       file:sometext::NNN is the only format that
+                    --       supports jumping to a specific line. Notice
+                    --       that it does not support column. So if we
+                    --       want to support jumping to the start of a
+                    --       link within a line then we either need to
+                    --
+                    --       a. Use quickfix list
+                    --       b. Use custom buffer (not org) that has
+                    --          custom binding to jump to specific location
                     return string.format(
                         "*** [[id:%s][%s]] ([[#][Top]])",
                         id,
