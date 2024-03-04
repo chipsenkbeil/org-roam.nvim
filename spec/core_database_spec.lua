@@ -236,6 +236,22 @@ describe("database", function()
         assert.same({ [id2] = 1, [id3] = 2 }, db:get_links(id1, { max_depth = 2 }))
     end)
 
+    it("should support getting ids of non-existent nodes linked to by a node", function()
+        local db = Database:new()
+        local id1 = db:insert("one")
+        local id2 = db:insert("two")
+
+        db:link(id1, id2, "three")
+        db:link(id2, "four", "five")
+
+        assert.same({
+            [id2] = 1,
+            ["three"] = 1,
+            ["four"] = 2,
+            ["five"] = 2,
+        }, db:get_links(id1, { max_depth = 2 }))
+    end)
+
     it("should support getting ids of nodes linking to a node", function()
         local db = Database:new()
         local id1 = db:insert("one")
