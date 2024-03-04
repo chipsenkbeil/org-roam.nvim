@@ -34,6 +34,7 @@ function M:apply(opts)
     local bl_ids = vim.tbl_keys(db:get_backlinks(node.id))
     if #bl_ids > 0 then
         local lines = { string.format("** Backlinks (%s)", #bl_ids) }
+        local visited = {}
 
         vim.list_extend(lines, vim.tbl_filter(
         -- Filter out nil lines
@@ -45,6 +46,17 @@ function M:apply(opts)
                 ---@diagnostic disable-next-line:redefined-local
                 local node = db:get(id)
                 if node then
+                    -- If set, only show single backlink per node
+                    if self.unique and not visited[id] then
+                        visited[id] = true
+                    elseif self.unique then
+                        return
+                    end
+
+                    if not (self.predicate)(node) then
+                        return
+                    end
+
                     return string.format(
                         "*** [[id:%s][%s]] ([[#][Top]])",
                         id,
