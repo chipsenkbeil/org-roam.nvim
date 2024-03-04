@@ -1,3 +1,9 @@
+-------------------------------------------------------------------------------
+-- SETUP.LUA
+--
+-- Contains logic to initialize the plugin.
+-------------------------------------------------------------------------------
+
 local config   = require("org-roam.core.config")
 local Database = require("org-roam.core.database")
 local File     = require("org-roam.core.database.file")
