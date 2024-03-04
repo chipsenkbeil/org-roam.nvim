@@ -333,7 +333,12 @@ function M:__scan_file(path, cb)
                 end
 
                 if target_node then
-                    table.insert(target_node.linked, link_id)
+                    local row = link.range.start.row
+                    local col = link.range.start.column
+                    if not target_node.linked[link_id] then
+                        target_node.linked[link_id] = {}
+                    end
+                    table.insert(target_node.linked[link_id], { row, col })
                 end
             end
         end
