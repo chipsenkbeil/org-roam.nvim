@@ -74,7 +74,7 @@
 ---@field aliases string[] #alternative titles associated with node
 ---@field tags string[] #tags tied to node
 ---@field level integer #heading level (0 means top-level)
----@field linked string[] #ids of nodes referenced by this node
+---@field linked table<string, {[1]:integer, [2]:integer}[]> #ids of nodes referenced by this node, mapped to line/column
 local M = {}
 M.__index = M
 
@@ -85,7 +85,7 @@ M.__index = M
 ---@field aliases? string[]
 ---@field tags? string[]
 ---@field level? integer (0 means top-level)
----@field linked? string[]
+---@field linked? table<string, {[1]:integer, [2]:integer}[]>
 
 ---Creates a new node.
 ---@param opts org-roam.core.database.Node.NewOpts

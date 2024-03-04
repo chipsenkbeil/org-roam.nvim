@@ -34,7 +34,6 @@ function M:apply(opts)
     local bl_ids = vim.tbl_keys(db:get_backlinks(node.id))
     if #bl_ids > 0 then
         local lines = { string.format("** Backlinks (%s)", #bl_ids) }
-        local visited = {}
 
         vim.list_extend(lines, vim.tbl_filter(
         -- Filter out nil lines
@@ -43,18 +42,23 @@ function M:apply(opts)
             ---@param id org-roam.core.database.Id
             vim.tbl_map(function(id)
                 ---@type org-roam.core.database.Node|nil
-                ---@diagnostic disable-next-line:redefined-local
-                local node = db:get(id)
-                if node then
-                    -- If set, only show single backlink per node
-                    if self.unique and not visited[id] then
-                        visited[id] = true
-                    elseif self.unique then
+                local backlink_node = db:get(id)
+                if backlink_node then
+                    if not (self.predicate)(backlink_node) then
                         return
                     end
 
-                    if not (self.predicate)(node) then
-                        return
+                    ---@diagnostic disable-next-line:redefined-local
+                    local lines = {}
+                    local locs = backlink_node.linked[node.id] or {}
+                    for _, loc in ipairs(locs) do
+                        local row, _ = loc[1], loc[2]
+                        table.insert(lines, string.format(
+                            "*** [[file:%s::%s][%s]] ([[#][Top]])",
+                            node.file,
+                            row,
+                            node.title
+                        ))
                     end
 
                     -- TODO: Store linked locations within node data,
@@ -83,11 +87,7 @@ function M:apply(opts)
                     --       a. Use quickfix list
                     --       b. Use custom buffer (not org) that has
                     --          custom binding to jump to specific location
-                    return string.format(
-                        "*** [[id:%s][%s]] ([[#][Top]])",
-                        id,
-                        node.title
-                    )
+                    return lines
                 end
             end, bl_ids)
         ))
