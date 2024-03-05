@@ -12,9 +12,30 @@ local M = {}
 ---@class org-roam.core.ui.quickfix.Item
 ---@field filename string
 ---@field module string
----@field lnum integer
----@field col integer
----@field text string
+---@field lnum? integer
+---@field col? integer
+---@field text? string
+
+---@param db org-roam.core.database.Database
+---@param id org-roam.core.database.Id
+---@return org-roam.core.ui.quickfix.Item[]
+local function get_links_as_quickfix_items(db, id)
+    local ids = vim.tbl_keys(db:get_links(id))
+
+    local items = {}
+    for _, link_id in ipairs(ids) do
+        ---@type org-roam.core.database.Node|nil
+        local node = db:get(link_id)
+        if node then
+            table.insert(items, {
+                filename = node.file,
+                module = node.title,
+            })
+        end
+    end
+
+    return items
+end
 
 ---@param db org-roam.core.database.Database
 ---@param id org-roam.core.database.Id
@@ -56,9 +77,14 @@ local function get_backlinks_as_quickfix_items(db, id, opts)
     return items
 end
 
+---@class org-roam.core.ui.quickfix.OpenOpts
+---@field backlinks? boolean
+---@field links? boolean
+---@field show_preview? boolean
+
 ---@param db org-roam.core.database.Database
 ---@param id org-roam.core.database.Id
----@param opts? {backlinks?:boolean, show_preview?:boolean}
+---@param opts? org-roam.core.ui.quickfix.OpenOpts
 function M.open(db, id, opts)
     opts = opts or {}
 
@@ -71,12 +97,19 @@ function M.open(db, id, opts)
     ---@type org-roam.core.ui.quickfix.Item[]
     local items = {}
 
+    -- Build up our quickfix list items based on links
+    if opts.links then
+        vim.list_extend(items, get_links_as_quickfix_items(db, id))
+    end
+
     -- Build up our quickfix list items based on backlinks
     if opts.backlinks then
         vim.list_extend(items, get_backlinks_as_quickfix_items(db, id, opts))
     end
 
     -- Consistent ordering by title
+    ---@param a org-roam.core.ui.quickfix.Item
+    ---@param b org-roam.core.ui.quickfix.Item
     table.sort(items, function(a, b)
         return a.module < b.module
     end)
