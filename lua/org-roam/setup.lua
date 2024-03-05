@@ -15,17 +15,9 @@ local utils    = require("org-roam.core.utils")
 local notify   = ui.notify
 local unpack   = utils.table.unpack
 
----Initializes the plugin, returning the database associated with nodes.
----@param opts org-roam.core.config.Config.NewOpts
+---Initializes the plugin's database.
 ---@param cb fun(db:org-roam.core.database.Database)
-local function setup(opts, cb)
-    -- Normalize the roam directory before storing it
-    opts.org_roam_directory = vim.fs.normalize(opts.org_roam_directory)
-
-    -- Merge our configuration options into our global config
-    ---@diagnostic disable-next-line:param-type-mismatch
-    config:merge(opts)
-
+local function init_database(cb)
     -- Load our database, creating it if it does not exist
     local db_path = vim.fn.stdpath("data") .. "/org-roam.nvim/" .. "db.mpack"
     if not File:new(db_path):exists() then
@@ -71,10 +63,8 @@ local function setup(opts, cb)
     end
 end
 
----Initializes the plugin, returning the database associated with nodes.
----@param opts org-roam.core.config.Config.NewOpts
----@param cb fun(db:org-roam.core.database.Database)
-return function(opts, cb)
+local function define_autocmds()
+    -- Define our autocommands for the plugin
     local GROUP = vim.api.nvim_create_augroup("OrgRoam", { clear = true })
     vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
         group = GROUP,
@@ -85,9 +75,38 @@ return function(opts, cb)
             buffer.set_dirty_flag(bufnr, true)
         end,
     })
+end
+
+---@param opts org-roam.core.config.Config.NewOpts
+local function merge_config(opts)
+    -- Normalize the roam directory before storing it
+    opts.org_roam_directory = vim.fs.normalize(opts.org_roam_directory)
+
+    -- Merge our configuration options into our global config
+    ---@diagnostic disable-next-line:param-type-mismatch
+    config:merge(opts)
+end
+
+local function define_keybindings()
+    vim.api.nvim_set_keymap("n", "<LocalLeader>orb", "", {
+        desc = "Open quickfix of backlinks for org-roam node under cursor",
+        noremap = true,
+        callback = function()
+            require("org-roam").open_qflist_for_node_under_cursor()
+        end,
+    })
+end
+
+---Initializes the plugin, returning the database associated with nodes.
+---@param opts org-roam.core.config.Config.NewOpts
+---@param cb fun(db:org-roam.core.database.Database)
+return function(opts, cb)
+    define_autocmds()
+    merge_config(opts)
+    define_keybindings()
 
     -- NOTE: We must schedule this as some of the operations performed
     --       will cause neovim to crash on startup when setup is called
     --       if we do NOT schedule this to run on the main loop later.
-    vim.schedule(function() setup(opts, cb) end)
+    vim.schedule(function() init_database(cb) end)
 end
