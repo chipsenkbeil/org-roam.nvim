@@ -69,6 +69,7 @@
 
 ---@class org-roam.core.database.Node
 ---@field id string #unique id associated with the node
+---@field range org-roam.core.parser.Range #range representing full node
 ---@field file string #path to file where node is located
 ---@field title string #title of node, defaulting to file name
 ---@field aliases string[] #alternative titles associated with node
@@ -80,6 +81,7 @@ M.__index = M
 
 ---@class org-roam.core.database.Node.NewOpts
 ---@field id string
+---@field range org-roam.core.parser.Range
 ---@field file string
 ---@field title? string
 ---@field aliases? string[]
@@ -94,6 +96,7 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
     instance.id = opts.id
+    instance.range = opts.range
     instance.file = opts.file
     instance.title = opts.title or (function()
         local filename = vim.fs.basename(opts.file)

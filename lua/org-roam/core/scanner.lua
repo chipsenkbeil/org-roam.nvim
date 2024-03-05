@@ -8,6 +8,7 @@
 local Emitter = require("org-roam.core.utils.emitter")
 local Node    = require("org-roam.core.database.node")
 local parser  = require("org-roam.core.parser")
+local Range   = require("org-roam.core.parser.range")
 local utils   = require("org-roam.core.utils")
 
 local uv      = vim.loop
@@ -204,12 +205,182 @@ function M:__scan_dir(path, cb, done)
     do_parse()
 end
 
+---@param path string
+---@param file org-roam.core.parser.File
+---@return org-roam.core.database.Node[]
+local function file_to_nodes(path, file)
+    ---@type org-roam.core.database.Node|nil
+    local file_node
+    ---@type {[1]: org-roam.core.parser.Range, [2]: org-roam.core.database.Node}[]
+    local section_nodes = {}
+
+    -- First, find the top-level property drawer
+    for _, drawer in ipairs(file.drawers) do
+        local id = drawer:find("id", { case_insensitive = true })
+
+        if id then
+            local aliases_text = drawer:find("ROAM_ALIASES", {
+                case_insensitive = true,
+            })
+
+            local aliases = aliases_text
+                and utils.parser.parse_property_value(aliases_text)
+                or {}
+
+            file_node = Node:new({
+                id = id,
+                range = Range:new(
+                    { row = 0, column = 0, offset = 0 },
+                    { row = math.huge, column = math.huge, offset = math.huge }
+                ),
+                file = path,
+                title = file.title,
+                aliases = aliases,
+                tags = vim.deepcopy(file.filetags),
+                level = 0,
+                linked = {},
+            })
+
+            -- There should only be one top-level node
+            break
+        end
+    end
+
+    -- Second, build an interval tree of our sections so we
+    -- can look up tags that apply
+    ---@type org-roam.core.utils.tree.IntervalTree|nil
+    local tags_tree
+    if #file.sections > 0 then
+        tags_tree = utils.tree.interval:from_list(vim.tbl_map(function(section)
+            ---@cast section org-roam.core.parser.Section
+            return {
+                section.range.start.offset,
+                section.range.end_.offset,
+                section.heading:tag_list(),
+            }
+        end, file.sections))
+    end
+
+    -- Third, for each section, check if it has a node
+    for _, section in ipairs(file.sections) do
+        local id = section.property_drawer:find("id", {
+            case_insensitive = true,
+        })
+
+        if id then
+            local heading = section.heading
+            local aliases_text = section.property_drawer:find("ROAM_ALIASES", {
+                case_insensitive = true,
+            })
+
+            local aliases = aliases_text
+                and utils.parser.parse_property_value(aliases_text)
+                or {}
+
+            local title = heading.item and vim.trim(heading.item:text()) or nil
+
+            -- Build up tags for the heading, which is a combination of
+            -- the file tags, any tags from ancestor headings, and
+            -- then this heading
+            local tags = vim.deepcopy(file.filetags)
+            local nodes = {}
+            if tags_tree then
+                nodes = tags_tree:find_all({
+                    section.range.start.offset,
+                    section.range.end_.offset,
+                    match = "contains",
+                })
+            end
+
+            for _, node in ipairs(nodes) do
+                for _, tag in ipairs(node.data) do
+                    ---@cast tag string
+                    table.insert(tags, tag)
+                end
+            end
+
+            table.sort(tags)
+
+            table.insert(section_nodes, {
+                section.range,
+                Node:new({
+                    id = id,
+                    range = section.range,
+                    file = path,
+                    title = title,
+                    aliases = aliases,
+                    tags = tags,
+                    level = heading.stars,
+                    linked = {},
+                })
+            })
+        end
+    end
+
+    -- Build an interval tree from our section nodes
+    ---@type org-roam.core.utils.tree.IntervalTree|nil
+    local section_node_tree
+    if #section_nodes > 0 then
+        section_node_tree = utils.tree.interval:from_list(vim.tbl_map(function(t)
+            return { t[1].start.offset, t[1].end_.offset, t[2] }
+        end, section_nodes))
+    end
+
+    -- Figure out which node contains the link
+    for _, link in ipairs(file.links) do
+        local link_path = vim.trim(link.path)
+        local link_id = string.match(link_path, "^id:(.+)$")
+
+        -- For now, we only consider links that are
+        -- standard org id links, nothing else. This
+        -- differs from org-roam in Emacs, where they
+        -- cache all links and use the non-id links
+        -- externally.
+        if link_id then
+            local target_node
+            if section_node_tree then
+                target_node = section_node_tree:find_last_data({
+                    link.range.start.offset,
+                    link.range.end_.offset,
+                    match = "contains",
+                })
+            end
+
+            if not target_node then
+                target_node = file_node
+            end
+
+            if target_node then
+                if not target_node.linked[link_id] then
+                    target_node.linked[link_id] = {}
+                end
+
+                ---@type org-roam.core.parser.Position
+                local pos = vim.deepcopy(link.range.start)
+
+                table.insert(target_node.linked[link_id], pos)
+            end
+        end
+    end
+
+    ---@type org-roam.core.database.Node[]
+    local nodes = {}
+    if file_node then
+        table.insert(nodes, file_node)
+    end
+
+    for _, tbl in ipairs(section_nodes) do
+        table.insert(nodes, tbl[2])
+    end
+
+    return nodes
+end
+
 ---@class org-roam.core.scanner.ScanFileResults
 ---@field file org-roam.core.parser.File
 ---@field nodes org-roam.core.database.Node[]
 
----Performs a one-time scan of a file, parsing it,
----and invoking the provided callback once per file.
+---Performs a one-time scan of a file, parsing the contents.
 ---@private
 ---@param path string
 ---@param cb fun(err:string|nil, results:org-roam.core.scanner.ScanFileResults|nil)
@@ -221,159 +392,23 @@ function M:__scan_file(path, cb)
         end
 
         ---@cast file -nil
-        ---@type org-roam.core.database.Node|nil
-        local file_node
-        ---@type {[1]: org-roam.core.parser.Range, [2]: org-roam.core.database.Node}[]
-        local section_nodes = {}
-
-        -- First, find the top-level property drawer
-        for _, drawer in ipairs(file.drawers) do
-            local id = drawer:find("id", { case_insensitive = true })
-
-            if id then
-                local aliases_text = drawer:find("ROAM_ALIASES", {
-                    case_insensitive = true,
-                })
-
-                local aliases = aliases_text
-                    and utils.parser.parse_property_value(aliases_text)
-                    or {}
-
-                file_node = Node:new({
-                    id = id,
-                    file = path,
-                    title = file.title,
-                    aliases = aliases,
-                    tags = vim.deepcopy(file.filetags),
-                    level = 0,
-                    linked = {},
-                })
-
-                -- There should only be one top-level node
-                break
-            end
-        end
-
-        -- Second, build an interval tree of our sections so we
-        -- can look up tags that apply
-        local tags_tree = utils.tree.interval:from_list(vim.tbl_map(function(section)
-            ---@cast section org-roam.core.parser.Section
-            return {
-                section.range.start.offset,
-                section.range.end_.offset,
-                section.heading:tag_list(),
-            }
-        end, file.sections))
-
-        -- Third, for each section, check if it has a node
-        for _, section in ipairs(file.sections) do
-            local id = section.property_drawer:find("id", {
-                case_insensitive = true,
-            })
-
-            if id then
-                local heading = section.heading
-                local aliases_text = section.property_drawer:find("ROAM_ALIASES", {
-                    case_insensitive = true,
-                })
-
-                local aliases = aliases_text
-                    and utils.parser.parse_property_value(aliases_text)
-                    or {}
-
-                local title = heading.item and vim.trim(heading.item:text()) or nil
-
-                -- Build up tags for the heading, which is a combination of
-                -- the file tags, any tags from ancestor headings, and
-                -- then this heading
-                local tags = vim.deepcopy(file.filetags)
-                local nodes = tags_tree:find_all({
-                    section.range.start.offset,
-                    section.range.end_.offset,
-                    match = "contains",
-                })
-                for _, node in ipairs(nodes) do
-                    for _, tag in ipairs(node.data) do
-                        ---@cast tag string
-                        table.insert(tags, tag)
-                    end
-                end
-
-                table.sort(tags)
-
-                table.insert(section_nodes, {
-                    section.range,
-                    Node:new({
-                        id = id,
-                        file = path,
-                        title = title,
-                        aliases = aliases,
-                        tags = tags,
-                        level = heading.stars,
-                        linked = {},
-                    })
-                })
-            end
-        end
-
-        -- Build an interval tree from our section nodes
-        ---@type org-roam.core.utils.tree.IntervalTree|nil
-        local section_node_tree
-        if #section_nodes > 0 then
-            section_node_tree = utils.tree.interval:from_list(vim.tbl_map(function(t)
-                return { t[1].start.offset, t[1].end_.offset, t[2] }
-            end, section_nodes))
-        end
-
-        -- Figure out which node contains the link
-        for _, link in ipairs(file.links) do
-            local link_path = vim.trim(link.path)
-            local link_id = string.match(link_path, "^id:(.+)$")
-
-            -- For now, we only consider links that are
-            -- standard org id links, nothing else. This
-            -- differs from org-roam in Emacs, where they
-            -- cache all links and use the non-id links
-            -- externally.
-            if link_id then
-                local target_node
-                if section_node_tree then
-                    target_node = section_node_tree:find_last_data({
-                        link.range.start.offset,
-                        link.range.end_.offset,
-                        match = "contains",
-                    })
-                end
-
-                if not target_node then
-                    target_node = file_node
-                end
-
-                if target_node then
-                    if not target_node.linked[link_id] then
-                        target_node.linked[link_id] = {}
-                    end
-
-                    ---@type org-roam.core.parser.Position
-                    local pos = vim.deepcopy(link.range.start)
-
-                    table.insert(target_node.linked[link_id], pos)
-                end
-            end
-        end
-
-        ---@type org-roam.core.database.Node[]
-        local nodes = {}
-        if file_node then
-            table.insert(nodes, file_node)
-        end
-
-        for _, tbl in ipairs(section_nodes) do
-            table.insert(nodes, tbl[2])
-        end
-
-        cb(nil, { file = file, nodes = nodes })
+        cb(nil, {
+            file = file,
+            nodes = file_to_nodes(path, file),
+        })
     end)
+end
+
+---Performs a one-time scan of a string, parsing the contents.
+---@param contents string
+---@return org-roam.core.scanner.ScanFileResults
+function M.scan(contents)
+    local file = parser.parse(contents)
+
+    return {
+        file = file,
+        nodes = file_to_nodes("<STRING>", file),
+    }
 end
 
 return M
