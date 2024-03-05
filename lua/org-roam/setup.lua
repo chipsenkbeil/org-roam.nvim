@@ -95,6 +95,14 @@ local function define_keybindings()
             require("org-roam").open_qflist_for_node_under_cursor()
         end,
     })
+
+    vim.api.nvim_set_keymap("n", "<LocalLeader>orpn", "", {
+        desc = "Print org-roam node under cursor",
+        noremap = true,
+        callback = function()
+            require("org-roam").print_node_under_cursor()
+        end,
+    })
 end
 
 ---Initializes the plugin, returning the database associated with nodes.
