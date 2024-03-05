@@ -18,16 +18,28 @@ function M.setup(opts)
     end)
 end
 
+---Opens the quickfix list for the node `id`, populating with backlinks.
+---
+---If `show_preview` is true, will load a preview of the line containing
+---the backlink.
+---
 ---@param id org-roam.core.database.Id
-function M.open_qflist_for_node(id)
+---@param opts? {show_preview?:boolean}
+function M.open_qflist_for_node(id, opts)
     local db = assert(M.__database, "not initialized")
-    require("org-roam.core.ui").open_qflist_backlinks(db, id)
+    require("org-roam.core.ui").open_qflist_backlinks(db, id, opts)
 end
 
-function M.open_qflist_for_node_under_cursor()
+---Opens the quickfix list for the node under cursor, populating with backlinks.
+---
+---If `show_preview` is true, will load a preview of the line containing
+---the backlink.
+---
+---@param opts? {show_preview?:boolean}
+function M.open_qflist_for_node_under_cursor(opts)
     require("org-roam.core.buffer").node_under_cursor(function(id)
         if id then
-            M.open_qflist_for_node(id)
+            M.open_qflist_for_node(id, opts)
         end
     end)
 end
