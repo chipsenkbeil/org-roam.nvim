@@ -22,4 +22,41 @@ function M.notify(msg, level, opts)
     end)
 end
 
+---@param db org-roam.core.database.Database
+---@param id org-roam.core.database.Id
+function M.open_qflist_backlinks(db, id)
+    local title = (function()
+        ---@type org-roam.core.database.Node|nil
+        local node = db:get(id)
+        return node and node.title
+    end)()
+
+    local ids = vim.tbl_keys(db:get_backlinks(id))
+
+    -- Build up our quickfix list items based on backlinks
+    local items = {}
+    for _, backlink_id in ipairs(ids) do
+        ---@type org-roam.core.database.Node|nil
+        local node = db:get(backlink_id)
+
+        if node then
+            local locs = node.linked[id]
+            for _, loc in ipairs(locs or {}) do
+                table.insert(items, {
+                    filename = node.file,
+                    lnum = loc.row + 1,
+                    col = loc.column + 1,
+                })
+            end
+        end
+    end
+
+    assert(vim.fn.setqflist({}, "r", {
+        title = string.format("%s backlinks", title or "???"),
+        items = items,
+    }) == 0, "failed to set quickfix list")
+
+    vim.cmd("copen")
+end
+
 return M

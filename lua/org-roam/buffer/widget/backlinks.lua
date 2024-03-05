@@ -7,7 +7,7 @@
 ---@class org-roam.buffer.widget.Backlinks: org-roam.buffer.Widget
 ---@field private predicate org-roam.buffer.widget.backlinks.Predicate
 ---@field private unique boolean
-local M = require("org-roam.buffer.widget"):new()
+local M = {}
 M.__index = M
 
 ---@alias org-roam.buffer.widget.backlinks.Predicate
@@ -52,12 +52,12 @@ function M:apply(opts)
                     local lines = {}
                     local locs = backlink_node.linked[node.id] or {}
                     for _, loc in ipairs(locs) do
-                        local row, _ = loc[1], loc[2]
                         table.insert(lines, string.format(
-                            "*** [[file:%s::%s][%s]] ([[#][Top]])",
+                            "*** [[file:%s::%s][%s]] ([[file:%s][Top]])",
                             node.file,
-                            row,
-                            node.title
+                            loc.row,
+                            node.title,
+                            node.file
                         ))
                     end
 

@@ -83,11 +83,9 @@ function M.parse(contents)
     local ref = Ref:new(contents)
     local trees = vim.treesitter.get_string_parser(ref.value, "org"):parse()
 
-    -- Build a query to find top-level drawers (with  name PROPERTIES)
-    -- property drawers underneath headings, and expressions that are links
-    --
-    -- NOTE: The link-parsing logic is a bit of a hack and comes from
-    --       https://github.com/nvim-orgmode/orgmode/blob/master/queries/org/markup.scm
+    -- Build a query to find top-level drawers (with name PROPERTIES),
+    -- property drawers underneath headings, directives, and expressions
+    -- that contain links.
     ---@type Query
     local query = vim.treesitter.query.parse("org", [=[
         ((drawer
@@ -133,18 +131,8 @@ function M.parse(contents)
             --               within the contents. Currently, we limit
             --               the match to be a filetags and title directives.
             --
-            -- 4. Regular Link: this shows up when we find a regular link.
-            --                  Angle, plain, and radio links do not match.
-            --
-            -- For the top-level property drawer, we have to parse out the
-            -- properties and their values as we only have the overall contents.
-            --
-            -- For the property drawer, everything comes as expected.
-            --
-            -- For directives, everything comes as expected.
-            --
-            -- For regular links, we have to parse out the link and the
-            -- optional description as we only have an overall expression.
+            -- 4. Content containing Links: this shows up when we find content
+            --                              that we will parse for links.
             if pattern == QUERY_TYPES.TOP_LEVEL_PROPERTY_DRAWER then
                 ---@type org-roam.core.parser.Range|nil
                 local range
