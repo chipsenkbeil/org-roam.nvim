@@ -4,6 +4,7 @@
 -- Contains logic to initialize the plugin.
 -------------------------------------------------------------------------------
 
+local buffer   = require("org-roam.core.buffer")
 local config   = require("org-roam.core.config")
 local Database = require("org-roam.core.database")
 local File     = require("org-roam.core.database.file")
@@ -41,7 +42,7 @@ local function setup(opts, cb)
                 notify("Scanned " .. scan.path, vim.log.levels.DEBUG)
                 for _, node in ipairs(scan.nodes) do
                     local id = db:insert(node, { id = node.id })
-                    db:link(id, unpack(node.linked))
+                    db:link(id, unpack(vim.tbl_keys(node.linked)))
                 end
             end)
             :on_error(function(err) notify(err, vim.log.levels.ERROR) end)
@@ -74,6 +75,17 @@ end
 ---@param opts org-roam.core.config.Config.NewOpts
 ---@param cb fun(db:org-roam.core.database.Database)
 return function(opts, cb)
+    local GROUP = vim.api.nvim_create_augroup("OrgRoam", { clear = true })
+    vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+        group = GROUP,
+        pattern = "*",
+        callback = function(args)
+            ---@type integer
+            local bufnr = args.buf
+            buffer.set_dirty_flag(bufnr, true)
+        end,
+    })
+
     -- NOTE: We must schedule this as some of the operations performed
     --       will cause neovim to crash on startup when setup is called
     --       if we do NOT schedule this to run on the main loop later.
