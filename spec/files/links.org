@@ -30,6 +30,6 @@
 
 * Table Links
 
-  | Name | Link      |
-  |------+-----------|
+  | Name | Link       |
+  |------+------------|
   | One  | [[link11]] |
