@@ -32,9 +32,12 @@ function M:new(paths)
     return instance
 end
 
+---@alias org-roam.core.scanner.Scan
+---| {path:string, file:org-roam.core.parser.File, nodes:org-roam.core.database.Node[]}
+
 ---Register callback to be invoked when a file is scanned.
 ---This can be triggered during the initial scan or when a file is changed.
----@param cb fun(scan:{path:string, nodes:org-roam.core.database.Node[]})
+---@param cb fun(scan:org-roam.core.scanner.Scan)
 ---@return org-roam.core.Scanner
 function M:on_scan(cb)
     self.emitter:on("scanner:scan", cb)
@@ -99,6 +102,7 @@ function M:start()
                     if results then
                         self.emitter:emit("scanner:scan", {
                             path = results.entry.path,
+                            file = results.file,
                             nodes = results.nodes,
                         })
                     end
@@ -108,16 +112,17 @@ function M:start()
                     if_done_then_emit()
                 end)
             elseif stat.type == "file" then
-                self:__scan_file(path, function(err, nodes)
+                self:__scan_file(path, function(err, results)
                     scan_cnt = scan_cnt + 1
                     if err then
                         self.emitter:emit("scanner:error", err)
                     end
 
-                    if nodes then
+                    if results then
                         self.emitter:emit("scanner:scan", {
                             path = path,
-                            nodes = nodes,
+                            file = results.file,
+                            nodes = results.nodes,
                         })
                     end
                     if_done_then_emit()
@@ -150,11 +155,16 @@ function M:is_running()
     return self.running
 end
 
+---@class org-roam.core.scanner.ScanDirResults
+---@field entry org-roam.core.utils.io.WalkEntry
+---@field file org-roam.core.parser.File
+---@field nodes org-roam.core.database.Node[]
+
 ---Performs a one-time scan of a directory, parsing each org file found,
 ---invoking the provided callback once per file.
 ---@private
 ---@param path string
----@param cb fun(err:string|nil, results:{entry:org-roam.core.utils.io.WalkEntry, nodes:org-roam.core.database.Node[]}|nil)
+---@param cb fun(err:string|nil, results:org-roam.core.scanner.ScanDirResults|nil)
 ---@param done fun()
 function M:__scan_dir(path, cb, done)
     local it = utils.io.walk(path, { depth = math.huge })
@@ -166,15 +176,19 @@ function M:__scan_dir(path, cb, done)
             ---@type org-roam.core.utils.io.WalkEntry
             local entry = it:next()
 
-            self:__scan_file(entry.path, function(err, nodes)
+            self:__scan_file(entry.path, function(err, results)
                 if err then
                     cb(err)
                     return
                 end
 
                 vim.schedule(function()
-                    ---@cast nodes -nil
-                    cb(nil, { entry = entry, nodes = nodes })
+                    ---@cast results -nil
+                    cb(nil, {
+                        entry = entry,
+                        file = results.file,
+                        nodes = results.nodes,
+                    })
                 end)
 
                 vim.schedule(do_parse)
@@ -190,11 +204,15 @@ function M:__scan_dir(path, cb, done)
     do_parse()
 end
 
+---@class org-roam.core.scanner.ScanFileResults
+---@field file org-roam.core.parser.File
+---@field nodes org-roam.core.database.Node[]
+
 ---Performs a one-time scan of a file, parsing it,
 ---and invoking the provided callback once per file.
 ---@private
 ---@param path string
----@param cb fun(err:string|nil, nodes:org-roam.core.database.Node[]|nil)
+---@param cb fun(err:string|nil, results:org-roam.core.scanner.ScanFileResults|nil)
 function M:__scan_file(path, cb)
     parser.parse_file(path, function(err, file)
         if err then
@@ -202,8 +220,7 @@ function M:__scan_file(path, cb)
             return
         end
 
-        assert(file, "impossible: successful parse_file did not yield file")
-
+        ---@cast file -nil
         ---@type org-roam.core.database.Node|nil
         local file_node
         ---@type {[1]: org-roam.core.parser.Range, [2]: org-roam.core.database.Node}[]
@@ -333,12 +350,14 @@ function M:__scan_file(path, cb)
                 end
 
                 if target_node then
-                    local row = link.range.start.row
-                    local col = link.range.start.column
                     if not target_node.linked[link_id] then
                         target_node.linked[link_id] = {}
                     end
-                    table.insert(target_node.linked[link_id], { row, col })
+
+                    ---@type org-roam.core.parser.Position
+                    local pos = vim.deepcopy(link.range.start)
+
+                    table.insert(target_node.linked[link_id], pos)
                 end
             end
         end
@@ -353,7 +372,7 @@ function M:__scan_file(path, cb)
             table.insert(nodes, tbl[2])
         end
 
-        cb(nil, nodes)
+        cb(nil, { file = file, nodes = nodes })
     end)
 end
 

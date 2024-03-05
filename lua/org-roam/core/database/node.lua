@@ -74,7 +74,7 @@
 ---@field aliases string[] #alternative titles associated with node
 ---@field tags string[] #tags tied to node
 ---@field level integer #heading level (0 means top-level)
----@field linked table<string, {[1]:integer, [2]:integer}[]> #ids of nodes referenced by this node, mapped to line/column
+---@field linked table<string, org-roam.core.parser.Position[]> #ids of nodes referenced by this node, mapped to positions of the links
 local M = {}
 M.__index = M
 

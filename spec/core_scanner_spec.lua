@@ -16,11 +16,17 @@ describe("core.scanner", function()
         local scanner = Scanner
             :new({ ORG_FILES_DIR })
             :on_scan(function(scan)
+                if not scan.file then
+                    error = "Scan missing parsed file"
+                    return
+                end
+
                 for _, node in ipairs(scan.nodes) do
                     if node then
                         -- We shouldn't have the same node twice
                         if nodes[node.id] then
                             error = "Already have node " .. node.id
+                            return
                         end
 
                         nodes[node.id] = node
@@ -44,7 +50,11 @@ describe("core.scanner", function()
         assert.same({ "1", "neo", "the one" }, node.aliases)
         assert.equals(0, node.level)
         assert.same({ "a", "b", "c" }, node.tags)
-        assert.same({ "2", "3", "4" }, node.linked)
+        assert.same({
+            ["2"] = { { row = 7, column = 2, offset = 138 } },
+            ["3"] = { { row = 8, column = 2, offset = 149 } },
+            ["4"] = { { row = 9, column = 2, offset = 160 } },
+        }, node.linked)
 
         node = assert(nodes["2"], "missing node 2")
         assert.equals("2", node.id)
@@ -53,7 +63,10 @@ describe("core.scanner", function()
         assert.same({}, node.aliases)
         assert.equals(1, node.level)
         assert.same({ "a", "b", "c", "d", "e", "f" }, node.tags)
-        assert.same({ "1", "3" }, node.linked)
+        assert.same({
+            ["1"] = { { row = 16, column = 36, offset = 258 } },
+            ["3"] = { { row = 16, column = 49, offset = 271 } },
+        }, node.linked)
 
         node = assert(nodes["3"], "missing node 3")
         assert.equals("3", node.id)
@@ -62,7 +75,9 @@ describe("core.scanner", function()
         assert.same({}, node.aliases)
         assert.equals(2, node.level)
         assert.same({ "a", "b", "c", "d", "e", "f", "g", "h", "i" }, node.tags)
-        assert.same({ "2" }, node.linked)
+        assert.same({
+            ["2"] = { { row = 23, column = 42, offset = 379 } },
+        }, node.linked)
 
         node = assert(nodes["1234"], "missing node 1234")
         assert.equals("1234", node.id)
@@ -71,7 +86,10 @@ describe("core.scanner", function()
         assert.same({}, node.aliases)
         assert.equals(0, node.level)
         assert.same({ "a", "b", "c" }, node.tags)
-        assert.same({ "1234", "5678" }, node.linked)
+        assert.same({
+            ["1234"] = { { row = 22, column = 2, offset = 291 } },
+            ["5678"] = { { row = 23, column = 2, offset = 333 } },
+        }, node.linked)
 
         node = assert(nodes["5678"], "missing node 5678")
         assert.equals("5678", node.id)
@@ -98,28 +116,32 @@ describe("core.scanner", function()
         assert.same({}, node.aliases)
         assert.equals(0, node.level)
         assert.same({}, node.tags)
-        assert.same({ "1234", "5678" }, node.linked)
+        assert.same({
+            ["1234"] = { { row = 6, column = 2, offset = 57 } },
+            ["5678"] = { { row = 7, column = 2, offset = 99 } },
+        }, node.linked)
     end)
 
     it("should support scanning explicitly-provided org files", function()
         local error
 
-        ---@type {[string]:org-roam.core.database.Node}
-        local nodes = {}
+        ---@type org-roam.core.scanner.Scan
+        local scan
 
         local scanner = Scanner
             :new({ join_path(ORG_FILES_DIR, "one.org") })
-            :on_scan(function(scan)
-                for _, node in ipairs(scan.nodes) do
+            :on_scan(function(s)
+                for _, node in ipairs(s.nodes) do
                     if node then
                         -- We shouldn't have the same node twice
-                        if nodes[node.id] then
+                        if s.nodes[node.id] then
                             error = "Already have node " .. node.id
+                            return
                         end
-
-                        nodes[node.id] = node
                     end
                 end
+
+                scan = s
             end)
             :on_error(function(err) error = err end)
             :start()
@@ -127,6 +149,16 @@ describe("core.scanner", function()
         vim.wait(1000, function() return not scanner:is_running() end)
         assert(not scanner:is_running(), "Scanner failed to complete in time")
         assert(not error, error)
+
+        -- Verify the scan path and file are correct
+        assert.equals(join_path(ORG_FILES_DIR, "one.org"), scan.path)
+        assert.is_not_nil(scan.file)
+
+        -- Make a map of node id -> node for tests so we can avoid dependency on order
+        local nodes = {}
+        for _, node in ipairs(scan.nodes) do
+            nodes[node.id] = node
+        end
 
         ---@type org-roam.core.database.Node
         local node
@@ -138,7 +170,11 @@ describe("core.scanner", function()
         assert.same({ "1", "neo", "the one" }, node.aliases)
         assert.equals(0, node.level)
         assert.same({ "a", "b", "c" }, node.tags)
-        assert.same({ "2", "3", "4" }, node.linked)
+        assert.same({
+            ["2"] = { { row = 7, column = 2, offset = 138 } },
+            ["3"] = { { row = 8, column = 2, offset = 149 } },
+            ["4"] = { { row = 9, column = 2, offset = 160 } },
+        }, node.linked)
 
         node = assert(nodes["2"], "missing node 2")
         assert.equals("2", node.id)
@@ -147,7 +183,10 @@ describe("core.scanner", function()
         assert.same({}, node.aliases)
         assert.equals(1, node.level)
         assert.same({ "a", "b", "c", "d", "e", "f" }, node.tags)
-        assert.same({ "1", "3" }, node.linked)
+        assert.same({
+            ["1"] = { { row = 16, column = 36, offset = 258 } },
+            ["3"] = { { row = 16, column = 49, offset = 271 } },
+        }, node.linked)
 
         node = assert(nodes["3"], "missing node 3")
         assert.equals("3", node.id)
@@ -156,6 +195,8 @@ describe("core.scanner", function()
         assert.same({}, node.aliases)
         assert.equals(2, node.level)
         assert.same({ "a", "b", "c", "d", "e", "f", "g", "h", "i" }, node.tags)
-        assert.same({ "2" }, node.linked)
+        assert.same({
+            ["2"] = { { row = 23, column = 42, offset = 379 } },
+        }, node.linked)
     end)
 end)
