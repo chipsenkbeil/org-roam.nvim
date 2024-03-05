@@ -9,21 +9,21 @@ local utils = require("org-roam.core.utils")
 ---@class org-roam.core.ui.quickfix
 local M = {}
 
+---@class org-roam.core.ui.quickfix.Item
+---@field filename string
+---@field module string
+---@field lnum integer
+---@field col integer
+---@field text string
+
 ---@param db org-roam.core.database.Database
 ---@param id org-roam.core.database.Id
 ---@param opts? {show_preview?:boolean}
-function M.open_backlinks(db, id, opts)
+---@return org-roam.core.ui.quickfix.Item[]
+local function get_backlinks_as_quickfix_items(db, id, opts)
     opts = opts or {}
-
-    local title = (function()
-        ---@type org-roam.core.database.Node|nil
-        local node = db:get(id)
-        return node and node.title
-    end)()
-
     local ids = vim.tbl_keys(db:get_backlinks(id))
 
-    -- Build up our quickfix list items based on backlinks
     local items = {}
     for _, backlink_id in ipairs(ids) do
         ---@type org-roam.core.database.Node|nil
@@ -51,6 +51,29 @@ function M.open_backlinks(db, id, opts)
                 })
             end
         end
+    end
+
+    return items
+end
+
+---@param db org-roam.core.database.Database
+---@param id org-roam.core.database.Id
+---@param opts? {backlinks?:boolean, show_preview?:boolean}
+function M.open(db, id, opts)
+    opts = opts or {}
+
+    local title = (function()
+        ---@type org-roam.core.database.Node|nil
+        local node = db:get(id)
+        return node and node.title
+    end)()
+
+    ---@type org-roam.core.ui.quickfix.Item[]
+    local items = {}
+
+    -- Build up our quickfix list items based on backlinks
+    if opts.backlinks then
+        vim.list_extend(items, get_backlinks_as_quickfix_items(db, id, opts))
     end
 
     -- Consistent ordering by title

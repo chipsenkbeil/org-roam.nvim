@@ -27,7 +27,12 @@ end
 ---@param opts? {show_preview?:boolean}
 function M.open_qflist_for_node(id, opts)
     local db = assert(M.__database, "not initialized")
-    require("org-roam.core.ui.quickfix").open_backlinks(db, id, opts)
+
+    require("org-roam.core.ui.quickfix").open(
+        db,
+        id,
+        vim.tbl_extend("keep", { backlinks = true }, opts or {})
+    )
 end
 
 ---Opens the quickfix list for the node under cursor, populating with backlinks.
