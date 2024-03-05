@@ -196,8 +196,18 @@ function M:insert(data, opts)
 
     -- Perform the actual insertion of the node
     self.__nodes[id] = data
-    self.__outbound[id] = {}
-    self.__inbound[id] = {}
+
+    -- Populate empty outbound only if it wasn't set
+    -- from a link performed prior to being inserted
+    if not self.__outbound[id] then
+        self.__outbound[id] = {}
+    end
+
+    -- Populate empty inbound only if it wasn't set
+    -- from a link performed prior to being inserted
+    if not self.__inbound[id] then
+        self.__inbound[id] = {}
+    end
 
     -- Do any pending indexing of the node
     self:reindex({
