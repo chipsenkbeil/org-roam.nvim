@@ -94,17 +94,47 @@ function M.open(db, id, opts)
         return node and node.title
     end)()
 
+    -- Determine if we want to prefix our modules, which
+    -- we do if we have more than one set of items to
+    -- retrieve so we can clarify which is which
+    local prefix_module = (function()
+        local cnt = 0
+        cnt = cnt + (opts.links and 1 or 0)
+        cnt = cnt + (opts.backlinks and 1 or 0)
+        return cnt
+    end)() > 1
+
     ---@type org-roam.core.ui.quickfix.Item[]
     local items = {}
 
     -- Build up our quickfix list items based on links
     if opts.links then
-        vim.list_extend(items, get_links_as_quickfix_items(db, id))
+        local qfitems = get_links_as_quickfix_items(db, id)
+
+        if prefix_module then
+            ---@param item org-roam.core.ui.quickfix.Item
+            qfitems = vim.tbl_map(function(item)
+                item.module = string.format("(link) %s", item.module)
+                return item
+            end, qfitems)
+        end
+
+        vim.list_extend(items, qfitems)
     end
 
     -- Build up our quickfix list items based on backlinks
     if opts.backlinks then
-        vim.list_extend(items, get_backlinks_as_quickfix_items(db, id, opts))
+        local qfitems = get_backlinks_as_quickfix_items(db, id, opts)
+
+        if prefix_module then
+            ---@param item org-roam.core.ui.quickfix.Item
+            qfitems = vim.tbl_map(function(item)
+                item.module = string.format("(backlink) %s", item.module)
+                return item
+            end, qfitems)
+        end
+
+        vim.list_extend(items, qfitems)
     end
 
     -- Consistent ordering by title
