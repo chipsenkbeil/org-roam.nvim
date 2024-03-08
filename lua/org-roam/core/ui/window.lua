@@ -120,13 +120,15 @@ function M:close()
         return
     end
 
-    vim.api.nvim_win_close(win, true)
+    if vim.api.nvim_win_is_valid(win) then
+        vim.api.nvim_win_close(win, true)
+    end
     self.__win = nil
 end
 
 ---@return boolean
 function M:is_open()
-    return self.__win ~= nil
+    return self.__win ~= nil and vim.api.nvim_win_is_valid(self.__win)
 end
 
 ---Opens the window if closed, or closes if open.
