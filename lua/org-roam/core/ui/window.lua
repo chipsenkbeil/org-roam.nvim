@@ -101,15 +101,4 @@ function M:opts()
     return vim.deepcopy(self.__opts)
 end
 
----Converts window into a function that will create the actual window when
----supplied a buffer handle.
----@return fun(bufnr:integer):integer
-function M:to_function()
-    ---@param bufnr integer
-    ---@return integer
-    return function(bufnr)
-        return self:open({ bufnr = bufnr })
-    end
-end
-
 return M
