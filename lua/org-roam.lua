@@ -104,11 +104,8 @@ local roam_buffer = (function()
             end)
         end
 
-        if not win:is_open() then
-            buffer:render()
-        end
-
         win:toggle()
+        win:render()
     end
 end)()
 

@@ -140,6 +140,16 @@ function M:toggle()
     end
 end
 
+---Updates the window buffer contents.
+---@param opts? {delay?:integer, force?:boolean, sync?:boolean}
+function M:render(opts)
+    opts = opts or {}
+
+    if self:is_open() or opts.force then
+        self.__buffer:render(opts)
+    end
+end
+
 ---Returns the buffer tied to the window.
 ---@return org-roam.core.ui.Buffer
 function M:buffer()
