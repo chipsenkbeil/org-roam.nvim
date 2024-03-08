@@ -4,58 +4,113 @@
 -- Logic to create windows.
 -------------------------------------------------------------------------------
 
----@alias org-roam.core.ui.window.Type
----| "left"
----| "right"
----| "top"
----| "bottom"
----| "float"
+local Buffer = require("org-roam.core.ui.buffer")
+local random = require("org-roam.core.utils.random")
+
+---@enum org-roam.core.ui.window.Open
+local OPEN = {
+    ---Configuration to open the window on the right side.
+    RIGHT = "botright vsplit | vertical resize 50",
+
+    ---Configuration to open the window on the bottom.
+    BOTTOM = "botright split | resize 15",
+}
 
 ---@class org-roam.core.ui.window.Opts
----@field type org-roam.core.ui.window.Type
+---@field name? string
+---@field open? string|fun():integer
+---@field bufopts? table<string, any>
+---@field winopts? table<string, any>
 
 ---@class org-roam.core.ui.Window
----@field private __opts org-roam.core.ui.window.Opts
----@field private __buf integer|nil
----@field private __win integer|nil
+---@field private __buffer org-roam.core.ui.Buffer
+---@field private __name string
+---@field private __open string|fun():integer
+---@field private __bufopts table<string, any>
+---@field private __winopts table<string, any>
+---@field private __win integer|nil #handle of open window
 local M = {}
 M.__index = M
+M.OPEN = OPEN
 
----Creates a new org-roam ui window.
----@param opts org-roam.core.ui.window.Opts
+---Creates a new org-roam ui window with a pre-assigned buffer.
+---@param opts? org-roam.core.ui.window.Opts
 ---@return org-roam.core.ui.Window
 function M:new(opts)
+    opts = vim.tbl_deep_extend("keep", opts or {}, {
+        name = string.format("org-roam-%s", random.uuid_v4()),
+        open = OPEN.RIGHT,
+        bufopts = {
+            -- Don't let the buffer represent a file or be editable by default
+            modifiable = false,
+            buftype = "nofile",
+        },
+        winopts = {
+            -- These are settings we want for orgmode
+            conceallevel = 2,
+            concealcursor = "nc",
+
+            -- These are some other nice settings
+            winfixwidth = true,
+            number = false,
+            relativenumber = false,
+            spell = false,
+        },
+    })
+
     local instance = {}
     setmetatable(instance, M)
 
-    instance.__opts = opts
-    instance.__buf = nil
+    -- Create the buffer we will use with the window
+    instance.__buffer = Buffer:new(vim.tbl_extend("keep", opts.bufopts or {}, {
+        name = opts.name,
+    }))
+
+    -- Schedule the first rendering of the buffer
+    instance.__buffer:render()
+
+    instance.__name = assert(opts.name)
+    instance.__open = assert(opts.open)
+    instance.__bufopts = assert(opts.bufopts)
+    instance.__winopts = assert(opts.winopts)
     instance.__win = nil
 
     return instance
 end
 
+---Opens the window withthe specified configuration.
 ---@return integer
 function M:open()
     -- If already open, return the window handle
-    if self.__win then
+    if self:is_open() then
         return self.__win
     end
 
-    -- Use or create a buffer
-    local buf = self.__buf
-    if not buf then
-        buf = vim.api.nvim_create_buf(false, true)
-        assert(buf ~= 0, "failed to create buffer")
-        self.__buf = buf
+    -- Save the window currently selected so we can restore focus
+    local cur_win = vim.api.nvim_get_current_win()
+
+    -- Create the new window using the configuratio
+    if type(self.__open) == "string" then
+        vim.cmd(self.__open)
+        self.__win = vim.api.nvim_get_current_win()
+    elseif type(self.__open) == "function" then
+        self.__win = self.__open() or vim.api.nvim_get_current_win()
+    else
+        error(string.format("invalid open config type: %s", type(self.__open)))
     end
 
-    -- Create the window
-    local win = vim.api.nvim_open_win(buf, true)
-    assert(win ~= 0, "failed to create window")
-    self.__win = win
+    -- Restore focus to original window
+    vim.api.nvim_set_current_win(cur_win)
 
-    return win
+    -- Set the buffer for our window
+    vim.api.nvim_win_set_buf(self.__win, self:bufnr())
+
+    -- Configure the window with our options
+    for k, v in pairs(self.__winopts) do
+        vim.api.nvim_win_set_option(self.__win, k, v)
+    end
+
+    return self.__win
 end
 
 ---Closes the window if it is open.
@@ -83,10 +138,22 @@ function M:toggle()
     end
 end
 
+---Returns the buffer tied to the window.
+---@return org-roam.core.ui.Buffer
+function M:buffer()
+    return self.__buffer
+end
+
 ---Returns the handle to the underlying buffer.
----@return integer|nil
+---@return integer
 function M:bufnr()
-    return self.__buf
+    return self.__buffer:bufnr()
+end
+
+---Returns the name of the window.
+---@return string
+function M:name()
+    return self.__name
 end
 
 ---Returns the handle to the underlying window.
@@ -95,10 +162,16 @@ function M:winnr()
     return self.__win
 end
 
+---Returns a copy of the options provided to the buffer.
+---@return table<string, any>
+function M:bufopts()
+    return vim.deepcopy(self.__bufopts)
+end
+
 ---Returns a copy of the options provided to the window.
----@return org-roam.core.ui.window.Opts
-function M:opts()
-    return vim.deepcopy(self.__opts)
+---@return table<string, any>
+function M:winopts()
+    return vim.deepcopy(self.__winopts)
 end
 
 return M

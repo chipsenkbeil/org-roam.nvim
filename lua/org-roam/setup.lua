@@ -88,7 +88,7 @@ local function merge_config(opts)
 end
 
 local function define_keybindings()
-    vim.api.nvim_set_keymap("n", "<LocalLeader>orb", "", {
+    vim.api.nvim_set_keymap("n", "<LocalLeader>rqb", "", {
         desc = "Open quickfix of backlinks for org-roam node under cursor",
         noremap = true,
         callback = function()
@@ -96,11 +96,19 @@ local function define_keybindings()
         end,
     })
 
-    vim.api.nvim_set_keymap("n", "<LocalLeader>orpn", "", {
+    vim.api.nvim_set_keymap("n", "<LocalLeader>rpn", "", {
         desc = "Print org-roam node under cursor",
         noremap = true,
         callback = function()
             require("org-roam").print_node_under_cursor()
+        end,
+    })
+
+    vim.api.nvim_set_keymap("n", "<LocalLeader>rbn", "", {
+        desc = "Opens org-roam buffer for node under cursor",
+        noremap = true,
+        callback = function()
+            require("org-roam").toggle_roam_buffer()
         end,
     })
 end

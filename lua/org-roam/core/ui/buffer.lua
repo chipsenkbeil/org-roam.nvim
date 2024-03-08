@@ -36,7 +36,7 @@ local M = {}
 M.__index = M
 
 ---Makes a new buffer configured for orgmode.
----@param opts? {filetype?:string, name?:string, listed?:boolean, scratch?:boolean}
+---@param opts? {filetype?:string, name?:string, listed?:boolean, scratch?:boolean, [string]:any}
 ---@return integer
 local function make_buffer(opts)
     opts = opts or {}
@@ -56,11 +56,22 @@ local function make_buffer(opts)
     -- Set the filetype to org (unless specified) because we're all in, baby!
     vim.api.nvim_buf_set_option(bufnr, "filetype", opts.filetype or "org")
 
+    -- Clear out all options that we've used explicitly
+    opts.name = nil
+    opts.filetype = nil
+    opts.listed = nil
+    opts.scratch = nil
+
+    -- Apply all remaining options passed
+    for k, v in pairs(opts) do
+        vim.api.nvim_buf_set_option(bufnr, k, v)
+    end
+
     return bufnr
 end
 
 ---Creates a new org-roam buffer.
----@param opts? {filetype?:string, name?:string, listed?:boolean, scratch?:boolean}
+---@param opts? {filetype?:string, name?:string, listed?:boolean, scratch?:boolean, [string]:any}
 ---@return org-roam.core.ui.Buffer
 function M:new(opts)
     opts = opts or {}
@@ -78,9 +89,14 @@ function M:new(opts)
 end
 
 ---Adds a widget to be used with this buffer.
----@param widget org-roam.core.ui.Widget
+---@param widget org-roam.core.ui.Widget|fun(buffer:org-roam.core.ui.Buffer)
 ---@return org-roam.core.ui.Buffer
 function M:add_widget(widget)
+    -- If given a raw function, convert it into a widget
+    if type(widget) == "function" then
+        widget = require("org-roam.core.ui.widget"):new(widget)
+    end
+
     table.insert(self.__widgets, widget)
     return self
 end
@@ -92,15 +108,50 @@ function M:bufnr()
 end
 
 ---Appends the provided lines to the end of the buffer.
----@param lines string[]
+---@param lines {[integer]:string, force?:boolean}
 function M:append_lines(lines)
-    vim.api.nvim_buf_set_lines(self.__bufnr, -1, -1, true, lines)
+    local bufnr = self.__bufnr
+    local force = lines.force or false
+    lines.force = nil
+
+    local modifiable = self:is_modifiable()
+    if force then
+        vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+    end
+
+    -- Check if the buffer is empty
+    local cnt = vim.api.nvim_buf_line_count(bufnr)
+    local is_empty = cnt == 1
+        and vim.api.nvim_buf_get_lines(bufnr, 0, 1, false)[1] == ""
+
+    if is_empty then
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, lines)
+    else
+        vim.api.nvim_buf_set_lines(bufnr, cnt, -1, true, lines)
+    end
+
+    if force then
+        vim.api.nvim_buf_set_option(bufnr, "modifiable", modifiable)
+    end
 end
 
 ---@private
 ---Clears the buffer's contents.
-function M:__clear()
+---@param opts? {force?:boolean}
+function M:__clear(opts)
+    opts = opts or {}
+    local force = opts.force or false
+
+    local modifiable = self:is_modifiable()
+    if force then
+        vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", true)
+    end
+
     vim.api.nvim_buf_set_lines(self.__bufnr, 0, -1, true, {})
+
+    if force then
+        vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", modifiable)
+    end
 end
 
 ---Invokes `cb` right before render has started.
@@ -136,6 +187,11 @@ function M:is_rendering()
     return self.__state == STATE.RENDERING
 end
 
+---@return boolean
+function M:is_modifiable()
+    return vim.api.nvim_buf_get_option(self.__bufnr, "modifiable") == true
+end
+
 ---Clear and redraw the buffer using the current widgets.
 ---
 ---If `delay` specified, will wait N milliseconds before scheduling rendering.
@@ -158,7 +214,7 @@ function M:render(opts)
         self.__state = STATE.RENDERING
 
         -- Clear the buffer of its content
-        self:__clear()
+        self:__clear({ force = true })
 
         -- Redraw content using the provided widgets
         for _, widget in ipairs(self.__widgets) do
