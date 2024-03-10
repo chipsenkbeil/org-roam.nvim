@@ -7,12 +7,15 @@
 local IntervalTree = require("org-roam.core.utils.tree.interval")
 local Scanner = require("org-roam.core.scanner")
 
-local BUFFER_DIRTY_FLAG = "org-roam-buffer-dirty"
+---@private
+---@class org-roam.buffer.CacheItem
+---@field tree org-roam.core.utils.tree.IntervalTree|nil
+---@field tick integer
 
----Internal cache of buffer -> tree of node ids used to look up nodes
----within buffers
----@type table<integer, org-roam.core.utils.tree.IntervalTree>
-local NODE_TREE_CACHE = {}
+---Internal cache of buffer -> cache of node ids used to look up
+---nodes within buffers.
+---@type table<integer, org-roam.buffer.CacheItem>
+local CACHE = {}
 
 -------------------------------------------------------------------------------
 -- PUBLIC
@@ -21,33 +24,30 @@ local NODE_TREE_CACHE = {}
 ---@class org-roam.Buffer
 local M = {}
 
----Sets the dirty flag of buffer to `value`.
----@param bufnr integer
----@param value boolean
-function M.set_dirty_flag(bufnr, value)
-    vim.b[bufnr][BUFFER_DIRTY_FLAG] = value
-end
-
----Returns true if the buffer has a dirty flag set to true.
----@param bufnr integer
----@return boolean
-function M.is_dirty(bufnr)
-    return vim.b[bufnr][BUFFER_DIRTY_FLAG] == true
-end
-
----Determines the id of the node under the cursor.
----@param cb fun(id:org-roam.core.database.Id|nil)
+---Returns a copy of the node under cursor of the current buffer.
+---
+---NOTE: This caches the state of the buffer (nodes), returning the pre-cached
+---      result when possible. The cache is discarded whenever the current
+---      buffer is detected as changed as seen via `b:changedtick`.
+---
+---@param cb fun(id:org-roam.core.database.Node|nil)
 function M.node_under_cursor(cb)
     local bufnr = vim.api.nvim_win_get_buf(0)
     local cursor = vim.api.nvim_win_get_cursor(0)
     local offset = vim.api.nvim_buf_get_offset(bufnr, cursor[1] - 1) + cursor[2]
 
-    ---@return org-roam.core.database.Id|nil
-    local function get_id()
-        local is_dirty = M.is_dirty(bufnr)
-        local tree = NODE_TREE_CACHE[bufnr]
+    ---@return org-roam.core.database.Node|nil
+    local function get_node()
+        ---@type org-roam.buffer.CacheItem|nil
+        local cache = CACHE[bufnr]
+        ---@type integer
+        local tick = vim.b[bufnr].changedtick
 
-        if is_dirty or not tree then
+        local tree = cache and cache.tree
+        local is_dirty = tick ~= (cache and cache.tick)
+
+        -- If the buffer has changed or we had no cache, update
+        if is_dirty or not cache then
             -- TODO: Can we just index by filename in the database
             --       and `find_by_index` to get nodes connected to the
             --       file represented by the buffer to build this
@@ -62,17 +62,17 @@ function M.node_under_cursor(cb)
                         return {
                             node.range.start.offset,
                             node.range.end_.offset,
-                            node.id,
+                            node,
                         }
                     end, scan.nodes)
                 )
             end
 
-            -- Reset dirty flag as we've parsed
-            M.set_dirty_flag(bufnr, false)
-
-            -- Update cache pointer
-            NODE_TREE_CACHE[bufnr] = tree
+            -- Update cache pointer to reflect the current state
+            CACHE[bufnr] = {
+                tree = tree,
+                tick = tick,
+            }
         end
 
         -- Find id of deepest node containing the offset
@@ -82,7 +82,7 @@ function M.node_under_cursor(cb)
     end
 
     vim.schedule(function()
-        cb(get_id())
+        cb(get_node())
     end)
 end
 

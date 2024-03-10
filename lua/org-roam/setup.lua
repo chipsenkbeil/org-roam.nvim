@@ -7,20 +7,6 @@
 local CONFIG = require("org-roam.config")
 local buffer = require("org-roam.buffer")
 
-local function define_autocmds()
-    -- Define our autocommands for the plugin
-    local GROUP = vim.api.nvim_create_augroup("OrgRoam", { clear = true })
-    vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
-        group = GROUP,
-        pattern = "*",
-        callback = function(args)
-            ---@type integer
-            local bufnr = args.buf
-            buffer.set_dirty_flag(bufnr, true)
-        end,
-    })
-end
-
 ---@param opts org-roam.core.config.Config.NewOpts
 local function merge_config(opts)
     -- Normalize the roam directory before storing it
@@ -60,7 +46,6 @@ end
 ---Initializes the plugin, returning the database associated with nodes.
 ---@param opts org-roam.core.config.Config.NewOpts
 return function(opts)
-    define_autocmds()
     merge_config(opts)
     define_keybindings()
 end
