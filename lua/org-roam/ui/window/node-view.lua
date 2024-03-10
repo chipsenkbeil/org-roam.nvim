@@ -56,7 +56,8 @@ local function render(node)
 end
 
 ---@class org-roam.ui.window.NodeViewWindow
----@field private __node org-roam.core.database.Id|fun():org-roam.core.database.Id
+---@field private __hash string|nil
+---@field private __lines string[]
 ---@field private __window org-roam.core.ui.Window
 local M = {}
 M.__index = {}
