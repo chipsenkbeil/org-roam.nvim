@@ -32,9 +32,9 @@ end
 ---
 ---@param opts? {show_preview?:boolean}
 function M.open_for_node_under_cursor(opts)
-    require("org-roam.buffer").node_under_cursor(function(id)
-        if id then
-            M.open_qflist_for_node(id, opts)
+    require("org-roam.buffer").node_under_cursor(function(node)
+        if node then
+            M.open_for_node(node.id, opts)
         end
     end)
 end

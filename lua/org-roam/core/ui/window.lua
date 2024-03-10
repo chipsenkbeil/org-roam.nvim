@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 local Buffer = require("org-roam.core.ui.buffer")
+local Emitter = require("org-roam.core.utils.emitter")
 local random = require("org-roam.core.utils.random")
 
 ---@enum org-roam.core.ui.window.Open
@@ -16,19 +17,29 @@ local OPEN = {
     BOTTOM = "botright split | resize 15",
 }
 
+local EVENTS = {
+    OPEN = "window:open",
+    CLOSE = "window:close",
+}
+
 ---@class org-roam.core.ui.window.Opts
 ---@field name? string
 ---@field open? string|fun():integer
+---@field focus_on_open? boolean
+---@field close_on_bufleave? boolean
 ---@field bufopts? table<string, any>
 ---@field winopts? table<string, any>
----@field widgets? (org-roam.core.ui.Widget)[]
+---@field widgets? (org-roam.core.ui.Widget|org-roam.core.ui.WidgetFunction)[]
 
 ---@class org-roam.core.ui.Window
 ---@field private __buffer org-roam.core.ui.Buffer
 ---@field private __name string
 ---@field private __open string|fun():integer
+---@field private __emitter org-roam.core.utils.Emitter
 ---@field private __bufopts table<string, any>
 ---@field private __winopts table<string, any>
+---@field private __focus_on_open boolean
+---@field private __close_on_bufleave boolean
 ---@field private __win integer|nil #handle of open window
 local M = {}
 M.__index = M
@@ -45,6 +56,8 @@ function M:new(opts)
             -- Don't let the buffer represent a file or be editable by default
             modifiable = false,
             buftype = "nofile",
+            swapfile = false,
+            -- bufhidden = "wipe",
         },
         winopts = {
             -- These are settings we want for orgmode
@@ -77,8 +90,11 @@ function M:new(opts)
 
     instance.__name = assert(opts.name)
     instance.__open = assert(opts.open)
+    instance.__emitter = Emitter:new()
     instance.__bufopts = assert(opts.bufopts)
     instance.__winopts = assert(opts.winopts)
+    instance.__focus_on_open = opts.focus_on_open or false
+    instance.__close_on_bufleave = opts.close_on_bufleave or false
     instance.__win = nil
 
     return instance
@@ -110,7 +126,9 @@ function M:open()
     end
 
     -- Restore focus to original window
-    vim.api.nvim_set_current_win(cur_win)
+    if not self.__focus_on_open then
+        vim.api.nvim_set_current_win(cur_win)
+    end
 
     -- Set the buffer for our window
     vim.api.nvim_win_set_buf(self.__win, self:bufnr())
@@ -119,6 +137,37 @@ function M:open()
     for k, v in pairs(self.__winopts) do
         vim.api.nvim_win_set_option(self.__win, k, v)
     end
+
+    -- Configure an autocommand to trigger when the window closes
+    local win = self.__win
+    vim.api.nvim_create_autocmd("WinClosed", {
+        desc = "Triggered when window " .. self.__win .. " closed",
+        pattern = tostring(win),
+        nested = true,
+        once = true,
+        callback = function()
+            -- <amatch> and <afile> are set to window-ID
+            self.__emitter:emit(EVENTS.CLOSE, win)
+            self.__win = nil
+        end,
+    })
+
+    -- If configured to do so, add an autocommand to close
+    -- the window once we exit the buffer
+    if self.__close_on_bufleave then
+        vim.api.nvim_create_autocmd("BufLeave", {
+            desc = "Close window " .. self.__win .. " on BufLeave",
+            buffer = self:bufnr(),
+            nested = true,
+            once = true,
+            callback = function()
+                self:close()
+            end,
+        })
+    end
+
+    -- Report that the window is now open
+    self.__emitter:emit(EVENTS.OPEN, self.__win)
 
     return self.__win
 end
@@ -194,6 +243,33 @@ end
 ---@return table<string, any>
 function M:winopts()
     return vim.deepcopy(self.__winopts)
+end
+
+---@param f fun(winnr:integer)
+---@return org-roam.core.ui.Window
+function M:on_open(f)
+    self.__emitter:on(EVENTS.OPEN, f)
+    return self
+end
+
+---@param f fun(winnr:integer)
+---@return org-roam.core.ui.Window
+function M:on_close(f)
+    self.__emitter:on(EVENTS.CLOSE, f)
+    return self
+end
+
+---Returns the size of the window in rows x columns.
+---In the case that the window is not open, this returns {0,0}.
+---@return {[1]:integer, [2]:integer}
+function M:size()
+    if not self.__win then
+        return { 0, 0 }
+    end
+
+    local rows = vim.api.nvim_win_get_height(self.__win)
+    local cols = vim.api.nvim_win_get_width(self.__win)
+    return { rows, cols }
 end
 
 return M

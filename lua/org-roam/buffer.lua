@@ -53,7 +53,9 @@ function M.node_under_cursor(cb)
             --       file represented by the buffer to build this
             --       up versus re-parsing the buffer?
             local contents = table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
-            local scan = Scanner.scan(contents)
+            local scan = Scanner.scan(contents, {
+                path = vim.api.nvim_buf_get_name(bufnr),
+            })
 
             if #scan.nodes > 0 then
                 tree = IntervalTree:from_list(

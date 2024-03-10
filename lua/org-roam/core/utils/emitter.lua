@@ -62,7 +62,7 @@ end
 ---Registers a callback to be invoked when the specified event is emitted.
 ---More than one handler can be associated with the same event.
 ---@param event any # event to receive
----@param handler fun(payload:any) # callback to trigger on event
+---@param handler fun(...) # callback to trigger on event
 ---@return org-roam.core.utils.Emitter
 function M:on(event, handler)
     if not self.__event_handlers[event] then
@@ -77,7 +77,7 @@ end
 ---
 ---More than one handler can be associated with the same event.
 ---@param event any # event to receive
----@param handler fun(payload:any) # callback to trigger on event
+---@param handler fun(...) # callback to trigger on event
 ---@return org-roam.core.utils.Emitter
 function M:once(event, handler)
     if not self.__event_handlers_once[event] then
@@ -89,7 +89,7 @@ end
 
 ---Unregisters the callback for the specified event.
 ---@param event any # event whose handler to remove
----@param handler fun(payload: any) # handler to remove
+---@param handler fun(...) # handler to remove
 ---@return org-roam.core.utils.Emitter
 function M:off(event, handler)
     if self.__event_handlers[event] then

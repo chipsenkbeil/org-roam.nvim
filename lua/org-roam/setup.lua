@@ -18,15 +18,15 @@ local function merge_config(opts)
 end
 
 local function define_keybindings()
-    vim.api.nvim_set_keymap("n", "<LocalLeader>rqb", "", {
+    vim.api.nvim_set_keymap("n", "<LocalLeader>rnqb", "", {
         desc = "Open quickfix of backlinks for org-roam node under cursor",
         noremap = true,
         callback = function()
-            require("org-roam").open_qflist_for_node_under_cursor()
+            require("org-roam.ui.quickfix").open_for_node_under_cursor({ show_preview = true })
         end,
     })
 
-    vim.api.nvim_set_keymap("n", "<LocalLeader>rpn", "", {
+    vim.api.nvim_set_keymap("n", "<LocalLeader>rnp", "", {
         desc = "Print org-roam node under cursor",
         noremap = true,
         callback = function()
@@ -34,11 +34,19 @@ local function define_keybindings()
         end,
     })
 
-    vim.api.nvim_set_keymap("n", "<LocalLeader>rbn", "", {
+    vim.api.nvim_set_keymap("n", "<LocalLeader>rnb", "", {
         desc = "Opens org-roam buffer for node under cursor",
         noremap = true,
         callback = function()
-            require("org-roam").toggle_roam_buffer()
+            require("org-roam.ui.window").toggle_node_view()
+        end,
+    })
+
+    vim.api.nvim_set_keymap("n", "<LocalLeader>rnfb", "", {
+        desc = "Opens org-roam buffer for a specific node, not changing",
+        noremap = true,
+        callback = function()
+            require("org-roam.ui.window").toggle_fixed_node_view()
         end,
     })
 end

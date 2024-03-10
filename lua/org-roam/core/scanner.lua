@@ -401,13 +401,18 @@ end
 
 ---Performs a one-time scan of a string, parsing the contents.
 ---@param contents string
+---@param opts? {path?:string}
 ---@return org-roam.core.scanner.ScanFileResults
-function M.scan(contents)
+function M.scan(contents, opts)
+    opts = opts or {}
     local file = parser.parse(contents)
 
     return {
         file = file,
-        nodes = file_to_nodes("<STRING>", file),
+        nodes = file_to_nodes(
+            opts.path or "<STRING>",
+            file
+        ),
     }
 end
 
