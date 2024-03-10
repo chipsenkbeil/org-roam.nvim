@@ -10,37 +10,44 @@ local utils = require("org-roam.core.utils")
 local Window = require("org-roam.core.ui.window")
 
 ---Renders a node within an orgmode buffer.
----@param id org-roam.core.database.Id
+---@param node org-roam.core.database.Node|org-roam.core.database.Id
 ---@return string[] lines
-local function render(id)
+local function render(node)
     local db = database()
 
     local lines = {}
 
-    local backlinks = db:get_backlinks(id)
-    table.insert(
-        lines,
-        string.format("* backlinks (%s)", vim.tbl_count(backlinks))
-    )
+    -- If given an id instead of a node, load it here
+    if type(node) == "string" then
+        node = db:get(node)
+    end
 
-    for backlink_id, _ in pairs(backlinks) do
-        ---@type org-roam.core.database.Node|nil
-        local node = db:get(backlink_id)
+    if node then
+        local backlinks = db:get_backlinks(node.id)
+        table.insert(
+            lines,
+            string.format("* backlinks (%s)", vim.tbl_count(backlinks))
+        )
 
-        if node then
-            local locs = node.linked[id]
-            for _, loc in ipairs(locs or {}) do
-                local line = loc.row + 1
-                table.insert(
-                    lines,
-                    string.format(
-                        "** [[%s::%s][%s @ line %s]]",
-                        node.file,
-                        line,
-                        node.title,
-                        line
+        for backlink_id, _ in pairs(backlinks) do
+            ---@type org-roam.core.database.Node|nil
+            local backlink_node = db:get(backlink_id)
+
+            if backlink_node then
+                local locs = backlink_node.linked[node.id]
+                for _, loc in ipairs(locs or {}) do
+                    local line = loc.row + 1
+                    table.insert(
+                        lines,
+                        string.format(
+                            "** [[%s::%s][%s @ line %s]]",
+                            backlink_node.file,
+                            line,
+                            backlink_node.title,
+                            line
+                        )
                     )
-                )
+                end
             end
         end
     end
@@ -77,11 +84,10 @@ function M:new(opts)
         end)
     else
         table.insert(widgets, function()
-            ---@diagnostic disable-next-line:redefined-local
-            local id = utils.async.wait(buffer.node_under_cursor)
-
-            if id then
-                return render(id)
+            ---@type org-roam.core.database.Node|nil
+            local node = utils.async.wait(buffer.node_under_cursor)
+            if node then
+                return render(node)
             else
                 return {}
             end
