@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 local notify = require("org-roam.core.ui.notify")
+local Widget = require("org-roam.core.ui.widget")
 local utils = require("org-roam.core.utils")
 
 local EVENTS = {
@@ -89,15 +90,26 @@ function M:new(opts)
 end
 
 ---Adds a widget to be used with this buffer.
----@param widget org-roam.core.ui.Widget|fun(buffer:org-roam.core.ui.Buffer)
+---@param widget org-roam.core.ui.Widget|org-roam.core.ui.WidgetFunction
 ---@return org-roam.core.ui.Buffer
 function M:add_widget(widget)
     -- If given a raw function, convert it into a widget
     if type(widget) == "function" then
-        widget = require("org-roam.core.ui.widget"):new(widget)
+        widget = Widget:new(widget)
     end
 
     table.insert(self.__widgets, widget)
+    return self
+end
+
+---Adds widgets to be used with this buffer.
+---@param widgets (org-roam.core.ui.Widget|org-roam.core.ui.WidgetFunction)[]
+---@return org-roam.core.ui.Buffer
+function M:add_widgets(widgets)
+    for _, widget in ipairs(widgets) do
+        self:add_widget(widget)
+    end
+
     return self
 end
 
@@ -105,53 +117,6 @@ end
 ---@return integer
 function M:bufnr()
     return self.__bufnr
-end
-
----Appends the provided lines to the end of the buffer.
----@param lines {[integer]:string, force?:boolean}
-function M:append_lines(lines)
-    local bufnr = self.__bufnr
-    local force = lines.force or false
-    lines.force = nil
-
-    local modifiable = self:is_modifiable()
-    if force then
-        vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
-    end
-
-    -- Check if the buffer is empty
-    local cnt = vim.api.nvim_buf_line_count(bufnr)
-    local is_empty = cnt == 1
-        and vim.api.nvim_buf_get_lines(bufnr, 0, 1, false)[1] == ""
-
-    if is_empty then
-        vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, lines)
-    else
-        vim.api.nvim_buf_set_lines(bufnr, cnt, -1, true, lines)
-    end
-
-    if force then
-        vim.api.nvim_buf_set_option(bufnr, "modifiable", modifiable)
-    end
-end
-
----@private
----Clears the buffer's contents.
----@param opts? {force?:boolean}
-function M:__clear(opts)
-    opts = opts or {}
-    local force = opts.force or false
-
-    local modifiable = self:is_modifiable()
-    if force then
-        vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", true)
-    end
-
-    vim.api.nvim_buf_set_lines(self.__bufnr, 0, -1, true, {})
-
-    if force then
-        vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", modifiable)
-    end
 end
 
 ---Invokes `cb` right before render has started.
@@ -218,14 +183,11 @@ function M:render(opts)
 
         -- Redraw content using the provided widgets
         for _, widget in ipairs(self.__widgets) do
-            local ok, err = widget:render(self)
-
-            if not ok and not err then
-                err = "unexpected error during rendering of widget"
-            end
-
-            if err then
-                notify(err, vim.log.levels.ERROR)
+            local ret = widget:render()
+            if ret.ok then
+                self:__append_lines({ utils.table.unpack(ret.lines), force = true })
+            else
+                notify.error("widget failed: " .. ret.error)
             end
         end
 
@@ -245,6 +207,54 @@ function M:render(opts)
         vim.defer_fn(do_render, opts.delay)
     else
         vim.schedule(do_render)
+    end
+end
+
+---@private
+---Appends the provided lines to the end of the buffer.
+---@param lines {[integer]:string, force?:boolean}
+function M:__append_lines(lines)
+    local bufnr = self.__bufnr
+    local force = lines.force or false
+    lines.force = nil
+
+    local modifiable = self:is_modifiable()
+    if force then
+        vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+    end
+
+    -- Check if the buffer is empty
+    local cnt = vim.api.nvim_buf_line_count(bufnr)
+    local is_empty = cnt == 1
+        and vim.api.nvim_buf_get_lines(bufnr, 0, 1, false)[1] == ""
+
+    if is_empty then
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, lines)
+    else
+        vim.api.nvim_buf_set_lines(bufnr, cnt, -1, true, lines)
+    end
+
+    if force then
+        vim.api.nvim_buf_set_option(bufnr, "modifiable", modifiable)
+    end
+end
+
+---@private
+---Clears the buffer's contents.
+---@param opts? {force?:boolean}
+function M:__clear(opts)
+    opts = opts or {}
+    local force = opts.force or false
+
+    local modifiable = self:is_modifiable()
+    if force then
+        vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", true)
+    end
+
+    vim.api.nvim_buf_set_lines(self.__bufnr, 0, -1, true, {})
+
+    if force then
+        vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", modifiable)
     end
 end
 

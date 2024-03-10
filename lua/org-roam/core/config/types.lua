@@ -102,7 +102,7 @@
 ---| fun(node:string, n:number) build and display a graph for `node`, or the full graph if `nil`. Will show `n` steps away, or all if `nil`.
 
 ---@alias org-roam.core.config.org_roam_node_at_point
----| fun(assert:boolean):org-roam.core.Node returns the node at point. If `assert` is true, will throw an error if there is no node at point.
+---| fun(assert:boolean):org-roam.core.database.Node returns the node at point. If `assert` is true, will throw an error if there is no node at point.
 
 ---@alias org-roam.core.config.org_roam_node_read
 ---| fun() TODO: This is one of the most complex, so need time to understand.

@@ -1,13 +1,13 @@
 -------------------------------------------------------------------------------
 -- UI.LUA
 --
--- User interface for org-roam.
+-- Primary user interface controls for the plugin.
 -------------------------------------------------------------------------------
 
----@class org-roam.core.ui
+---@class org-roam.UI
 local M = {}
 
-M.notify = require("org-roam.core.ui.notify")
-M.quickfix = require("org-roam.core.ui.quickfix")
+M.quickfix = require("org-roam.ui.quickfix")
+M.window = require("org-roam.ui.window")
 
 return M

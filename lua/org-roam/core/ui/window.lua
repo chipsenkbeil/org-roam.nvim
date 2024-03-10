@@ -21,6 +21,7 @@ local OPEN = {
 ---@field open? string|fun():integer
 ---@field bufopts? table<string, any>
 ---@field winopts? table<string, any>
+---@field widgets? (org-roam.core.ui.Widget)[]
 
 ---@class org-roam.core.ui.Window
 ---@field private __buffer org-roam.core.ui.Buffer
@@ -66,6 +67,11 @@ function M:new(opts)
         name = opts.name,
     }))
 
+    -- Apply any widgets we've been assigned
+    if type(opts.widgets) == "table" then
+        instance.__buffer:add_widgets(opts.widgets)
+    end
+
     -- Schedule the first rendering of the buffer
     instance.__buffer:render()
 
@@ -78,8 +84,8 @@ function M:new(opts)
     return instance
 end
 
----Opens the window withthe specified configuration.
----@return integer
+---Opens the window.
+---@return integer handle
 function M:open()
     -- If already open, return the window handle
     if self:is_open() then
@@ -91,7 +97,11 @@ function M:open()
 
     -- Create the new window using the configuratio
     if type(self.__open) == "string" then
-        vim.cmd(self.__open)
+        ---@type string
+        ---@diagnostic disable-next-line:assign-type-mismatch
+        local cmd = self.__open
+
+        vim.cmd(cmd)
         self.__win = vim.api.nvim_get_current_win()
     elseif type(self.__open) == "function" then
         self.__win = self.__open() or vim.api.nvim_get_current_win()

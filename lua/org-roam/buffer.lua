@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 -- BUFFER.LUA
 --
--- Utilities related to operating on org roam buffers.
+-- Supports operating and retrieving information on org-roam buffers.
 -------------------------------------------------------------------------------
 
 local IntervalTree = require("org-roam.core.utils.tree.interval")
@@ -18,7 +18,7 @@ local NODE_TREE_CACHE = {}
 -- PUBLIC
 -------------------------------------------------------------------------------
 
----@class org-roam.core.buffer
+---@class org-roam.Buffer
 local M = {}
 
 ---Sets the dirty flag of buffer to `value`.
