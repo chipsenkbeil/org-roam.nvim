@@ -16,6 +16,10 @@ local function render(node)
     local db = database()
 
     local lines = {}
+    ---@param ... string
+    local function append(...)
+        vim.list_extend(lines, { ... })
+    end
 
     -- If given an id instead of a node, load it here
     if type(node) == "string" then
@@ -23,11 +27,10 @@ local function render(node)
     end
 
     if node then
+        append(string.format("# %s (id:%s)", node.title, node.id))
+
         local backlinks = db:get_backlinks(node.id)
-        table.insert(
-            lines,
-            string.format("* backlinks (%s)", vim.tbl_count(backlinks))
-        )
+        append("", string.format("* backlinks (%s)", vim.tbl_count(backlinks)))
 
         for backlink_id, _ in pairs(backlinks) do
             ---@type org-roam.core.database.Node|nil
@@ -37,16 +40,13 @@ local function render(node)
                 local locs = backlink_node.linked[node.id]
                 for _, loc in ipairs(locs or {}) do
                     local line = loc.row + 1
-                    table.insert(
-                        lines,
-                        string.format(
-                            "** [[%s::%s][%s @ line %s]]",
-                            backlink_node.file,
-                            line,
-                            backlink_node.title,
-                            line
-                        )
-                    )
+                    append(string.format(
+                        "** [[%s::%s][%s @ line %s]]",
+                        backlink_node.file,
+                        line,
+                        backlink_node.title,
+                        line
+                    ))
                 end
             end
         end
@@ -60,7 +60,7 @@ end
 ---@field private __lines string[]
 ---@field private __window org-roam.core.ui.Window
 local M = {}
-M.__index = {}
+M.__index = M
 
 ---@class org-roam.ui.window.NodeViewWindowOpts
 ---@field id? org-roam.core.database.Id

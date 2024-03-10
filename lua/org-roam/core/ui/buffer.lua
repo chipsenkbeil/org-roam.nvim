@@ -185,7 +185,10 @@ function M:render(opts)
         for _, widget in ipairs(self.__widgets) do
             local ret = widget:render()
             if ret.ok then
-                self:__append_lines({ utils.table.unpack(ret.lines), force = true })
+                ---@type {[integer]:string, force:boolean}
+                local lines = ret.lines
+                lines.force = true
+                self:__append_lines(lines)
             else
                 notify.error("widget failed: " .. ret.error)
             end

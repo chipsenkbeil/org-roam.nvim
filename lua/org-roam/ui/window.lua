@@ -37,19 +37,29 @@ end
 function M.toggle_fixed_node_view(id)
     local db = database()
 
-    vim.ui.input({
-        prompt = "node> ",
-        completion = "custom,v:lua.require('org-roam.competion').SelectFixedNode",
-    }, function(input)
-        if input and input ~= "" then
-        end
-    end)
+    local function toggle_view()
+        if id then
+            if not NODE_VIEW[id] then
+                NODE_VIEW[id] = NodeViewWindow:new({ id = id })
+            end
 
-    if not NODE_VIEW[id] then
-        NODE_VIEW[id] = NodeViewWindow:new({ id = id })
+            NODE_VIEW[id]:toggle()
+        end
     end
 
-    NODE_VIEW[id]:toggle()
+    if id then
+        toggle_view()
+    else
+        vim.ui.input({
+            prompt = "node> ",
+            completion = "custom,v:lua.require('org-roam.competion').CompleteNode",
+        }, function(input)
+            if input and input ~= "" then
+                id = input
+                toggle_view()
+            end
+        end)
+    end
 end
 
 return M
