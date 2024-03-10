@@ -128,4 +128,27 @@ function M:is_headline_node()
     return self.level ~= 0
 end
 
+---Computes a sha256 hash representing the node.
+---@return string
+function M:hash()
+    local linked_keys = vim.tbl_keys(self.linked)
+    table.sort(linked_keys)
+
+    return vim.fn.sha256(table.concat({
+        self.id,
+        string.format("%s%s", self.range.start.offset, self.range.end_.offset),
+        self.file,
+        self.title,
+        table.concat(self.aliases, ","),
+        table.concat(self.tags, ","),
+        tostring(self.level),
+        vim.tbl_map(function(key)
+            ---@param loc org-roam.core.parser.Position
+            return table.concat(vim.tbl_map(function(loc)
+                return loc.offset
+            end, self.linked[key]), ",")
+        end, linked_keys),
+    }))
+end
+
 return M
