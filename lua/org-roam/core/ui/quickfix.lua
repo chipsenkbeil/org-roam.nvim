@@ -6,7 +6,7 @@
 
 local utils = require("org-roam.core.utils")
 
----@class org-roam.core.ui.quickfix
+---@class org-roam.core.ui.Quickfix
 local M = {}
 
 ---@class org-roam.core.ui.quickfix.Item
@@ -16,7 +16,7 @@ local M = {}
 ---@field col? integer
 ---@field text? string
 
----@param db org-roam.core.database.Database
+---@param db org-roam.core.Database
 ---@param id org-roam.core.database.Id
 ---@return org-roam.core.ui.quickfix.Item[]
 local function get_links_as_quickfix_items(db, id)
@@ -37,7 +37,7 @@ local function get_links_as_quickfix_items(db, id)
     return items
 end
 
----@param db org-roam.core.database.Database
+---@param db org-roam.core.Database
 ---@param id org-roam.core.database.Id
 ---@param opts? {show_preview?:boolean}
 ---@return org-roam.core.ui.quickfix.Item[]
@@ -82,7 +82,10 @@ end
 ---@field links? boolean
 ---@field show_preview? boolean
 
----@param db org-roam.core.database.Database
+---Opens the quickfix list.
+---
+---NOTE: Cannot be called from a lua loop callback!
+---@param db org-roam.core.Database
 ---@param id org-roam.core.database.Id
 ---@param opts? org-roam.core.ui.quickfix.OpenOpts
 function M.open(db, id, opts)
@@ -145,7 +148,7 @@ function M.open(db, id, opts)
     end)
 
     assert(vim.fn.setqflist({}, "r", {
-        title = string.format("%s backlinks", title or "???"),
+        title = string.format("org-roam (%s)", title or "???"),
         items = items,
     }) == 0, "failed to set quickfix list")
 

@@ -218,7 +218,7 @@ end
 
 local __logger = make_internal_logger(default_config)
 
----@class org-roam.core.log.Logger
+---@class org-roam.core.Logger
 ---
 ---@field trace fun(...) #general verbatim logger
 ---@field fmt_trace fun(...) #log using string formatting against the first argument
@@ -282,10 +282,17 @@ for i, x in ipairs(__logger.config.modes) do
     -- log.file_info("do not print")
     M[("file_%s"):format(x.name)] = function(vals, override)
         local original_console = __logger.config.use_console
+
+        ---@diagnostic disable-next-line:inject-field
         __logger.config.use_console = false
+        ---@diagnostic disable-next-line:inject-field
         __logger.config.info_level = override.info_level
+
         __logger.log_at_level(i, x, __logger.make_string, unpack(vals))
+
+        ---@diagnostic disable-next-line:inject-field
         __logger.config.use_console = original_console
+        ---@diagnostic disable-next-line:inject-field
         __logger.config.info_level = nil
     end
 end

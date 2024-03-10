@@ -30,7 +30,7 @@ local utils = require("org-roam.core.utils")
 
 ---@alias org-roam.core.database.Indexer fun(data:org-roam.core.database.Data):(org-roam.core.database.IndexKeys|nil)
 
----@class org-roam.core.database.Database
+---@class org-roam.core.Database
 ---@field private __nodes table<org-roam.core.database.Id, org-roam.core.database.Data>
 ---@field private __outbound table<org-roam.core.database.Id, org-roam.core.database.IdMap> mapping of node -> node by id
 ---@field private __inbound table<org-roam.core.database.Id, org-roam.core.database.IdMap> mapping of node <- node by id
@@ -40,7 +40,7 @@ local M = {}
 M.__index = M
 
 ---Creates a new instance of the database.
----@return org-roam.core.database.Database
+---@return org-roam.core.Database
 function M:new()
     local instance = {}
     setmetatable(instance, M)
@@ -56,7 +56,7 @@ end
 ---Creates a new index with the given name using the provided indexer.
 ---@param name org-roam.core.database.IndexName name associated with indexer
 ---@param indexer org-roam.core.database.Indexer function to perform indexing
----@return org-roam.core.database.Database #reference to updated database
+---@return org-roam.core.Database #reference to updated database
 function M:new_index(name, indexer)
     -- Add the indexer to our internal tracker
     self.__indexers[name] = indexer
@@ -76,7 +76,7 @@ end
 ---  has finished. Defaults to 200 milliseconds.
 ---@param path string where to find the database
 ---@param opts? {time?:integer,interval?:integer}
----@return string|nil err, org-roam.core.database.Database|nil db
+---@return string|nil err, org-roam.core.Database|nil db
 function M:load_from_disk_sync(path, opts)
     opts = opts or {}
 
@@ -94,7 +94,7 @@ end
 
 ---Asynchronously loads database from disk.
 ---@param path string where to find the database
----@param cb fun(err:string|nil, db:org-roam.core.database.Database|nil)
+---@param cb fun(err:string|nil, db:org-roam.core.Database|nil)
 function M:load_from_disk(path, cb)
     utils.io.read_file(path, function(err, data)
         if err then
@@ -304,7 +304,7 @@ end
 ---Takes optional flag `remove`, which if true will not reindex but instead remove indexes for nodes.
 ---
 ---@param opts? {nodes?:org-roam.core.database.Id[], indexes?:org-roam.core.database.IndexName[], remove?:boolean}
----@return org-roam.core.database.Database #reference to updated database
+---@return org-roam.core.Database #reference to updated database
 function M:reindex(opts)
     opts = opts or {}
     local ids = opts.nodes or {}

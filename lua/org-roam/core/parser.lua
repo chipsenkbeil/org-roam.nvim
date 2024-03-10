@@ -48,7 +48,7 @@ local QUERY_CAPTURE_TYPES = {
 ---@field sections org-roam.core.parser.Section[]
 ---@field links org-roam.core.parser.Link[]
 
----@class org-roam.core.parser
+---@class org-roam.core.Parser
 ---@field private __is_initialized boolean
 local M                   = {
     __is_initialized = false,
