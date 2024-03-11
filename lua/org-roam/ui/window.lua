@@ -53,7 +53,7 @@ function M.toggle_fixed_node_view(id)
         toggle_view(id)
     else
         Select:new({ items = db:ids(), prompt = " (node) " })
-            :on_choice(function(id) toggle_view(id) end)
+            :on_choice(toggle_view)
             :open()
     end
 end
