@@ -49,6 +49,12 @@ local function define_keybindings()
             require("org-roam.ui.window").toggle_fixed_node_view()
         end,
     })
+
+    vim.keymap.set({ "i", "n" }, "<C-c><C-c>", function()
+        require("org-roam.buffer").complete_node_under_cursor()
+    end, {
+        noremap = true,
+    })
 end
 
 ---Initializes the plugin, returning the database associated with nodes.

@@ -52,10 +52,37 @@ function M.toggle_fixed_node_view(id)
     if id then
         toggle_view(id)
     else
-        Select:new({ items = db:ids(), prompt = " (node) " })
-            :on_choice(toggle_view)
-            :open()
+        M.select_node(toggle_view)
     end
+end
+
+---Opens up a selection dialog populated with nodes (titles and aliases).
+---@param cb fun(id:org-roam.core.database.Id)
+---@param opts? {auto_select?:boolean, init_filter?:string}
+function M.select_node(cb, opts)
+    local db = database()
+
+    local select_opts = vim.tbl_extend("keep", {
+        items = db:ids(),
+        prompt = " (node) ",
+        format_item = function(id)
+            ---@type org-roam.core.database.Node|nil
+            local node = db:get(id)
+            if not node or #node.aliases == 0 then
+                return id
+            end
+
+            return string.format(
+                "%s (%s)",
+                node.title,
+                table.concat(node.aliases, " ")
+            )
+        end,
+    }, opts or {})
+
+    Select:new(select_opts)
+        :on_choice(cb)
+        :open()
 end
 
 return M

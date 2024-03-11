@@ -21,6 +21,8 @@ local EVENTS = {
 ---@field private __items table #raw items available for selection (non-filtered)
 ---@field private __prompt string #prompt that appears on same line as filter text
 ---@field private __max_height integer #maximum height (in rows) of selection dialog
+---@field private __init_filter string #filter text to supply at the beginning
+---@field private __auto_select boolean #if true, will select automatically if only one item (filtered) based on init_filter
 ---@field private __format_item fun(item:any):string #converts item into text displayed
 ---@field private __selection integer #current selection within filtered items
 ---@field private __prompt_id integer|nil #id of virtual text prompt
@@ -30,8 +32,16 @@ local EVENTS = {
 local M = {}
 M.__index = M
 
+---@class org-roam.core.ui.select.Opts
+---@field items? table
+---@field max_height? integer
+---@field prompt? string
+---@field init_filter? string
+---@field auto_select? boolean
+---@field format_item? fun(item:any):string
+
 ---Creates a new org-roam select dialog.
----@param opts? {items?:table, max_height?:integer, prompt?:string, format_item?:fun(item:any):string}
+---@param opts? org-roam.core.ui.select.Opts
 ---@return org-roam.core.ui.Select
 function M:new(opts)
     opts = opts or {}
@@ -42,12 +52,18 @@ function M:new(opts)
     instance.__items = opts.items or {}
     instance.__prompt = opts.prompt or ""
     instance.__max_height = opts.max_height or 9
+    instance.__init_filter = opts.init_filter or ""
+    instance.__auto_select = opts.auto_select or false
     instance.__format_item = opts.format_item or function(item)
         return tostring(item)
     end
     instance.__selection = 1
     instance.__prompt_id = nil
-    instance.__filtered = { text = "", items = {} }
+    instance.__filtered = {
+        -- Put something in text so we trigger a refresh
+        text = instance.__init_filter .. "|",
+        items = {},
+    }
     instance.__emitter = utils.emitter:new()
     instance.__window = nil
 
@@ -106,6 +122,13 @@ function M:open()
                 function() return self:__reset_cursor_and_mode() end,
             },
         })
+
+        -- If we have some initial filter text, set it on the buffer
+        if string.len(self.__init_filter) > 0 then
+            vim.api.nvim_buf_set_lines(window:bufnr(), 0, -1, true, {
+                self.__init_filter,
+            })
+        end
 
         -- Register a one-time emitter for selecting or canceling
         -- so we can ensure only one is triggered.
@@ -287,6 +310,16 @@ function M:__refresh_filter()
         -- Update our cache of filtered items
         self:__get_or_update_filtered_items()
     end
+
+    -- If we got exactly one item with our initial filter and we have
+    -- enabled auto-select, we're done and we should return it
+    if self.__auto_select then
+        local is_initial_filter = text == self.__init_filter
+        local has_one_item = #self.__filtered.items == 1
+        if is_initial_filter and has_one_item then
+            self:__trigger_selection()
+        end
+    end
 end
 
 ---@private
@@ -325,7 +358,10 @@ function M:__get_or_update_filtered_items()
     -- TODO: Do we want to support the ability to rank matches?
     for i, item in ipairs(self.__items) do
         local text = self.__format_item(item)
-        if string.find(text, filter_text, 1, true) then
+
+        -- If filtered text is blank, show everything, otherwise
+        -- require the filtered text to be within the shown text
+        if filter_text == "" or string.find(text, filter_text, 1, true) then
             table.insert(filtered, { i, item })
         end
     end
@@ -375,7 +411,9 @@ function M:__render()
         vim.schedule(function()
             self:__refresh_filter()
             self:__update_prompt()
-            self.__window:render()
+            if self.__window then
+                self.__window:render()
+            end
         end)
     end
 end
