@@ -6,6 +6,7 @@
 
 local database = require("org-roam.database")
 local NodeViewWindow = require("org-roam.ui.window.node-view")
+local Select = require("org-roam.core.ui.select")
 
 ---@type org-roam.ui.window.NodeViewWindow|nil
 local CURSOR_NODE_VIEW
@@ -37,7 +38,8 @@ end
 function M.toggle_fixed_node_view(id)
     local db = database()
 
-    local function toggle_view()
+    ---@param id org-roam.core.database.Id
+    local function toggle_view(id)
         if id then
             if not NODE_VIEW[id] then
                 NODE_VIEW[id] = NodeViewWindow:new({ id = id })
@@ -48,17 +50,11 @@ function M.toggle_fixed_node_view(id)
     end
 
     if id then
-        toggle_view()
+        toggle_view(id)
     else
-        vim.ui.input({
-            prompt = "node> ",
-            completion = "custom,v:lua.require('org-roam.competion').CompleteNode",
-        }, function(input)
-            if input and input ~= "" then
-                id = input
-                toggle_view()
-            end
-        end)
+        Select:new({ items = db:ids(), prompt = " (node) " })
+            :on_choice(function(id) toggle_view(id) end)
+            :open()
     end
 end
 
