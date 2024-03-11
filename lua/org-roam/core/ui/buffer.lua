@@ -30,6 +30,7 @@ local STATE = {
 
 ---@class org-roam.core.ui.Buffer
 ---@field private __bufnr integer
+---@field private __offset integer
 ---@field private __emitter org-roam.core.utils.Emitter
 ---@field private __state org-roam.core.ui.buffer.State
 ---@field private __widgets org-roam.core.ui.Widget[]
@@ -72,7 +73,7 @@ local function make_buffer(opts)
 end
 
 ---Creates a new org-roam buffer.
----@param opts? {filetype?:string, name?:string, listed?:boolean, scratch?:boolean, [string]:any}
+---@param opts? {filetype?:string, name?:string, offset?:integer, listed?:boolean, scratch?:boolean, [string]:any}
 ---@return org-roam.core.ui.Buffer
 function M:new(opts)
     opts = opts or {}
@@ -80,8 +81,12 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
 
+    local offset       = opts.offset or 0
+    opts.offset        = nil
+
     local emitter      = utils.emitter:new()
     instance.__bufnr   = make_buffer(opts)
+    instance.__offset  = offset
     instance.__emitter = emitter
     instance.__state   = STATE.IDLE
     instance.__widgets = {}
@@ -232,9 +237,9 @@ function M:__append_lines(lines)
         and vim.api.nvim_buf_get_lines(bufnr, 0, 1, false)[1] == ""
 
     if is_empty then
-        vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, lines)
+        vim.api.nvim_buf_set_lines(bufnr, self.__offset, -1, false, lines)
     else
-        vim.api.nvim_buf_set_lines(bufnr, cnt, -1, true, lines)
+        vim.api.nvim_buf_set_lines(bufnr, cnt + self.__offset, -1, false, lines)
     end
 
     if force then
@@ -254,7 +259,7 @@ function M:__clear(opts)
         vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", true)
     end
 
-    vim.api.nvim_buf_set_lines(self.__bufnr, 0, -1, true, {})
+    vim.api.nvim_buf_set_lines(self.__bufnr, self.__offset, -1, true, {})
 
     if force then
         vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", modifiable)
