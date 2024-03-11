@@ -217,7 +217,7 @@ function M:update_items(items)
     self.__selection = 1
 
     -- Update the filtered items
-    self:__get_or_update_filtered_items()
+    self:__update_filtered_items()
 
     -- Schedule an update of the view
     self:__render()
@@ -308,7 +308,7 @@ function M:__refresh_filter()
         self.__emitter:emit(EVENTS.TEXT_CHANGE, text)
 
         -- Update our cache of filtered items
-        self:__get_or_update_filtered_items()
+        self:__update_filtered_items()
     end
 
     -- If we got exactly one item with our initial filter and we have
@@ -341,7 +341,7 @@ end
 
 ---@private
 ---@return {[1]:integer, [2]:any}
-function M:__get_or_update_filtered_items()
+function M:__update_filtered_items()
     local filter_text = self:__get_filter_text()
 
     -- If we haven't changed our filtered text, return the cache
@@ -432,7 +432,7 @@ function M:__render_widget()
     local size = window:size()
     local cnt = size[1] - 1
 
-    for i, x in ipairs(self:__get_or_update_filtered_items()) do
+    for i, x in ipairs(self:__update_filtered_items()) do
         -- Stop once we exceed our max supported item to display
         if i > cnt then
             break
