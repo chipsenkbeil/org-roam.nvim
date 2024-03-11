@@ -29,7 +29,7 @@ local M = {}
 ---Injects a node under the cursor.
 function M.complete_node_under_cursor()
     local db = database()
-    local word = vim.fn.expand("<cword>")
+    local word = M.expr_under_cursor()
     local is_empty_link = word == "[[]]"
     local winnr = vim.api.nvim_get_current_win()
     local bufnr = vim.api.nvim_get_current_buf()
@@ -91,6 +91,25 @@ function M.complete_node_under_cursor()
         auto_select = true,
         init_filter = filter,
     })
+end
+
+---Retrieves the expression under cursor. In the case that
+---an expression is not found or not within an orgmode buffer,
+---the current word under cursor via `<cword>` is returned.
+---@return string
+function M.expr_under_cursor()
+    -- Figure out our word, trying out treesitter
+    -- if we are in an orgmode buffer, otherwise
+    -- defaulting back to the vim word under cursor
+    local word = vim.fn.expand("<cword>")
+    if vim.api.nvim_buf_get_option(0, "filetype") == "org" then
+        ---@type TSNode|nil
+        local ts_node = vim.treesitter.get_node()
+        if ts_node and ts_node:type() == "expr" then
+            word = vim.treesitter.get_node_text(ts_node, 0)
+        end
+    end
+    return word
 end
 
 ---Returns a copy of the node under cursor of the current buffer.
