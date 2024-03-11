@@ -40,7 +40,9 @@ function M.complete_node_under_cursor()
     end
 
     require("org-roam.ui.window").select_node(function(id)
+        ---@type org-roam.core.database.Node|nil
         local node = db:get(id)
+
         if node then
             -- Get our cursor position
             local cursor = vim.api.nvim_win_get_cursor(winnr)
@@ -69,9 +71,16 @@ function M.complete_node_under_cursor()
 
             -- Insert text representing the new link only if we found a match
             if i ~= nil then
+                local text = node.title
+
+                -- If the word matches a full alias, swap with it
+                if vim.tbl_contains(node.aliases, word) then
+                    text = word
+                end
+
                 -- Replace the text (this will place us into insert mode)
                 vim.api.nvim_buf_set_text(bufnr, row, col, row, col + #word, {
-                    string.format("[[id:%s][%s]]", node.id, node.title)
+                    string.format("[[id:%s][%s]]", node.id, text)
                 })
 
                 -- Force ourselves back into normal mode
