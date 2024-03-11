@@ -347,6 +347,8 @@ function M:__update_prompt()
     end
 
     -- Create or update the mark
+    -- TODO: neovim 0.10 will introduce a new `virt_text_pos`
+    --       of "inline", which is exactly what we want.
     self.__prompt_id = vim.api.nvim_buf_set_extmark(
         window:bufnr(),
         NAMESPACE,
