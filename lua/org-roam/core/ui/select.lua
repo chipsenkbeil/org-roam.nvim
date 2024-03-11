@@ -18,12 +18,12 @@ local EVENTS = {
 }
 
 ---@class org-roam.core.ui.Select
----@field private __items table
----@field private __prompt string
----@field private __max_height integer
----@field private __format_item fun(item:any):string
----@field private __selection integer
----@field private __prompt_id integer|nil
+---@field private __items table #raw items available for selection (non-filtered)
+---@field private __prompt string #prompt that appears on same line as filter text
+---@field private __max_height integer #maximum height (in rows) of selection dialog
+---@field private __format_item fun(item:any):string #converts item into text displayed
+---@field private __selection integer #current selection within filtered items
+---@field private __prompt_id integer|nil #id of virtual text prompt
 ---@field private __filtered {text:string, items:{[1]:integer, [2]:any}[]}
 ---@field private __emitter org-roam.core.utils.Emitter
 ---@field private __window org-roam.core.ui.Window|nil
