@@ -4,8 +4,10 @@
 -- Supports operating and retrieving information on org-roam buffers.
 -------------------------------------------------------------------------------
 
+local database = require("org-roam.database")
 local IntervalTree = require("org-roam.core.utils.tree.interval")
 local Scanner = require("org-roam.core.scanner")
+local Select = require("org-roam.core.ui.select")
 
 ---@private
 ---@class org-roam.buffer.CacheItem
@@ -23,6 +25,64 @@ local CACHE = {}
 
 ---@class org-roam.Buffer
 local M = {}
+
+---Injects a node under the cursor.
+function M.complete_node_under_cursor()
+    local db = database()
+    local word = vim.fn.expand("<cword>")
+    local is_empty_link = word == "[[]]"
+    local winnr = vim.api.nvim_get_current_win()
+    local bufnr = vim.api.nvim_get_current_buf()
+
+    local filter
+    if not is_empty_link then
+        filter = word
+    end
+
+    require("org-roam.ui.window").select_node(function(id)
+        local node = db:get(id)
+        if node then
+            -- Get our cursor position
+            local cursor = vim.api.nvim_win_get_cursor(winnr)
+
+            -- Row & column are now zero-indexed
+            local row = cursor[1] - 1
+            local col = cursor[2]
+
+            -- We can safely assume that a line of text exists here
+            local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, true)[1]
+
+            -- Continue searching through line until we find the match
+            -- that overlaps with our cursor position
+            ---@type integer|nil
+            local i = 0
+            while i < string.len(line) do
+                i = string.find(line, word, i + 1, true)
+                if i == nil then break end
+
+                -- Check if the current match contains the cursor column
+                if i - 1 <= col and i - 1 + #word > col then
+                    col = i - 1
+                    break
+                end
+            end
+
+            -- Insert text representing the new link only if we found a match
+            if i ~= nil then
+                -- Replace the text (this will place us into insert mode)
+                vim.api.nvim_buf_set_text(bufnr, row, col, row, col + #word, {
+                    string.format("[[id:%s][%s]]", node.id, node.title)
+                })
+
+                -- Force ourselves back into normal mode
+                vim.cmd("stopinsert")
+            end
+        end
+    end, {
+        auto_select = true,
+        init_filter = filter,
+    })
+end
 
 ---Returns a copy of the node under cursor of the current buffer.
 ---
