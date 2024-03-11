@@ -58,10 +58,15 @@
        - Nodes that reference this node (see [[https://www.orgroam.com/manual.html#Refs][Refs]])
      - [ ] Implement *Unlinked references* widget for buffer
        - View nodes that contain text that match the nodes title/alias but are not linked
-   - [ ] Implement [[https://www.orgroam.com/manual.html#Citations][citations]]
-   - [ ] Implement [[https://www.orgroam.com/manual.html#Completion][completion]]
-   - [ ] Implement [[https://www.orgroam.com/manual.html#Encryption][encryption]]
-   - [ ] Implement [[https://www.orgroam.com/manual.html#The-Templating-System][templating]]
+   - [ ] Support [[https://www.orgroam.com/manual.html#Citations][citations]]
+     - [ ] As of orgmode 9.5, *org-cite* is built-in and has the form *[cite:@key]*
+     - [ ] Alongside *org-cite*, there is also support for [[https://github.com/jkitchin/org-ref][org-ref]] (v2 & v3),
+           which uses *cite:key* as its format
+   - [X] Support [[https://www.orgroam.com/manual.html#Completion][completion]]
+     - [X] [[https://www.orgroam.com/manual.html#Completing-within-Link-Brackets][Completing within Link Brackets]]
+     - [X] [[https://www.orgroam.com/manual.html#Completing-anywhere][Completing anywhere]]
+   - [ ] Support [[https://www.orgroam.com/manual.html#Encryption][encryption]] (emacs supports natively, so we may defer to plugins)
+   - [ ] Support [[https://www.orgroam.com/manual.html#The-Templating-System][templating]]
    - [ ] Implement extensions
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002ddailies][org-roam-dailies]]
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002dexport][org-roam-export]]
