@@ -171,19 +171,24 @@ function M:open()
             end,
         })
 
-        -- Changing selection (down)
-        vim.keymap.set("i", "<C-n>", function() self:__select_move_down() end)
-        vim.keymap.set("i", "<Down>", function() self:__select_move_down() end)
-
-        -- Changing selection (up)
-        vim.keymap.set("i", "<C-p>", function() self:__select_move_up() end)
-        vim.keymap.set("i", "<Up>", function() self:__select_move_up() end)
-
-        -- Register callback when <Enter> is hit as that indicates a selection
-        vim.keymap.set("i", "<Enter>", function() self:__trigger_selection() end, {
+        local kopts = {
             buffer = window:bufnr(),
             noremap = true,
-        })
+        }
+
+        -- Changing selection (down)
+        vim.keymap.set("i", "<C-n>", function() self:__select_move_down() end, kopts)
+        vim.keymap.set("i", "<Down>", function() self:__select_move_down() end, kopts)
+
+        -- Changing selection (up)
+        vim.keymap.set("i", "<C-p>", function() self:__select_move_up() end, kopts)
+        vim.keymap.set("i", "<Up>", function() self:__select_move_up() end, kopts)
+
+        -- Register callback when <Enter> is hit as that indicates a selection
+        vim.keymap.set("i", "<Enter>", function() self:__trigger_selection() end, kopts)
+        vim.keymap.set("i", "<S-Enter>", function() self:__trigger_selection() end, kopts)
+        vim.keymap.set("i", "<C-Enter>", function() self:__trigger_selection() end, kopts)
+        vim.keymap.set("i", "<C-S-Enter>", function() self:__trigger_selection() end, kopts)
 
         self.__window = window
     end
