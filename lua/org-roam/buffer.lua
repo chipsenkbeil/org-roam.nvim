@@ -7,7 +7,6 @@
 local database = require("org-roam.database")
 local IntervalTree = require("org-roam.core.utils.tree.interval")
 local Scanner = require("org-roam.core.scanner")
-local Select = require("org-roam.core.ui.select")
 
 ---@private
 ---@class org-roam.buffer.CacheItem
@@ -71,16 +70,9 @@ function M.complete_node_under_cursor()
 
             -- Insert text representing the new link only if we found a match
             if i ~= nil then
-                local text = node.title
-
-                -- If the word matches a full alias, swap with it
-                if vim.tbl_contains(node.aliases, word) then
-                    text = word
-                end
-
                 -- Replace the text (this will place us into insert mode)
                 vim.api.nvim_buf_set_text(bufnr, row, col, row, col + #word, {
-                    string.format("[[id:%s][%s]]", node.id, text)
+                    string.format("[[id:%s][%s]]", node.id, node.title)
                 })
 
                 -- Force ourselves back into normal mode
