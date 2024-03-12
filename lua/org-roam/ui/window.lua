@@ -62,26 +62,34 @@ end
 function M.select_node(cb, opts)
     local db = database()
 
-    local select_opts = vim.tbl_extend("keep", {
-        items = db:ids(),
-        prompt = " (node) ",
-        format_item = function(id)
-            ---@type org-roam.core.database.Node|nil
-            local node = db:get(id)
-            if not node or #node.aliases == 0 then
-                return id
+    -- TODO: Make this more optimal. Probably involves supporting
+    --       an async function to return items instead of an
+    --       item list so we can query the database by name
+    --       and by aliases to get candidate ids.
+    ---@type {id:org-roam.core.database.Id, label:string}
+    local items = {}
+    for _, id in ipairs(db:ids()) do
+        ---@type org-roam.core.database.Node|nil
+        local node = db:get(id)
+        if node then
+            table.insert(items, { id = id, label = node.title })
+            for _, alias in ipairs(node.aliases) do
+                table.insert(items, { id = id, label = alias })
             end
+        end
+    end
 
-            return string.format(
-                "%s (%s)",
-                node.title,
-                table.concat(node.aliases, " ")
-            )
+    local select_opts = vim.tbl_extend("keep", {
+        items = items,
+        prompt = " (node) ",
+        ---@param item {id:org-roam.core.database.Id, label:string}
+        format_item = function(item)
+            return string.format("%s (%s)", item.label, item.id)
         end,
     }, opts or {})
 
     Select:new(select_opts)
-        :on_choice(cb)
+        :on_choice(function(item) cb(item.id) end)
         :open()
 end
 
