@@ -382,27 +382,28 @@ function M:__update_prompt()
         return
     end
 
+    local opts = {
+        id = self.__prompt_id,
+        virt_text = {
+            { string.format("%s/%s",
+                self.__selection,
+                #self.__filtered.items
+            ), "Comment" },
+            { self.__prompt, "Comment" },
+        },
+        hl_mode = "combine",
+        right_gravity = false,
+    }
+
+    -- TODO: Once neovim 0.10 is fully released and we drop support
+    --       for neovim 0.9, this can be moved into the options above.
+    if vim.fn.has("nvim-0.10") == 1 then
+        opts.virt_text_pos = "inline"
+    end
+
     -- Create or update the mark
-    -- TODO: neovim 0.10 will introduce a new `virt_text_pos`
-    --       of "inline", which is exactly what we want.
     self.__prompt_id = vim.api.nvim_buf_set_extmark(
-        window:bufnr(),
-        NAMESPACE,
-        0,
-        0,
-        {
-            id = self.__prompt_id,
-            virt_text = {
-                { string.format("%s/%s",
-                    self.__selection,
-                    #self.__filtered.items
-                ), "Comment" },
-                { self.__prompt, "Comment" },
-            },
-            hl_mode = "combine",
-            right_gravity = false,
-        }
-    )
+        window:bufnr(), NAMESPACE, 0, 0, opts)
 end
 
 ---@private
