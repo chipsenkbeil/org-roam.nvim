@@ -142,15 +142,19 @@ function M:open()
     end
 
     -- Configure an autocommand to trigger when the window closes
-    --[[ local win = self.__win
     vim.api.nvim_create_autocmd("WinClosed", {
         desc = "Triggered when window " .. self.__win .. " closed",
-        pattern = tostring(win),
-        nested = true,
+        pattern = tostring(self.__win),
         once = true,
         callback = function()
+            -- Only close if the window that closed is still
+            -- the one that we have selected
+            local win = tonumber(vim.fn.expand("<amatch>"))
+            if self.__win and self.__win == win then
+                self:close()
+            end
         end,
-    }) ]]
+    })
 
     -- If configured to do so, add an autocommand to close
     -- the window once we exit the buffer
