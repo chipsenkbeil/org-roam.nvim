@@ -27,6 +27,7 @@ local EVENTS = {
 ---@field open? string|fun():integer
 ---@field focus_on_open? boolean
 ---@field close_on_bufleave? boolean
+---@field destroy_on_close? boolean
 ---@field bufopts? table<string, any>
 ---@field winopts? table<string, any>
 ---@field widgets? (org-roam.core.ui.Widget|org-roam.core.ui.WidgetFunction)[]
@@ -40,6 +41,7 @@ local EVENTS = {
 ---@field private __winopts table<string, any>
 ---@field private __focus_on_open boolean
 ---@field private __close_on_bufleave boolean
+---@field private __destroy_on_close boolean
 ---@field private __win integer|nil #handle of open window
 local M = {}
 M.__index = M
@@ -95,6 +97,7 @@ function M:new(opts)
     instance.__winopts = assert(opts.winopts)
     instance.__focus_on_open = opts.focus_on_open or false
     instance.__close_on_bufleave = opts.close_on_bufleave or false
+    instance.__destroy_on_close = opts.destroy_on_close or false
     instance.__win = nil
 
     return instance
@@ -139,18 +142,15 @@ function M:open()
     end
 
     -- Configure an autocommand to trigger when the window closes
-    local win = self.__win
+    --[[ local win = self.__win
     vim.api.nvim_create_autocmd("WinClosed", {
         desc = "Triggered when window " .. self.__win .. " closed",
         pattern = tostring(win),
         nested = true,
         once = true,
         callback = function()
-            -- <amatch> and <afile> are set to window-ID
-            self.__emitter:emit(EVENTS.CLOSE, win)
-            self.__win = nil
         end,
-    })
+    }) ]]
 
     -- If configured to do so, add an autocommand to close
     -- the window once we exit the buffer
@@ -179,9 +179,16 @@ function M:close()
         return
     end
 
+    self.__emitter:emit(EVENTS.CLOSE, win)
+
     if vim.api.nvim_win_is_valid(win) then
         vim.api.nvim_win_close(win, true)
     end
+
+    if self.__destroy_on_close then
+        self.__buffer:destroy()
+    end
+
     self.__win = nil
 end
 

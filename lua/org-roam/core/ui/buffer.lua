@@ -162,6 +162,14 @@ function M:is_modifiable()
     return vim.api.nvim_buf_get_option(self.__bufnr, "modifiable") == true
 end
 
+---Destroys the buffer.
+---NOTE: Once destroyed, the buffer should not be used again.
+function M:destroy()
+    vim.schedule(function()
+        vim.api.nvim_buf_delete(self.__bufnr, { force = true })
+    end)
+end
+
 ---Clear and redraw the buffer using the current widgets.
 ---
 ---If `delay` specified, will wait N milliseconds before scheduling rendering.
