@@ -58,7 +58,7 @@ end
 
 ---Opens up a selection dialog populated with nodes (titles and aliases).
 ---@param cb fun(id:org-roam.core.database.Id)
----@param opts? {auto_select?:boolean, init_filter?:string}
+---@param opts? {auto_select?:boolean, init_input?:string}
 function M.select_node(cb, opts)
     local db = database()
 
@@ -79,11 +79,12 @@ function M.select_node(cb, opts)
         end
     end
 
+    ---@type org-roam.core.ui.select.Opts
     local select_opts = vim.tbl_extend("keep", {
         items = items,
         prompt = " (node) ",
         ---@param item {id:org-roam.core.database.Id, label:string}
-        format_item = function(item)
+        format = function(item)
             return string.format("%s (%s)", item.label, item.id)
         end,
     }, opts or {})

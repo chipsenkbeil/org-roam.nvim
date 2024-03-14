@@ -33,9 +33,9 @@ function M.complete_node_under_cursor()
     local winnr = vim.api.nvim_get_current_win()
     local bufnr = vim.api.nvim_get_current_buf()
 
-    local filter
+    local input
     if not is_empty_link then
-        filter = word
+        input = word
     end
 
     require("org-roam.ui.window").select_node(function(id)
@@ -81,7 +81,7 @@ function M.complete_node_under_cursor()
         end
     end, {
         auto_select = true,
-        init_filter = filter,
+        init_input = input,
     })
 end
 

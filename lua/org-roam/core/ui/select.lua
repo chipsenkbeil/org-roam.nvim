@@ -17,28 +17,43 @@ local EVENTS = {
     TEXT_CHANGE = "select:text_change",
 }
 
+---@class (exact) org-roam.core.ui.select.View
+---@field filtered_items {[1]:integer, [2]:string}[] #list of tuples representing indexes of items and labels to display
+---@field visible {[1]:integer, [2]:integer} #range of visible filtered items
+---@field selected integer #position of selected item within viewed items
+---@field max_rows integer #maximum rows of viewed items to display
+---@field prompt string #prompt that appears on same line as input
+---@field input string #user-provided input
+
+---@class (exact) org-roam.core.ui.select.State
+---@field prompt_id integer|nil #id of the virtual text prompt
+---@field emitter org-roam.core.utils.Emitter #event manager
+---@field window org-roam.core.ui.Window|nil #internal window
+
+---@class (exact) org-roam.core.ui.select.Params
+---@field items table #raw items available for selection (non-filtered)
+---@field init_input string #initial text to supply at the beginning
+---@field auto_select boolean #if true, will select automatically if only one item (filtered) based on init_filter
+---@field format fun(item:any):string #converts item into displayed text
+---@field filter fun(item:any, input:string):boolean #filters items based on some input
+---@field rank fun(item:any, input:string):number #ranks items based on some input, higher number means shown earlier
+
 ---@class org-roam.core.ui.Select
----@field private __items table #raw items available for selection (non-filtered)
----@field private __prompt string #prompt that appears on same line as filter text
----@field private __max_height integer #maximum height (in rows) of selection dialog
----@field private __init_filter string #filter text to supply at the beginning
----@field private __auto_select boolean #if true, will select automatically if only one item (filtered) based on init_filter
----@field private __format_item fun(item:any):string #converts item into text displayed
----@field private __selection integer #current selection within filtered items
----@field private __prompt_id integer|nil #id of virtual text prompt
----@field private __filtered {text:string, items:{[1]:integer, [2]:any}[]}
----@field private __emitter org-roam.core.utils.Emitter
----@field private __window org-roam.core.ui.Window|nil
+---@field private __params org-roam.core.ui.select.Params
+---@field private __state org-roam.core.ui.select.State
+---@field private __view org-roam.core.ui.select.View
 local M = {}
 M.__index = M
 
 ---@class org-roam.core.ui.select.Opts
----@field items? table
----@field max_height? integer
+---@field items table
+---@field max_displayed_rows? integer
 ---@field prompt? string
----@field init_filter? string
+---@field init_input? string
 ---@field auto_select? boolean
----@field format_item? fun(item:any):string
+---@field format? fun(item:any):string
+---@field filter? fun(item:any, input:string):boolean
+---@field rank? fun(item:any, text:string):number
 
 ---Creates a new org-roam select dialog.
 ---@param opts? org-roam.core.ui.select.Opts
@@ -49,23 +64,33 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
 
-    instance.__items = opts.items or {}
-    instance.__prompt = opts.prompt or ""
-    instance.__max_height = opts.max_height or 9
-    instance.__init_filter = opts.init_filter or ""
-    instance.__auto_select = opts.auto_select or false
-    instance.__format_item = opts.format_item or function(item)
-        return tostring(item)
-    end
-    instance.__selection = 1
-    instance.__prompt_id = nil
-    instance.__filtered = {
-        -- Put something in text so we trigger a refresh
-        text = instance.__init_filter .. "|",
-        items = {},
+    local format = opts.format or function(item) return tostring(item) end
+    instance.__params = {
+        items = opts.items or {},
+        init_input = opts.init_input or "",
+        auto_select = opts.auto_select or false,
+        format = format,
+        filter = opts.filter or function(item, input)
+            local text = format(item)
+            return string.find(text, input, 1, true)
+        end,
+        rank = opts.rank,
     }
-    instance.__emitter = utils.emitter:new()
-    instance.__window = nil
+
+    instance.__state = {
+        emitter = utils.emitter:new(),
+        prompt_id = nil,
+        window = nil,
+    }
+
+    instance.__view = {
+        filtered_items = {}, -- To be populated
+        visible = {},        -- To be populated
+        selected = 1,
+        max_rows = opts.max_displayed_rows or 8,
+        prompt = opts.prompt or "",
+        input = instance.__params.init_input .. "|", -- Force refresh
+    }
 
     return instance
 end
@@ -74,7 +99,7 @@ end
 ---@param f fun()
 ---@return org-roam.core.ui.Select
 function M:on_cancel(f)
-    self.__emitter:on(EVENTS.CANCEL, f)
+    self.__state.emitter:on(EVENTS.CANCEL, f)
     return self
 end
 
@@ -82,7 +107,7 @@ end
 ---@param f fun(text:string)
 ---@return org-roam.core.ui.Select
 function M:on_text_change(f)
-    self.__emitter:on(EVENTS.TEXT_CHANGE, f)
+    self.__state.emitter:on(EVENTS.TEXT_CHANGE, f)
     return self
 end
 
@@ -93,7 +118,7 @@ end
 ---@param f fun(item:any|nil, idx:integer)
 ---@return org-roam.core.ui.Select
 function M:on_select_change(f)
-    self.__emitter:on(EVENTS.SELECT_CHANGE, f)
+    self.__state.emitter:on(EVENTS.SELECT_CHANGE, f)
     return self
 end
 
@@ -102,16 +127,16 @@ end
 ---@param f fun(item:any, idx:integer)
 ---@return org-roam.core.ui.Select
 function M:on_choice(f)
-    self.__emitter:on(EVENTS.CHOICE, f)
+    self.__state.emitter:on(EVENTS.CHOICE, f)
     return self
 end
 
 ---Opens the selection dialog.
 function M:open()
-    if not self.__window then
+    if not self.__state.window then
         local window = Window:new({
             name = "org-roam-select",
-            open = string.format("botright split | resize %s", self.__max_height),
+            open = string.format("botright split | resize %s", self.__view.max_rows + 1),
             close_on_bufleave = true,
             destroy_on_close = true,
             focus_on_open = true,
@@ -126,9 +151,9 @@ function M:open()
         })
 
         -- If we have some initial filter text, set it on the buffer
-        if string.len(self.__init_filter) > 0 then
+        if string.len(self.__params.init_input) > 0 then
             vim.api.nvim_buf_set_lines(window:bufnr(), 0, -1, true, {
-                self.__init_filter,
+                self.__params.init_input,
             })
         end
 
@@ -136,11 +161,11 @@ function M:open()
         -- so we can ensure only one is triggered.
         ---@param item any|nil
         ---@param idx integer|nil
-        self.__emitter:once(EVENTS.INTERNAL_CHOICE_OR_CANCEL, function(item, idx)
+        self.__state.emitter:once(EVENTS.INTERNAL_CHOICE_OR_CANCEL, function(item, idx)
             if type(idx) == "number" then
-                self.__emitter:emit(EVENTS.CHOICE, item, idx)
+                self.__state.emitter:emit(EVENTS.CHOICE, item, idx)
             else
-                self.__emitter:emit(EVENTS.CANCEL)
+                self.__state.emitter:emit(EVENTS.CANCEL)
             end
         end)
 
@@ -150,15 +175,15 @@ function M:open()
         window:on_close(function()
             -- Emit a cancellation, which will only count if we have
             -- not selected first
-            self.__emitter:emit(EVENTS.INTERNAL_CHOICE_OR_CANCEL)
-            self.__window = nil
+            self.__state.emitter:emit(EVENTS.INTERNAL_CHOICE_OR_CANCEL)
+            self.__state.window = nil
         end)
 
         -- When new text is inserted, mark as needing a refresh
         vim.api.nvim_create_autocmd("TextChangedI", {
             buffer = window:bufnr(),
             callback = function()
-                if self.__filtered.text ~= self:__get_filter_text() then
+                if self.__view.input ~= self:__get_input() then
                     self:__render()
                 end
             end,
@@ -192,36 +217,36 @@ function M:open()
         vim.keymap.set("i", "<C-Enter>", function() self:__trigger_selection() end, kopts)
         vim.keymap.set("i", "<C-S-Enter>", function() self:__trigger_selection() end, kopts)
 
-        self.__window = window
+        self.__state.window = window
     end
 
-    self.__window:open()
+    self.__state.window:open()
     self:__render()
 end
 
 ---Closes the selection dialog, canceling the choice.
 function M:close()
-    if self.__window then
-        self.__window:close()
+    if self.__state.window then
+        self.__state.window:close()
     end
-    self.__window = nil
+    self.__state.window = nil
 end
 
 ---Returns true if the selection dialog is open.
 ---@return boolean
 function M:is_open()
-    return self.__window ~= nil and self.__window:is_open()
+    return self.__state.window ~= nil and self.__state.window:is_open()
 end
 
 ---Updates the items shown by the selection dialog.
 ---@param items table
 function M:update_items(items)
     -- Update our items
-    self.__items = items
+    self.__params.items = items
 
     -- Reset selection position to the first item
     -- NOTE: This is the same way that telescope and emacs do things.
-    self.__selection = 1
+    self.__view.selected = 1
 
     -- Update the filtered items
     self:__update_filtered_items()
@@ -232,8 +257,8 @@ end
 
 ---@private
 function M:__select_move_down()
-    local cnt = #self.__filtered.items
-    local idx = self.__selection
+    local cnt = #self.__view.filtered_items
+    local idx = self.__view.selected
 
     -- Rules:
     --
@@ -248,11 +273,11 @@ function M:__select_move_down()
     if cnt < 1 then
         idx = 0
     end
-    self.__selection = idx
+    self.__view.selected = idx
 
     -- Notify of a selection change
-    local item = self.__items[utils.table.get(self.__filtered.items, idx, 1)]
-    self.__emitter:emit(EVENTS.SELECT_CHANGE, item, idx)
+    local item = self.__params.items[utils.table.get(self.__view.filtered_items, idx, 1)]
+    self.__state.emitter:emit(EVENTS.SELECT_CHANGE, item, idx)
 
     -- Schedule an update of the view
     self:__render()
@@ -260,8 +285,8 @@ end
 
 ---@private
 function M:__select_move_up()
-    local cnt = #self.__filtered.items
-    local idx = self.__selection
+    local cnt = #self.__view.filtered_items
+    local idx = self.__view.selected
 
     -- Rules:
     --
@@ -276,11 +301,11 @@ function M:__select_move_up()
     if cnt < 1 then
         idx = 0
     end
-    self.__selection = idx
+    self.__view.selected = idx
 
     -- Notify of a selection change
-    local item = self.__items[utils.table.get(self.__filtered.items, idx, 1)]
-    self.__emitter:emit(EVENTS.SELECT_CHANGE, item, idx)
+    local item = self.__params.items[utils.table.get(self.__view.filtered_items, idx, 1)]
+    self.__state.emitter:emit(EVENTS.SELECT_CHANGE, item, idx)
 
     -- Schedule an update of the view
     self:__render()
@@ -289,18 +314,18 @@ end
 ---@private
 function M:__trigger_selection()
     -- If there is nothing to select, ignore enter
-    local idx = self.__selection
+    local idx = self.__view.selected
     if idx < 1 then
         return
     end
 
     -- Otherwise, we have an item, which we pick out
-    local item = self.__filtered.items[idx]
+    local item = self.__view.filtered_items[idx]
     if item then
         idx = item[1]
-        item = self.__items[idx]
+        item = self.__params.items[idx]
         if item then
-            self.__emitter:emit(EVENTS.INTERNAL_CHOICE_OR_CANCEL, item, idx)
+            self.__state.emitter:emit(EVENTS.INTERNAL_CHOICE_OR_CANCEL, item, idx)
             self:close()
         end
     end
@@ -308,11 +333,11 @@ end
 
 ---@private
 function M:__refresh_filter()
-    local text = self:__get_filter_text()
+    local text = self:__get_input()
 
     -- Only do a refresh if the text has changed
-    if self.__filtered.text ~= text then
-        self.__emitter:emit(EVENTS.TEXT_CHANGE, text)
+    if self.__view.input ~= text then
+        self.__state.emitter:emit(EVENTS.TEXT_CHANGE, text)
 
         -- Update our cache of filtered items
         self:__update_filtered_items()
@@ -320,10 +345,10 @@ function M:__refresh_filter()
 
     -- If we got exactly one item with our initial filter and we have
     -- enabled auto-select, we're done and we should return it
-    if self.__auto_select then
-        local is_initial_filter = text == self.__init_filter
-        local has_one_item = #self.__filtered.items == 1
-        if is_initial_filter and has_one_item then
+    if self.__params.auto_select then
+        local is_initial_input = text == self.__params.init_input
+        local has_one_item = #self.__view.filtered_items == 1
+        if is_initial_input and has_one_item then
             self:__trigger_selection()
         end
     end
@@ -331,8 +356,8 @@ end
 
 ---@private
 ---@return string
-function M:__get_filter_text()
-    local window = self.__window
+function M:__get_input()
+    local window = self.__state.window
     if not window then
         return ""
     end
@@ -349,54 +374,60 @@ end
 ---@private
 ---@return {[1]:integer, [2]:any}
 function M:__update_filtered_items()
-    local filter_text = self:__get_filter_text()
+    local input = self:__get_input()
 
     -- If we haven't changed our filtered text, return the cache
-    if self.__filtered.text == filter_text then
-        return self.__filtered.items
+    if self.__view.input == input then
+        return self.__view.filtered_items
     end
 
     -- Reset selection position to the first item
     -- NOTE: This is the same way that telescope and emacs do things.
-    self.__selection = 1
+    self.__view.selected = 1
 
+    ---@type {[1]:integer, [2]:any, [3]:number|nil}
     local filtered = {}
+    local rank = self.__params.rank
 
-    -- TODO: Do we want to support the ability to rank matches?
-    for i, item in ipairs(self.__items) do
-        local text = self.__format_item(item)
-
-        -- If filtered text is blank, show everything, otherwise
-        -- require the filtered text to be within the shown text
-        if filter_text == "" or string.find(text, filter_text, 1, true) then
-            table.insert(filtered, { i, item })
+    for i, item in ipairs(self.__params.items) do
+        if input == "" or self.__params.filter(item, input) then
+            local x = { i, item }
+            if rank then
+                x[3] = rank(item, input)
+            end
+            table.insert(filtered, x)
         end
     end
 
+    -- If rank function provided, sort filtered from highest rank to lowest
+    if rank then
+        table.sort(filtered, function(a, b)
+            return a[3] > b[3]
+        end)
+    end
+
     -- Update our cache
-    self.__filtered = {
-        text = filter_text,
-        items = filtered,
-    }
+    self.__view.input = input
+    self.__view.filtered_items = filtered
 
     return filtered
 end
 
 ---@private
 function M:__update_prompt()
-    local window = self.__window
+    local window = self.__state.window
     if not window or not window:is_open() then
         return
     end
 
     local opts = {
-        id = self.__prompt_id,
+        id = self.__state.prompt_id,
         virt_text = {
             { string.format("%s/%s",
-                self.__selection,
-                #self.__filtered.items
+                self.__view.selected,
+                #self.__view.filtered_items
             ), "Comment" },
-            { self.__prompt, "Comment" },
+            { self.__view.prompt, "Comment" },
         },
         hl_mode = "combine",
         right_gravity = false,
@@ -409,18 +440,22 @@ function M:__update_prompt()
     end
 
     -- Create or update the mark
-    self.__prompt_id = vim.api.nvim_buf_set_extmark(
+    self.__state.prompt_id = vim.api.nvim_buf_set_extmark(
         window:bufnr(), NAMESPACE, 0, 0, opts)
 end
 
 ---@private
 function M:__render()
-    if self.__window and self.__window:is_open() then
+    local window = self.__state.window
+    if window and window:is_open() then
         vim.schedule(function()
             self:__refresh_filter()
             self:__update_prompt()
-            if self.__window then
-                self.__window:render()
+
+            -- Double-check we still have a window, and re-render
+            window = self.__state.window
+            if window then
+                window:render()
             end
         end)
     end
@@ -429,7 +464,7 @@ end
 ---@private
 ---@return string[]
 function M:__render_widget()
-    local window = self.__window
+    local window = self.__state.window
     if not window then
         return {}
     end
@@ -446,9 +481,9 @@ function M:__render_widget()
             break
         end
 
-        local text = self.__format_item(x[2])
+        local text = self.__params.format(x[2])
 
-        if i == self.__selection then
+        if i == self.__view.selected then
             text = string.format("* %s", text)
         else
             text = string.format("  %s", text)
@@ -463,7 +498,7 @@ end
 ---@private
 ---@return string[]
 function M:__reset_cursor_and_mode()
-    local window = self.__window
+    local window = self.__state.window
     if not window or not window:is_open() then
         return {}
     end
