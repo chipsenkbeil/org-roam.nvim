@@ -166,7 +166,9 @@ end
 ---NOTE: Once destroyed, the buffer should not be used again.
 function M:destroy()
     vim.schedule(function()
-        vim.api.nvim_buf_delete(self.__bufnr, { force = true })
+        if vim.api.nvim_buf_is_valid(self.__bufnr) then
+            vim.api.nvim_buf_delete(self.__bufnr, { force = true })
+        end
     end)
 end
 
