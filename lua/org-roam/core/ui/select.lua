@@ -19,7 +19,7 @@ local EVENTS = {
 
 ---@class (exact) org-roam.core.ui.select.View
 ---@field filtered_items {[1]:integer, [2]:string}[] #list of tuples representing indexes of items and labels to display
----@field visible {[1]:integer, [2]:integer} #range of visible filtered items
+---@field start integer #position within filtered items where items will be collected to show (up to max)
 ---@field selected integer #position of selected item within viewed items
 ---@field max_rows integer #maximum rows of viewed items to display
 ---@field prompt string #prompt that appears on same line as input
@@ -85,7 +85,7 @@ function M:new(opts)
 
     instance.__view = {
         filtered_items = {}, -- To be populated
-        visible = {},        -- To be populated
+        start = 1,
         selected = 1,
         max_rows = opts.max_displayed_rows or 8,
         prompt = opts.prompt or "",
@@ -244,9 +244,10 @@ function M:update_items(items)
     -- Update our items
     self.__params.items = items
 
-    -- Reset selection position to the first item
+    -- Reset selection position and visible items to the first item
     -- NOTE: This is the same way that telescope and emacs do things.
     self.__view.selected = 1
+    self.__view.start = 1
 
     -- Update the filtered items
     self:__update_filtered_items()
@@ -259,6 +260,7 @@ end
 function M:__select_move_down()
     local cnt = #self.__view.filtered_items
     local idx = self.__view.selected
+    local start = self.__view.start
 
     -- Rules:
     --
@@ -267,13 +269,21 @@ function M:__select_move_down()
     -- 3. Otherwise, we are moving past max choices, so place back at top
     if idx < 1 or idx >= cnt then
         idx = 1
+        start = 1
     else
         idx = idx + 1
+
+        -- If we are going out of view, update the start
+        if idx >= start + self.__view.max_rows then
+            start = start + 1
+        end
     end
     if cnt < 1 then
         idx = 0
+        start = 1
     end
     self.__view.selected = idx
+    self.__view.start = start
 
     -- Notify of a selection change
     local item = self.__params.items[utils.table.get(self.__view.filtered_items, idx, 1)]
@@ -287,6 +297,7 @@ end
 function M:__select_move_up()
     local cnt = #self.__view.filtered_items
     local idx = self.__view.selected
+    local start = self.__view.start
 
     -- Rules:
     --
@@ -295,13 +306,21 @@ function M:__select_move_up()
     -- 3. Otherwise, we are moving past first choice, place us at last item
     if idx <= 1 then
         idx = cnt
+        start = cnt - math.min(self.__view.max_rows, cnt) + 1
     else
         idx = idx - 1
+
+        -- If we are going out of view, update the start
+        if idx < start then
+            start = idx
+        end
     end
     if cnt < 1 then
         idx = 0
+        start = 1
     end
     self.__view.selected = idx
+    self.__view.start = start
 
     -- Notify of a selection change
     local item = self.__params.items[utils.table.get(self.__view.filtered_items, idx, 1)]
@@ -381,9 +400,10 @@ function M:__update_filtered_items()
         return self.__view.filtered_items
     end
 
-    -- Reset selection position to the first item
+    -- Reset selection and start position to the first item
     -- NOTE: This is the same way that telescope and emacs do things.
     self.__view.selected = 1
+    self.__view.start = 1
 
     ---@type {[1]:integer, [2]:any, [3]:number|nil}
     local filtered = {}
@@ -471,17 +491,21 @@ function M:__render_widget()
 
     local lines = {}
 
-    -- Figure out the maximum items we can show
-    local size = window:size()
-    local cnt = size[1] - 1
+    -- Refresh the filtered items
+    self:__update_filtered_items()
 
-    for i, x in ipairs(self:__update_filtered_items()) do
-        -- Stop once we exceed our max supported item to display
-        if i > cnt then
-            break
-        end
+    local start = self.__view.start
+    local end_ = math.min(
+        self.__view.start + self.__view.max_rows - 1,
+        #self.__view.filtered_items
+    )
 
-        local text = self.__params.format(x[2])
+    -- Loop through filtered items, beginning at the start position
+    -- and continuing through max rows
+    for i = start, end_ do
+        local item = self.__view.filtered_items[i]
+
+        local text = self.__params.format(item[2])
 
         if i == self.__view.selected then
             text = string.format("* %s", text)
