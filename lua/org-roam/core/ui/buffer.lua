@@ -38,7 +38,7 @@ local M = {}
 M.__index = M
 
 ---Makes a new buffer configured for orgmode.
----@param opts? {filetype?:string, name?:string, listed?:boolean, scratch?:boolean, [string]:any}
+---@param opts? {name?:string, listed?:boolean, scratch?:boolean, [string]:any}
 ---@return integer
 local function make_buffer(opts)
     opts = opts or {}
@@ -55,12 +55,8 @@ local function make_buffer(opts)
         opts.name or ("org-roam-" .. utils.random.uuid_v4())
     )
 
-    -- Set the filetype to org (unless specified) because we're all in, baby!
-    vim.api.nvim_buf_set_option(bufnr, "filetype", opts.filetype or "org")
-
     -- Clear out all options that we've used explicitly
     opts.name = nil
-    opts.filetype = nil
     opts.listed = nil
     opts.scratch = nil
 
@@ -73,7 +69,7 @@ local function make_buffer(opts)
 end
 
 ---Creates a new org-roam buffer.
----@param opts? {filetype?:string, name?:string, offset?:integer, listed?:boolean, scratch?:boolean, [string]:any}
+---@param opts? {name?:string, offset?:integer, listed?:boolean, scratch?:boolean, [string]:any}
 ---@return org-roam.core.ui.Buffer
 function M:new(opts)
     opts = opts or {}
