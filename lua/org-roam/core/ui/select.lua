@@ -26,6 +26,7 @@ local EVENTS = {
 ---@field input string #user-provided input
 
 ---@class (exact) org-roam.core.ui.select.State
+---@field ready boolean #true once the cursor is placed and in insert mode
 ---@field prompt_id integer|nil #id of the virtual text prompt
 ---@field emitter org-roam.core.utils.Emitter #event manager
 ---@field window org-roam.core.ui.Window|nil #internal window
@@ -79,6 +80,7 @@ function M:new(opts)
 
     instance.__state = {
         emitter = utils.emitter:new(),
+        ready = false,
         prompt_id = nil,
         window = nil,
     }
@@ -144,8 +146,12 @@ function M:open()
                 offset = 1,
                 modifiable = true,
             },
+            winopts = {
+                cursorline = false,
+            },
             widgets = {
                 function() return self:__render_widget() end,
+                function() return self:__apply_highlights() end,
                 function() return self:__reset_cursor_and_mode() end,
             },
         })
@@ -489,6 +495,9 @@ function M:__render_widget()
         return {}
     end
 
+    local winnr = assert(window:winnr(), "missing window handle")
+    local width = vim.api.nvim_win_get_width(winnr)
+
     local lines = {}
 
     -- Refresh the filtered items
@@ -504,13 +513,13 @@ function M:__render_widget()
     -- and continuing through max rows
     for i = start, end_ do
         local item = self.__view.filtered_items[i]
-
         local text = self.__params.format(item[2])
 
-        if i == self.__view.selected then
-            text = string.format("* %s", text)
-        else
-            text = string.format("  %s", text)
+        -- Pad our text to fill the length of the window such that
+        -- highlighting smoothly covers the entire line
+        local padding = width - string.len(text)
+        if padding > 0 then
+            text = text .. string.rep(" ", padding)
         end
 
         table.insert(lines, text)
@@ -521,9 +530,34 @@ end
 
 ---@private
 ---@return string[]
-function M:__reset_cursor_and_mode()
+function M:__apply_highlights()
     local window = self.__state.window
     if not window or not window:is_open() then
+        return {}
+    end
+
+    local bufnr = window:bufnr()
+
+    -- Clear the highlights for the buffer
+    vim.api.nvim_buf_clear_namespace(bufnr, NAMESPACE, 1, -1)
+
+    -- Apply the pmenu highlight to the entire buffer
+    -- vim.api.nvim_buf_add_highlight(bufnr, NAMESPACE, "Pmenu", 0, 0, -1)
+
+    -- Apply a highlight to the selected item
+    local line = self.__view.selected
+    if line > 0 then
+        vim.api.nvim_buf_add_highlight(bufnr, NAMESPACE, "PmenuSel", line, 0, -1)
+    end
+
+    return {}
+end
+
+---@private
+---@return string[]
+function M:__reset_cursor_and_mode()
+    local window = self.__state.window
+    if self.__state.ready or not window or not window:is_open() then
         return {}
     end
 
@@ -535,6 +569,9 @@ function M:__reset_cursor_and_mode()
     -- Reset to insert mode again, and start insert with ! to place at end
     -- of the prompt line while within insert mode
     vim.cmd("startinsert!")
+
+    -- Mark as ready
+    self.__state.ready = true
 
     return {}
 end

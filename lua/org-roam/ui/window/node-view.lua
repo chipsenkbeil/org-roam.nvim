@@ -96,6 +96,9 @@ function M:new(opts)
     end
 
     instance.__window = Window:new(vim.tbl_extend("keep", {
+        bufopts = {
+            filetype = "org",
+        },
         widgets = widgets,
     }, opts))
 
