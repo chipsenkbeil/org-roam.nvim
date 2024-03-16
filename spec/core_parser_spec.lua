@@ -1,4 +1,4 @@
-describe("Parser", function()
+describe("org-roam.core.parser", function()
   local async = require("org-roam.core.utils.async")
   local join_path = require("org-roam.core.utils.io").join_path
   local Parser = require("org-roam.core.parser")

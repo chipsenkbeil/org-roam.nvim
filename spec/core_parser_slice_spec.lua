@@ -1,4 +1,4 @@
-describe("org-roam.core.parser.Slice", function()
+describe("org-roam.core.parser.slice", function()
     local Slice = require("org-roam.core.parser.slice")
     local Range = require("org-roam.core.parser.range")
     local Ref = require("org-roam.core.parser.ref")

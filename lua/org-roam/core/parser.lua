@@ -12,6 +12,8 @@ local Section             = require("org-roam.core.parser.section")
 local Slice               = require("org-roam.core.parser.slice")
 local utils               = require("org-roam.core.parser.utils")
 
+local io                  = require("org-roam.core.utils.io")
+
 ---@enum org-roam.core.parser.QueryTypes
 local QUERY_TYPES         = {
     TOP_LEVEL_PROPERTY_DRAWER = 1,
@@ -271,7 +273,7 @@ function M.parse(contents)
                     local name = query.captures[id]
 
                     if name == QUERY_CAPTURE_TYPES.DIRECTIVE_VALUE then
-                        local tags = utils.parser.parse_tags(
+                        local tags = utils.parse_tags(
                             vim.treesitter.get_node_text(node, ref.value)
                         )
 
@@ -346,7 +348,7 @@ end
 ---@param path string
 ---@param cb fun(err:string|nil, file:org-roam.core.parser.File|nil)
 function M.parse_file(path, cb)
-    utils.io.read_file(path, function(err, contents)
+    io.read_file(path, function(err, contents)
         cb(err, contents and M.parse(contents))
     end)
 end

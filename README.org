@@ -21,7 +21,7 @@
       dependencies = { "nvim-orgmode/orgmode" },
       config = function()
         require("org-roam").setup({
-          org_roam_directory = "~/orgfiles",
+          directory = "~/orgfiles",
         })
       end
     }
@@ -35,7 +35,7 @@
       requires = { "nvim-orgmode/orgmode" },
       config = function()
         require("org-roam"):setup({
-          org_roam_directory = "~/orgfiles",
+          directory = "~/orgfiles",
         })
       end
     }

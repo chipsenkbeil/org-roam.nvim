@@ -1,4 +1,4 @@
-describe("utils.random", function()
+describe("org-roam.core.utils.random", function()
     local random = require("org-roam.core.utils.random")
 
     describe("uuid_v4", function()

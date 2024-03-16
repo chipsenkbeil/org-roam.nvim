@@ -1,4 +1,4 @@
-describe("database", function()
+describe("org-roam.core.database", function()
     local Database = require("org-roam.core.database")
 
     ---Sorts lists a and b using some comparator and then asserts they are the same.

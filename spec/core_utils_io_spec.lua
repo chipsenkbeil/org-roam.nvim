@@ -1,4 +1,4 @@
-describe("utils.io", function()
+describe("org-roam.core.utils.io", function()
     local utils_io = require("org-roam.core.utils.io")
     local uv = vim.loop
 

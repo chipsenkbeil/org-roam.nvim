@@ -1,4 +1,4 @@
-describe("core.scanner", function()
+describe("org-roam.core.scanner", function()
     local join_path = require("org-roam.core.utils.io").join_path
     local Scanner = require("org-roam.core.scanner")
 

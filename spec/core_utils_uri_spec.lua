@@ -1,4 +1,4 @@
-describe("utils.uri", function()
+describe("org-roam.core.utils.uri", function()
     local Uri = require("org-roam.core.utils.uri")
 
     it("should support being parsed from a string", function()
