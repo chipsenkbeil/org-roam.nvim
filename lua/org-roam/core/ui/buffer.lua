@@ -32,6 +32,7 @@ local STATE = {
 ---@class org-roam.core.ui.Buffer
 ---@field private __bufnr integer
 ---@field private __offset integer
+---@field private __namespace integer
 ---@field private __emitter org-roam.core.utils.Emitter
 ---@field private __state org-roam.core.ui.buffer.State
 ---@field private __widgets org-roam.core.ui.Widget[]
@@ -78,15 +79,15 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
 
-    local offset       = opts.offset or 0
-    opts.offset        = nil
+    local offset         = opts.offset or 0
+    opts.offset          = nil
 
-    local emitter      = Emitter:new()
-    instance.__bufnr   = make_buffer(opts)
-    instance.__offset  = offset
-    instance.__emitter = emitter
-    instance.__state   = STATE.IDLE
-    instance.__widgets = {}
+    instance.__bufnr     = make_buffer(opts)
+    instance.__offset    = offset
+    instance.__namespace = vim.api.nvim_create_namespace(vim.api.nvim_buf_get_name(instance.__bufnr))
+    instance.__emitter   = Emitter:new()
+    instance.__state     = STATE.IDLE
+    instance.__widgets   = {}
 
     return instance
 end
@@ -197,10 +198,7 @@ function M:render(opts)
         for _, widget in ipairs(self.__widgets) do
             local ret = widget:render()
             if ret.ok then
-                ---@type {[integer]:string, force:boolean}
-                local lines = ret.lines
-                lines.force = true
-                self:__append_lines(lines)
+                self:__append_lines(ret.lines, true)
             else
                 notify.error("widget failed: " .. ret.error)
             end
@@ -227,11 +225,10 @@ end
 
 ---@private
 ---Appends the provided lines to the end of the buffer.
----@param lines {[integer]:string, force?:boolean}
-function M:__append_lines(lines)
+---@param ui_lines org-roam.core.ui.Line[]
+---@param force? boolean
+function M:__append_lines(ui_lines, force)
     local bufnr = self.__bufnr
-    local force = lines.force or false
-    lines.force = nil
 
     local modifiable = self:is_modifiable()
     if force then
@@ -243,10 +240,62 @@ function M:__append_lines(lines)
     local is_empty = cnt == 1
         and vim.api.nvim_buf_get_lines(bufnr, 0, 1, false)[1] == ""
 
-    if is_empty then
-        vim.api.nvim_buf_set_lines(bufnr, self.__offset, -1, false, lines)
-    else
-        vim.api.nvim_buf_set_lines(bufnr, cnt + self.__offset, -1, false, lines)
+    -- Calculate the starting line for appending and highlights
+    local start = is_empty and self.__offset or (cnt + self.__offset)
+
+    -- Build up the complete lines and highlights
+    ---@type string[]
+    local lines = {}
+    ---@type {group:string, line:integer, cstart:integer, cend:integer}[]
+    local highlights = {}
+
+    for i, line in ipairs(ui_lines) do
+        local line_idx = start + i - 1
+
+        if type(line) == "string" then
+            table.insert(lines, line)
+        elseif type(line) == "table" and not vim.tbl_isempty(line) then
+            local text = ""
+
+            -- In this scenario, the line is made up of segments, each
+            -- of which is raw text (string) or a tuple of text & highlight
+            -- group, which we will calculate its position within the
+            -- current line
+            for _, part in ipairs(line) do
+                if type(part) == "string" then
+                    text = text .. part
+                elseif type(part) == "table" then
+                    -- col start/end are zero-indexed and
+                    -- col end is exclusive
+                    local cstart = string.len(text)
+                    local cend = cstart + string.len(part[1])
+                    text = text .. part[1]
+                    table.insert(highlights, {
+                        group = part[2],
+                        line = line_idx,
+                        cstart = cstart,
+                        cend = cend,
+                    })
+                end
+            end
+
+            table.insert(lines, text)
+        end
+    end
+
+    -- Append all of the line contents
+    vim.api.nvim_buf_set_lines(bufnr, start, -1, false, lines)
+
+    -- Apply all highlights
+    for _, hl in ipairs(highlights) do
+        vim.api.nvim_buf_add_highlight(
+            self.__bufnr,
+            self.__namespace,
+            hl.group,
+            hl.line,
+            hl.cstart,
+            hl.cend
+        )
     end
 
     if force then
@@ -266,6 +315,8 @@ function M:__clear(opts)
         vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", true)
     end
 
+    -- Clear highlights and contents of the buffer
+    vim.api.nvim_buf_clear_namespace(self.__bufnr, self.__namespace, self.__offset, -1)
     vim.api.nvim_buf_set_lines(self.__bufnr, self.__offset, -1, true, {})
 
     if force then

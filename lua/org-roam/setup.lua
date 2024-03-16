@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 local CONFIG = require("org-roam.config")
+local events = require("org-roam.events")
 
 ---@param config org-roam.Config
 local function merge_config(config)
@@ -16,6 +17,29 @@ local function merge_config(config)
 
     -- Merge our configuration options into our global config
     CONFIG(config)
+end
+
+local function define_autocmds()
+    local group = vim.api.nvim_create_augroup("org-roam.nvim", {})
+
+    -- Watch as cursor moves around so we can support node changes
+    local last_id = nil
+    vim.api.nvim_create_autocmd("CursorMoved", {
+        group = group,
+        pattern = "*.org",
+        callback = function()
+            local utils = require("org-roam.utils")
+            utils.node_under_cursor(function(id)
+                -- If the node has changed (event getting cleared),
+                -- we want to emit the event
+                if last_id ~= id then
+                    events:emit(events.kind.CURSOR_NODE_CHANGED, id)
+                end
+
+                last_id = id
+            end)
+        end,
+    })
 end
 
 ---@param lhs string|nil
@@ -75,5 +99,6 @@ end
 ---@param opts org-roam.Config
 return function(opts)
     merge_config(opts)
+    define_autocmds()
     define_keybindings()
 end
