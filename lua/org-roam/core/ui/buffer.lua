@@ -4,9 +4,10 @@
 -- Buffer interface for org-roam.
 -------------------------------------------------------------------------------
 
+local Emitter = require("org-roam.core.utils.emitter")
 local notify = require("org-roam.core.ui.notify")
+local random = require("org-roam.core.utils.random")
 local Widget = require("org-roam.core.ui.widget")
-local utils = require("org-roam.core.utils")
 
 local EVENTS = {
     ---When rendering is about to start.
@@ -52,7 +53,7 @@ local function make_buffer(opts)
     -- Set name to something random (unless specified)
     vim.api.nvim_buf_set_name(
         bufnr,
-        opts.name or ("org-roam-" .. utils.random.uuid_v4())
+        opts.name or ("org-roam-" .. random.uuid_v4())
     )
 
     -- Clear out all options that we've used explicitly
@@ -80,7 +81,7 @@ function M:new(opts)
     local offset       = opts.offset or 0
     opts.offset        = nil
 
-    local emitter      = utils.emitter:new()
+    local emitter      = Emitter:new()
     instance.__bufnr   = make_buffer(opts)
     instance.__offset  = offset
     instance.__emitter = emitter

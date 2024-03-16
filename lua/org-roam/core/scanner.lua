@@ -5,20 +5,22 @@
 -- into a database.
 -------------------------------------------------------------------------------
 
-local Emitter = require("org-roam.core.utils.emitter")
-local Node    = require("org-roam.core.database.node")
-local parser  = require("org-roam.core.parser")
-local Range   = require("org-roam.core.parser.range")
-local utils   = require("org-roam.core.utils")
+local Emitter      = require("org-roam.core.utils.emitter")
+local IntervalTree = require("org-roam.core.utils.tree.interval")
+local io           = require("org-roam.core.utils.io")
+local Node         = require("org-roam.core.database.node")
+local parser       = require("org-roam.core.parser")
+local parser_utils = require("org-roam.core.parser.utils")
+local Range        = require("org-roam.core.parser.range")
 
-local uv      = vim.loop
+local uv           = vim.loop
 
 ---@class org-roam.core.Scanner
 ---@field private emitter org-roam.core.utils.Emitter #used to emit scans
 ---@field private paths string[] #paths to scan
 ---@field private running boolean #true if scanning paths
-local M       = {}
-M.__index     = M
+local M            = {}
+M.__index          = M
 
 ---Creates a new instance of the scanner.
 ---@param paths string[]
@@ -168,7 +170,7 @@ end
 ---@param cb fun(err:string|nil, results:org-roam.core.scanner.ScanDirResults|nil)
 ---@param done fun()
 function M:__scan_dir(path, cb, done)
-    local it = utils.io.walk(path, { depth = math.huge })
+    local it = io.walk(path, { depth = math.huge })
         :filter(function(entry) return entry.type == "file" end)
         :filter(function(entry) return vim.endswith(entry.filename, ".org") end)
 
@@ -224,7 +226,7 @@ local function file_to_nodes(path, file)
             })
 
             local aliases = aliases_text
-                and utils.parser.parse_property_value(aliases_text)
+                and parser_utils.parse_property_value(aliases_text)
                 or {}
 
             file_node = Node:new({
@@ -251,7 +253,7 @@ local function file_to_nodes(path, file)
     ---@type org-roam.core.utils.tree.IntervalTree|nil
     local tags_tree
     if #file.sections > 0 then
-        tags_tree = utils.tree.interval:from_list(vim.tbl_map(function(section)
+        tags_tree = IntervalTree:from_list(vim.tbl_map(function(section)
             ---@cast section org-roam.core.parser.Section
             return {
                 section.range.start.offset,
@@ -274,7 +276,7 @@ local function file_to_nodes(path, file)
             })
 
             local aliases = aliases_text
-                and utils.parser.parse_property_value(aliases_text)
+                and parser_utils.parse_property_value(aliases_text)
                 or {}
 
             local title = heading.item and vim.trim(heading.item:text()) or nil
@@ -321,7 +323,7 @@ local function file_to_nodes(path, file)
     ---@type org-roam.core.utils.tree.IntervalTree|nil
     local section_node_tree
     if #section_nodes > 0 then
-        section_node_tree = utils.tree.interval:from_list(vim.tbl_map(function(t)
+        section_node_tree = IntervalTree:from_list(vim.tbl_map(function(t)
             return { t[1].start.offset, t[1].end_.offset, t[2] }
         end, section_nodes))
     end

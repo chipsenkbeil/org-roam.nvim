@@ -74,9 +74,9 @@ function M.complete_node_under_cursor()
     require("org-roam.ui.select-node")({
         auto_select = true,
         init_input = input,
-    }, function(id)
+    }, function(selection)
         ---@type org-roam.core.database.Node|nil
-        local node = db:get(id)
+        local node = db:get(selection.id)
 
         if node then
             -- Get our cursor position
@@ -108,7 +108,7 @@ function M.complete_node_under_cursor()
             if i ~= nil then
                 -- Replace the text (this will place us into insert mode)
                 vim.api.nvim_buf_set_text(bufnr, row, col, row, col + #word, {
-                    string.format("[[id:%s][%s]]", node.id, node.title)
+                    string.format("[[id:%s][%s]]", node.id, selection.label)
                 })
 
                 -- Force ourselves back into normal mode

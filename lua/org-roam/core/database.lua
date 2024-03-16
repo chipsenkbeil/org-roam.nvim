@@ -1,10 +1,15 @@
-local utils = require("org-roam.core.utils")
-
 -------------------------------------------------------------------------------
 -- DATABASE.LUA
 --
 -- Core database to keep track of org-roam nodes.
 -------------------------------------------------------------------------------
+
+local async = require("org-roam.core.utils.async")
+local Iterator = require("org-roam.core.utils.iterator")
+local io = require("org-roam.core.utils.io")
+local Queue = require("org-roam.core.utils.queue")
+local random = require("org-roam.core.utils.random")
+local tbl_utils = require("org-roam.core.utils.table")
 
 -- NOTE: This is a placeholder until we can make the database class generic
 --       as ideally we have a specific type used for the node data across
@@ -80,7 +85,7 @@ end
 function M:load_from_disk_sync(path, opts)
     opts = opts or {}
 
-    local f = utils.async.wrap(
+    local f = async.wrap(
         M.load_from_disk,
         {
             time = opts.time,
@@ -96,7 +101,7 @@ end
 ---@param path string where to find the database
 ---@param cb fun(err:string|nil, db:org-roam.core.Database|nil)
 function M:load_from_disk(path, cb)
-    utils.io.read_file(path, function(err, data)
+    io.read_file(path, function(err, data)
         if err then
             cb(err)
             return
@@ -144,7 +149,7 @@ end
 function M:write_to_disk_sync(path, opts)
     opts = opts or {}
 
-    local f = utils.async.wrap(
+    local f = async.wrap(
         M.write_to_disk,
         {
             time = opts.time,
@@ -173,7 +178,7 @@ function M:write_to_disk(path, cb)
         return
     end
 
-    utils.io.write_file(path, data, cb)
+    io.write_file(path, data, cb)
 end
 
 ---Inserts non-false data into the database as a node with no edges.
@@ -191,7 +196,7 @@ function M:insert(data, opts)
 
     -- If we aren't given an id with the node, create one
     if type(id) ~= "string" then
-        id = utils.random.uuid_v4()
+        id = random.uuid_v4()
     end
 
     -- Perform the actual insertion of the node
@@ -522,16 +527,16 @@ function M:iter_nodes(opts)
 
     ---@type table<org-roam.core.database.Id, boolean>
     local visited = {}
-    local queue = utils.queue({ { opts.start_node_id, 0 } })
+    local queue = Queue:new({ { opts.start_node_id, 0 } })
     local count = 0
 
-    return utils.iterator(function()
+    return Iterator:new(function()
         -- NOTE: While we have a loop, this should only run until
         --       we get a node id and distance to return as the
         --       next iterator value, or the queue becomes empty.
         while count < MAX_NODES and not queue:is_empty() do
             ---@type org-roam.core.database.Id, integer
-            local id, distance = utils.table.unpack(queue:pop_front())
+            local id, distance = tbl_utils.unpack(queue:pop_front())
 
             if distance <= MAX_DISTANCE and not visited[id] and filter(id, distance) then
                 visited[id] = true
@@ -567,9 +572,9 @@ function M:iter_paths(start_node_id, end_node_id, opts)
     -- Format of queue items is a map of id -> position and "last" -> id
     -- to keep track of the last id in the path thus far. We do this so
     -- we can lookup cycles by key before they occur.
-    local queue = utils.queue({ { [start_node_id] = 1, last = start_node_id } })
+    local queue = Queue:new({ { [start_node_id] = 1, last = start_node_id } })
 
-    return utils.iterator(function()
+    return Iterator:new(function()
         -- NOTE: While we have a loop, this should only run until we get a
         --       path to return as the next iterator value, or the queue becomes
         --       empty.
