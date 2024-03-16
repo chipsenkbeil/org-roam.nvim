@@ -35,12 +35,4 @@ function M.setup(opts)
     database.load(function() end)
 end
 
-function M.print_node_under_cursor()
-    require("org-roam.buffer").node_under_cursor(function(node)
-        if node then
-            print(node.id)
-        end
-    end)
-end
-
 return M

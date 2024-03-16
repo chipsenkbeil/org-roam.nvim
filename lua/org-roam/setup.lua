@@ -22,7 +22,10 @@ local function define_keybindings()
         desc = "Open quickfix of backlinks for org-roam node under cursor",
         noremap = true,
         callback = function()
-            require("org-roam.ui.quickfix").open_for_node_under_cursor({ show_preview = true })
+            require("org-roam.ui.quickfix")({
+                backlinks = true,
+                show_preview = true,
+            })
         end,
     })
 
@@ -30,7 +33,7 @@ local function define_keybindings()
         desc = "Print org-roam node under cursor",
         noremap = true,
         callback = function()
-            require("org-roam").print_node_under_cursor()
+            require("org-roam.ui.print-node")()
         end,
     })
 
@@ -38,7 +41,7 @@ local function define_keybindings()
         desc = "Opens org-roam buffer for node under cursor",
         noremap = true,
         callback = function()
-            require("org-roam.ui.window").toggle_node_view()
+            require("org-roam.ui.node-view")()
         end,
     })
 
@@ -46,7 +49,7 @@ local function define_keybindings()
         desc = "Opens org-roam buffer for a specific node, not changing",
         noremap = true,
         callback = function()
-            require("org-roam.ui.window").toggle_fixed_node_view()
+            require("org-roam.ui.node-view")({ fixed = true })
         end,
     })
 
