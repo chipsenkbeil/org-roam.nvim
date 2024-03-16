@@ -5,7 +5,8 @@
 -------------------------------------------------------------------------------
 
 local database = require("org-roam.database")
-local utils = require("org-roam.core.utils")
+local io = require("org-roam.core.utils.io")
+local utils = require("org-roam.utils")
 
 ---@class org-roam.ui.quickfix.Item
 ---@field filename string
@@ -53,7 +54,7 @@ local function get_backlinks_as_quickfix_items(db, id, opts)
             -- file tied to the node exactly once
             local lines = {}
             if opts.show_preview then
-                local _, data = utils.io.read_file_sync(node.file)
+                local _, data = io.read_file_sync(node.file)
                 if data then
                     lines = vim.split(data, "\n", { plain = true })
                 end
@@ -163,7 +164,7 @@ return function(opts)
     if opts.id then
         open(db, opts.id, opts)
     else
-        require("org-roam.buffer").node_under_cursor(function(node)
+        utils.node_under_cursor(function(node)
             if node then
                 open(db, node.id, opts)
             end

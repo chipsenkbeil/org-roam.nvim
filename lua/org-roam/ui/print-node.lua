@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 local database = require("org-roam.database")
+local utils = require("org-roam.utils")
 
 ---@param opts? {id?:org-roam.core.database.Id}
 return function(opts)
@@ -22,7 +23,7 @@ return function(opts)
             print_node(node)
         end
     else
-        require("org-roam.buffer").node_under_cursor(function(node)
+        utils.node_under_cursor(function(node)
             if node then
                 print_node(node)
             end
