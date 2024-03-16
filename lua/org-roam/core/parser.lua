@@ -10,9 +10,7 @@ local Range               = require("org-roam.core.parser.range")
 local Ref                 = require("org-roam.core.parser.ref")
 local Section             = require("org-roam.core.parser.section")
 local Slice               = require("org-roam.core.parser.slice")
-local putils              = require("org-roam.core.parser.utils")
-
-local utils               = require("org-roam.core.utils")
+local utils               = require("org-roam.core.parser.utils")
 
 ---@enum org-roam.core.parser.QueryTypes
 local QUERY_TYPES         = {
@@ -157,7 +155,7 @@ function M.parse(contents)
                         -- NOTE: We do NOT skip empty lines!
                         local inner = vim.treesitter.get_node_text(node, ref.value)
                         local lines = vim.split(inner, "\n", { plain = true })
-                        putils.parse_lines_as_properties(
+                        utils.parse_lines_as_properties(
                             properties,
                             ref,
                             lines,
@@ -218,7 +216,7 @@ function M.parse(contents)
                         --
                         -- NOTE: This is done outside of the contents pattern so we don't
                         --       scan property drawers twice!
-                        vim.list_extend(file.links, putils.scan_for_links(range, ref))
+                        vim.list_extend(file.links, utils.scan_for_links(range, ref))
 
                         -- Get the lines between the property drawer for us to manually parse
                         -- due to https://github.com/neovim/neovim/issues/17060 preventing us
@@ -238,7 +236,7 @@ function M.parse(contents)
                             end
                         end
 
-                        putils.parse_lines_as_properties(
+                        utils.parse_lines_as_properties(
                             properties,
                             ref,
                             lines,
@@ -294,10 +292,10 @@ function M.parse(contents)
                 end
             elseif pattern == QUERY_TYPES.CONTENTS then
                 -- Create range representing the contents
-                local range = putils.get_pattern_range(match)
+                local range = utils.get_pattern_range(match)
 
                 -- Search for links throughout the contents
-                vim.list_extend(file.links, putils.scan_for_links(range, ref))
+                vim.list_extend(file.links, utils.scan_for_links(range, ref))
             end
         end
     end

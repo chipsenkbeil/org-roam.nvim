@@ -8,9 +8,9 @@ local database = require("org-roam.database")
 local Select = require("org-roam.core.ui.select")
 
 ---Opens up a selection dialog populated with nodes (titles and aliases).
----@overload fun(cb:fun(id:org-roam.core.database.Id))
+---@overload fun(cb:fun(selection:{id:org-roam.core.database.Id, label:string}))
 ---@param opts {auto_select?:boolean, init_input?:string}
----@param cb fun(id:org-roam.core.database.Id)
+---@param cb fun(selection:{id:org-roam.core.database.Id, label:string})
 return function(opts, cb)
     if type(opts) == "function" then
         cb = opts
@@ -48,6 +48,6 @@ return function(opts, cb)
     }, opts or {})
 
     Select:new(select_opts)
-        :on_choice(function(item) cb(item.id) end)
+        :on_choice(function(item) cb(item) end)
         :open()
 end

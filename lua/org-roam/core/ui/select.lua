@@ -4,8 +4,9 @@
 -- Fancy alternative to `vim.ui.select` for us to use.
 -------------------------------------------------------------------------------
 
+local Emitter = require("org-roam.core.utils.emitter")
+local tbl_utils = require("org-roam.core.utils.table")
 local Window = require("org-roam.core.ui.window")
-local utils = require("org-roam.core.utils")
 
 local NAMESPACE = vim.api.nvim_create_namespace("org-roam.core.ui.select")
 
@@ -79,7 +80,7 @@ function M:new(opts)
     }
 
     instance.__state = {
-        emitter = utils.emitter:new(),
+        emitter = Emitter:new(),
         ready = false,
         prompt_id = nil,
         window = nil,
@@ -292,7 +293,7 @@ function M:__select_move_down()
     self.__view.start = start
 
     -- Notify of a selection change
-    local item = self.__params.items[utils.table.get(self.__view.filtered_items, idx, 1)]
+    local item = self.__params.items[tbl_utils.get(self.__view.filtered_items, idx, 1)]
     self.__state.emitter:emit(EVENTS.SELECT_CHANGE, item, idx)
 
     -- Schedule an update of the view
@@ -329,7 +330,7 @@ function M:__select_move_up()
     self.__view.start = start
 
     -- Notify of a selection change
-    local item = self.__params.items[utils.table.get(self.__view.filtered_items, idx, 1)]
+    local item = self.__params.items[tbl_utils.get(self.__view.filtered_items, idx, 1)]
     self.__state.emitter:emit(EVENTS.SELECT_CHANGE, item, idx)
 
     -- Schedule an update of the view

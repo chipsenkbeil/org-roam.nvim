@@ -1,10 +1,10 @@
-local utils = require("org-roam.core.utils")
-
 -------------------------------------------------------------------------------
 -- FILE.LUA
 --
 -- Abstraction for an org-roam file.
 -------------------------------------------------------------------------------
+
+local io = require("org-roam.core.utils.io")
 
 ---@class org-roam.core.database.File
 ---@field private __path string normalized path to the file
@@ -106,7 +106,7 @@ function M:checksum(opts)
         -- Clear old checksum
         self.__checksum = nil
 
-        local err, data = utils.io.read_file_sync(self.__path)
+        local err, data = io.read_file_sync(self.__path)
         if err then
             if opts.strict then
                 error(err)
@@ -134,7 +134,7 @@ function M:mtime(opts)
         self.__mtime = nil
 
         -- Attempt to set new modification time
-        local _, stat = utils.io.stat_sync(self.__path)
+        local _, stat = io.stat_sync(self.__path)
         if stat then
             self.__mtime = stat.mtime.sec
         end
