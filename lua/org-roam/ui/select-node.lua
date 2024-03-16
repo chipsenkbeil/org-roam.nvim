@@ -48,6 +48,6 @@ return function(opts, cb)
     }, opts or {})
 
     Select:new(select_opts)
-        :on_choice(function(item) cb(item) end)
+        :on_choice(cb)
         :open()
 end
