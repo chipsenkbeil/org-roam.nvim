@@ -11,11 +11,13 @@ local Window = require("org-roam.core.ui.window")
 
 ---Renders a node within an orgmode buffer.
 ---@param node org-roam.core.database.Node|org-roam.core.database.Id
----@return string[] lines
+---@return org-roam.core.ui.Line[] lines
 local function render(node)
     local db = database()
 
+    ---@type org-roam.core.ui.Line[]
     local lines = {}
+
     ---@param ... string
     local function append(...)
         vim.list_extend(lines, { ... })
@@ -27,10 +29,16 @@ local function render(node)
     end
 
     if node then
-        append(string.format("# %s (id:%s)", node.title, node.id))
+        -- Insert a full line that contains the node's title
+        table.insert(lines, { { node.title, "Title" } })
 
+        -- Insert a multi-highlighted line for backlinks
         local backlinks = db:get_backlinks(node.id)
-        append("", string.format("* backlinks (%s)", vim.tbl_count(backlinks)))
+        local bcnt = vim.tbl_count(backlinks)
+        table.insert(lines, {
+            { "Backlinks",         "Title" },
+            { " (" .. bcnt .. ")", "Normal" },
+        })
 
         for backlink_id, _ in pairs(backlinks) do
             ---@type org-roam.core.database.Node|nil
@@ -40,13 +48,24 @@ local function render(node)
                 local locs = backlink_node.linked[node.id]
                 for _, loc in ipairs(locs or {}) do
                     local line = loc.row + 1
-                    append(string.format(
-                        "** [[%s::%s][%s @ line %s]]",
-                        backlink_node.file,
-                        line,
-                        backlink_node.title,
-                        line
-                    ))
+
+                    -- Insert line containing node's title and (top)
+                    table.insert(lines, {
+                        { backlink_node.title, "Title" },
+                        { " ",                 "Normal" },
+                        { "@ line " .. line,   "Identifier" },
+                        { " (",                "Normal" },
+                        { "top",               "Comment" },
+                        { ")",                 "Normal" },
+                    })
+
+                    -- TODO: Insert the content for the file at the position
+                    table.insert(lines, "TODO: line content")
+                    table.insert(lines, "TODO: line content")
+                    table.insert(lines, "TODO: line content")
+
+                    -- Add a blank line to separate
+                    table.insert(lines, "")
                 end
             end
         end
@@ -77,9 +96,9 @@ function M:new(opts)
     -- the id we provided or looks up the id whenever render is called
     local widgets = {}
     local id = opts.id
-    local name = "org-roam-node-view-cursor.org"
+    local name = "org-roam-node-view-cursor"
     if id then
-        name = "org-roam-node-view-id-" .. id .. ".org"
+        name = "org-roam-node-view-id-" .. id
         table.insert(widgets, function()
             return render(id)
         end)
@@ -98,7 +117,6 @@ function M:new(opts)
     instance.__window = Window:new(vim.tbl_extend("keep", {
         bufopts = {
             name = name,
-            filetype = "org",
         },
         widgets = widgets,
     }, opts))
@@ -125,6 +143,11 @@ end
 ---Opens the window if closed, or closes if open.
 function M:toggle()
     return self.__window:toggle()
+end
+
+---Re-renders the window manually.
+function M:render()
+    self.__window:render()
 end
 
 return M
