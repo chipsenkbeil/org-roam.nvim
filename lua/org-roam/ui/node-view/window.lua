@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- NODE-VIEW.LUA
+-- WINDOW.LUA
 --
 -- Specialized window representing an org-roam buffer for a particular node.
 -------------------------------------------------------------------------------
@@ -56,8 +56,6 @@ local function render(node)
 end
 
 ---@class org-roam.ui.window.NodeViewWindow
----@field private __hash string|nil
----@field private __lines string[]
 ---@field private __window org-roam.core.ui.Window
 local M = {}
 M.__index = M
@@ -79,7 +77,9 @@ function M:new(opts)
     -- the id we provided or looks up the id whenever render is called
     local widgets = {}
     local id = opts.id
+    local name = "org-roam-node-view-cursor.org"
     if id then
+        name = "org-roam-node-view-id-" .. id .. ".org"
         table.insert(widgets, function()
             return render(id)
         end)
@@ -97,6 +97,7 @@ function M:new(opts)
 
     instance.__window = Window:new(vim.tbl_extend("keep", {
         bufopts = {
+            name = name,
             filetype = "org",
         },
         widgets = widgets,
