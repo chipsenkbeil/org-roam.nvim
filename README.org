@@ -60,10 +60,18 @@
    #+begin_src lua
    require("org-roam"):setup({
      -- ...
-
      bindings = {
        complete_at_point = "<LocalLeader>rc",
      },
+   })
+   #+end_src
+
+   To disable all bindings, set the =bindings= field to =false=:
+
+   #+begin_src lua
+   require("org-roam"):setup({
+     -- ...
+     bindings = false,
    })
    #+end_src
 
