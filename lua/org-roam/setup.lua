@@ -5,7 +5,6 @@
 -------------------------------------------------------------------------------
 
 local CONFIG = require("org-roam.config")
-local buffer = require("org-roam.buffer")
 
 ---@param opts org-roam.core.config.Config.NewOpts
 local function merge_config(opts)
@@ -54,7 +53,7 @@ local function define_keybindings()
     })
 
     vim.keymap.set({ "i", "n" }, "<C-c><C-c>", function()
-        require("org-roam.buffer").complete_node_under_cursor()
+        require("org-roam.completion").complete_node_under_cursor()
     end, {
         noremap = true,
     })

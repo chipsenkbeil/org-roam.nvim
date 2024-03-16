@@ -4,9 +4,9 @@
 -- Specialized window representing an org-roam buffer for a particular node.
 -------------------------------------------------------------------------------
 
-local buffer = require("org-roam.buffer")
+local async = require("org-roam.core.utils.async")
 local database = require("org-roam.database")
-local utils = require("org-roam.core.utils")
+local utils = require("org-roam.utils")
 local Window = require("org-roam.core.ui.window")
 
 ---Renders a node within an orgmode buffer.
@@ -86,7 +86,7 @@ function M:new(opts)
     else
         table.insert(widgets, function()
             ---@type org-roam.core.database.Node|nil
-            local node = utils.async.wait(buffer.node_under_cursor)
+            local node = async.wait(utils.node_under_cursor)
             if node then
                 return render(node)
             else
