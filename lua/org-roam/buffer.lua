@@ -38,7 +38,10 @@ function M.complete_node_under_cursor()
         input = word
     end
 
-    require("org-roam.ui.window").select_node(function(id)
+    require("org-roam.ui.select-node")({
+        auto_select = true,
+        init_input = input,
+    }, function(id)
         ---@type org-roam.core.database.Node|nil
         local node = db:get(id)
 
@@ -79,10 +82,7 @@ function M.complete_node_under_cursor()
                 vim.cmd("stopinsert")
             end
         end
-    end, {
-        auto_select = true,
-        init_input = input,
-    })
+    end)
 end
 
 ---Retrieves the expression under cursor. In the case that
