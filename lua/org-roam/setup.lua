@@ -6,61 +6,70 @@
 
 local CONFIG = require("org-roam.config")
 
----@param opts org-roam.core.config.Config.NewOpts
-local function merge_config(opts)
+---@param config org-roam.Config
+local function merge_config(config)
+    assert(config.directory, "missing org-roam directory")
+
     -- Normalize the roam directory before storing it
-    opts.org_roam_directory = vim.fs.normalize(opts.org_roam_directory)
+    ---@diagnostic disable-next-line:inject-field
+    config.directory = vim.fs.normalize(config.directory)
 
     -- Merge our configuration options into our global config
-    ---@diagnostic disable-next-line:param-type-mismatch
-    CONFIG:merge(opts)
+    CONFIG(config)
+end
+
+---@param lhs string|nil
+---@param desc string
+---@param cb fun()
+local function assign(lhs, desc, cb)
+    if type(lhs) == "string" and lhs ~= "" and type(cb) == "function" then
+        vim.api.nvim_set_keymap("n", lhs, "", {
+            desc = desc,
+            noremap = true,
+            callback = cb,
+        })
+    end
 end
 
 local function define_keybindings()
-    vim.api.nvim_set_keymap("n", "<C-c>nq", "", {
-        desc = "Open quickfix of backlinks for org-roam node under cursor",
-        noremap = true,
-        callback = function()
+    assign(
+        CONFIG.bindings.quickfix_backlinks,
+        "Open quickfix of backlinks for org-roam node under cursor",
+        function()
             require("org-roam.ui.quickfix")({
                 backlinks = true,
                 show_preview = true,
             })
-        end,
-    })
+        end
+    )
 
-    vim.api.nvim_set_keymap("n", "<C-c>np", "", {
-        desc = "Print org-roam node under cursor",
-        noremap = true,
-        callback = function()
-            require("org-roam.ui.print-node")()
-        end,
-    })
+    assign(
+        CONFIG.bindings.print_node,
+        "Print org-roam node under cursor",
+        require("org-roam.ui.print-node")
+    )
 
-    vim.api.nvim_set_keymap("n", "<C-c>nl", "", {
-        desc = "Opens org-roam buffer for node under cursor",
-        noremap = true,
-        callback = function()
-            require("org-roam.ui.node-view")()
-        end,
-    })
+    assign(
+        CONFIG.bindings.toggle_roam_buffer,
+        "Opens org-roam buffer for node under cursor",
+        require("org-roam.ui.node-view")
+    )
 
-    vim.api.nvim_set_keymap("n", "<C-c>nn", "", {
-        desc = "Opens org-roam buffer for a specific node, not changing",
-        noremap = true,
-        callback = function()
-            require("org-roam.ui.node-view")({ fixed = true })
-        end,
-    })
+    assign(
+        CONFIG.bindings.toggle_roam_buffer_fixed,
+        "Opens org-roam buffer for a specific node, not changing",
+        function() require("org-roam.ui.node-view")({ fixed = true }) end
+    )
 
-    vim.keymap.set({ "i", "n" }, "<C-c><C-c>", function()
-        require("org-roam.completion").complete_node_under_cursor()
-    end, {
-        noremap = true,
-    })
+    assign(
+        CONFIG.bindings.complete_at_point,
+        "Completes link to a node based on expression under cursor",
+        require("org-roam.completion").complete_node_under_cursor
+    )
 end
 
 ---Initializes the plugin, returning the database associated with nodes.
----@param opts org-roam.core.config.Config.NewOpts
+---@param opts org-roam.Config
 return function(opts)
     merge_config(opts)
     define_keybindings()

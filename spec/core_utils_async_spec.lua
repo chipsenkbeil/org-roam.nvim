@@ -1,4 +1,4 @@
-describe("utils.async", function()
+describe("org-roam.core.utils.async", function()
     local async = require("org-roam.core.utils.async")
 
     describe("wait", function()

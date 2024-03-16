@@ -1,4 +1,4 @@
-describe("utils.tree.interval", function()
+describe("org-roam.core.utils.tree.interval", function()
     local Tree = require("org-roam.core.utils.tree.interval")
 
     it("should build up a tree using start & end of intervals", function()

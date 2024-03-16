@@ -30,7 +30,7 @@ local function create_database(cb)
     local db = Database:new()
 
     notify.info("Scanning for org files")
-    Scanner:new({ CONFIG.org_roam_directory })
+    Scanner:new({ CONFIG.directory })
         :on_scan(function(scan)
             notify.debug("Scanned " .. scan.path)
             for _, node in ipairs(scan.nodes) do

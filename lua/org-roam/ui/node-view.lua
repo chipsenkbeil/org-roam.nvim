@@ -4,7 +4,6 @@
 -- Toggles a view of a node's backlinks, citations, and unlinked references.
 -------------------------------------------------------------------------------
 
-local database = require("org-roam.database")
 local select_node = require("org-roam.ui.select-node")
 local Window = require("org-roam.ui.node-view.window")
 
@@ -35,6 +34,7 @@ end
 ---@param id? org-roam.core.database.Id
 local function toggle_fixed_node_view(id)
     ---@param id org-roam.core.database.Id
+    ---@diagnostic disable-next-line:redefined-local
     local function toggle_view(id)
         if id then
             if not NODE_VIEW[id] then

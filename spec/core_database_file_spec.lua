@@ -19,7 +19,7 @@ local function with_temp_file(f, contents)
     assert(ok, err)
 end
 
-describe("database.file", function()
+describe("org-roam.core.database.file", function()
     local File = require("org-roam.core.database.file")
 
     describe("new()", function()
