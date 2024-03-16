@@ -50,7 +50,15 @@ function M.CompleteNode(arg_lead, cmd_line, cursor_pos)
     return "" ]]
 end
 
----Injects a node under the cursor.
+---Opens a dialog to select a node based on the expression under the cursor
+---and replace the expression with a link to the selected node. If there is
+---only one choice, this will automatically inject the link without bringing
+---up the selection dialog.
+---
+---This implements the functionality of both:
+---
+---* `org-roam-complete-link-at-point`
+---* `org-roam-complete-everywhere`
 function M.complete_node_under_cursor()
     local db = database()
     local word = utils.expr_under_cursor()
