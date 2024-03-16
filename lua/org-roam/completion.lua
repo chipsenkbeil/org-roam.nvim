@@ -20,22 +20,44 @@ local M = {}
 ---* `org-roam-complete-everywhere`
 function M.complete_node_under_cursor()
     local db = database()
-    local word = utils.expr_under_cursor()
-    local is_empty_link = word == "[[]]"
     local winnr = vim.api.nvim_get_current_win()
     local bufnr = vim.api.nvim_get_current_buf()
 
+    -- Figure out our selection range and input
+    -- to feed into our dialog based on whether
+    -- we are on a link or completing an expression
+    local selection = ""
     local input
-    if not is_empty_link then
-        input = word
+
+    local link = utils.link_under_cursor()
+    if link then
+        local cursor = vim.api.nvim_win_get_cursor(winnr)
+        local row = cursor[1] - 1 -- make zero-indexed
+        local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, true)[1]
+
+        selection = string.sub(
+            line,
+            link.range.start.column + 1,
+            link.range.end_.column + 1
+        )
+
+        -- Set initial input to be the link's existing path,
+        -- stripping id: if already starting with that
+        input = vim.trim(link.path)
+        if vim.startswith(input, "id:") then
+            input = string.sub(input, 4)
+        end
+    else
+        selection = utils.expr_under_cursor()
+        input = selection
     end
 
     require("org-roam.ui.select-node")({
         auto_select = true,
         init_input = input,
-    }, function(selection)
+    }, function(choice)
         ---@type org-roam.core.database.Node|nil
-        local node = db:get(selection.id)
+        local node = db:get(choice.id)
 
         if node then
             -- Get our cursor position
@@ -53,11 +75,11 @@ function M.complete_node_under_cursor()
             ---@type integer|nil
             local i = 0
             while i < string.len(line) do
-                i = string.find(line, word, i + 1, true)
+                i = string.find(line, selection, i + 1, true)
                 if i == nil then break end
 
                 -- Check if the current match contains the cursor column
-                if i - 1 <= col and i - 1 + #word > col then
+                if i - 1 <= col and i - 1 + #selection > col then
                     col = i - 1
                     break
                 end
@@ -66,8 +88,8 @@ function M.complete_node_under_cursor()
             -- Insert text representing the new link only if we found a match
             if i ~= nil then
                 -- Replace the text (this will place us into insert mode)
-                vim.api.nvim_buf_set_text(bufnr, row, col, row, col + #word, {
-                    string.format("[[id:%s][%s]]", node.id, selection.label)
+                vim.api.nvim_buf_set_text(bufnr, row, col, row, col + #selection, {
+                    string.format("[[id:%s][%s]]", node.id, choice.label)
                 })
 
                 -- Force ourselves back into normal mode
