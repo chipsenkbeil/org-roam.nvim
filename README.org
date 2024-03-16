@@ -45,6 +45,28 @@
 
    TODO I'll get to this once the plugin is ready for usage.
 
+** Bindings
+
+   | Name                     | Description                                                             | Binding      |
+   |--------------------------+-------------------------------------------------------------------------+--------------|
+   | complete_at_point        | Completes the node under cursor.                                        | =<C-c><C-c>= |
+   | print_node               | Prints the node under cursor.                                           | =<C-c>np=    |
+   | quickfix_backlinks       | Opens the quickfix menu for backlinks to the current node under cursor. | =<C-c>nq=    |
+   | toggle_roam_buffer       | Toggles the org-roam node-view buffer for the node under cursor.        | =<C-c>nl=    |
+   | toggle_roam_buffer_fixed | Toggles a fixed org-roam node-view buffer for a selected node.          | =<C-c>nn=    |
+
+   Bindings can be changed during configuration by overwriting them within the =bindings= table:
+
+   #+begin_src lua
+   require("org-roam"):setup({
+     -- ...
+
+     bindings = {
+       complete_at_point = "<LocalLeader>rc",
+     },
+   })
+   #+end_src
+
 ** Roadmap
 
    A collection of features to implement in no particular order.
