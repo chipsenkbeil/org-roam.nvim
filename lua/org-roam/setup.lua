@@ -32,8 +32,11 @@ local function assign(lhs, desc, cb)
 end
 
 local function define_keybindings()
+    -- User can remove all bindings by setting this to nil
+    local bindings = CONFIG.bindings or {}
+
     assign(
-        CONFIG.bindings.quickfix_backlinks,
+        bindings.quickfix_backlinks,
         "Open quickfix of backlinks for org-roam node under cursor",
         function()
             require("org-roam.ui.quickfix")({
@@ -44,25 +47,25 @@ local function define_keybindings()
     )
 
     assign(
-        CONFIG.bindings.print_node,
+        bindings.print_node,
         "Print org-roam node under cursor",
         require("org-roam.ui.print-node")
     )
 
     assign(
-        CONFIG.bindings.toggle_roam_buffer,
+        bindings.toggle_roam_buffer,
         "Opens org-roam buffer for node under cursor",
         require("org-roam.ui.node-view")
     )
 
     assign(
-        CONFIG.bindings.toggle_roam_buffer_fixed,
+        bindings.toggle_roam_buffer_fixed,
         "Opens org-roam buffer for a specific node, not changing",
         function() require("org-roam.ui.node-view")({ fixed = true }) end
     )
 
     assign(
-        CONFIG.bindings.complete_at_point,
+        bindings.complete_at_point,
         "Completes link to a node based on expression under cursor",
         require("org-roam.completion").complete_node_under_cursor
     )
