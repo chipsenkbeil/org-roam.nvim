@@ -4,6 +4,11 @@
 -- Main entrypoint into the org-roam neovim plugin.
 -------------------------------------------------------------------------------
 
+-- Verify that we have orgmode available
+if not pcall(require, "orgmode") then
+    error("missing dependency: orgmode")
+end
+
 local database = require("org-roam.database")
 local setup = require("org-roam.setup")
 
