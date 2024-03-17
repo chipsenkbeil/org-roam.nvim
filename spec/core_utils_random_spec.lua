@@ -10,8 +10,8 @@ describe("org-roam.core.utils.random", function()
 
             -- Check start and end of a 36 character uuid string,
             -- which will fail if no match is found as i/j will be nil
-            assert.equals(1, i)
-            assert.equals(36, j)
+            assert.are.equal(1, i)
+            assert.are.equal(36, j)
         end)
     end)
 end)

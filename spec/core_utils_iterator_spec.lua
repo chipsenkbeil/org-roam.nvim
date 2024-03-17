@@ -8,9 +8,9 @@ describe("org-roam.core.utils.iterator", function()
             return i
         end)
 
-        assert.equals(1, it:next())
-        assert.equals(2, it:next())
-        assert.equals(3, it:next())
+        assert.are.equal(1, it:next())
+        assert.are.equal(2, it:next())
+        assert.are.equal(3, it:next())
     end)
 
     it("should support being created by calling the class as a function", function()
@@ -20,9 +20,9 @@ describe("org-roam.core.utils.iterator", function()
             return i
         end)
 
-        assert.equals(1, it:next())
-        assert.equals(2, it:next())
-        assert.equals(3, it:next())
+        assert.are.equal(1, it:next())
+        assert.are.equal(2, it:next())
+        assert.are.equal(3, it:next())
     end)
 
     it("should support advancing by calling itself (instance only)", function()
@@ -39,7 +39,7 @@ describe("org-roam.core.utils.iterator", function()
             table.insert(results, n)
         end
 
-        assert.same({ 1, 2, 3 }, results)
+        assert.are.same({ 1, 2, 3 }, results)
     end)
 
     it("should advance the iterator until nothing is returned", function()
@@ -52,15 +52,15 @@ describe("org-roam.core.utils.iterator", function()
         end)
 
         -- Use the count to detect additional internal next() invocations
-        assert.equals(0, count)
-        assert.equals(123, it:next())
-        assert.equals(1, count)
+        assert.are.equal(0, count)
+        assert.are.equal(123, it:next())
+        assert.are.equal(1, count)
         assert.is_nil(it:next())
-        assert.equals(2, count)
+        assert.are.equal(2, count)
         assert.is_nil(it:next())
-        assert.equals(2, count)
+        assert.are.equal(2, count)
         assert.is_nil(it:next())
-        assert.equals(2, count)
+        assert.are.equal(2, count)
     end)
 
     it("should advance the iterator until nothing is returned (if allow_nil = true)", function()
@@ -73,13 +73,13 @@ describe("org-roam.core.utils.iterator", function()
         end, { allow_nil = true })
 
         -- Use the count to detect additional internal next() invocations
-        assert.equals(0, count)
+        assert.are.equal(0, count)
         assert.is_nil(it:next())
-        assert.equals(1, count)
+        assert.are.equal(1, count)
         assert.is_nil(it:next())
-        assert.equals(2, count)
+        assert.are.equal(2, count)
         assert.is_nil(it:next())
-        assert.equals(2, count)
+        assert.are.equal(2, count)
     end)
 
     it("should advance the iterator until nil is returned (if allow_nil = false)", function()
@@ -92,11 +92,11 @@ describe("org-roam.core.utils.iterator", function()
         end)
 
         -- Use the count to detect additional internal next() invocations
-        assert.equals(0, count)
+        assert.are.equal(0, count)
         assert.is_nil(it:next())
-        assert.equals(1, count)
+        assert.are.equal(1, count)
         assert.is_nil(it:next())
-        assert.equals(1, count)
+        assert.are.equal(1, count)
     end)
 
     it("should support detecting if there is a next item", function()
@@ -109,7 +109,7 @@ describe("org-roam.core.utils.iterator", function()
         end)
 
         assert.is_true(it:has_next())
-        assert.equals(123, it:next())
+        assert.are.equal(123, it:next())
         assert.is_false(it:has_next())
     end)
 
@@ -146,7 +146,7 @@ describe("org-roam.core.utils.iterator", function()
             return "num:" .. tostring(n)
         end)
 
-        assert.same({ "num:1", "num:2", "num:3" }, it:collect())
+        assert.are.same({ "num:1", "num:2", "num:3" }, it:collect())
     end)
 
     it("should support filtering values", function()
@@ -167,7 +167,7 @@ describe("org-roam.core.utils.iterator", function()
             return n % 2 == 0
         end)
 
-        assert.same({ 2, 4, 6, 8, 10 }, it:collect())
+        assert.are.same({ 2, 4, 6, 8, 10 }, it:collect())
     end)
 
     it("should support collecting into a list by repeatedly advancing the iterator", function()
@@ -179,7 +179,7 @@ describe("org-roam.core.utils.iterator", function()
             end
         end)
 
-        assert.same({ 1, 2, 3 }, it:collect())
+        assert.are.same({ 1, 2, 3 }, it:collect())
     end)
 
     it("should support collecting vararg returns from next", function()
@@ -195,7 +195,7 @@ describe("org-roam.core.utils.iterator", function()
             end
         end)
 
-        assert.same({
+        assert.are.same({
             1,
             { [1] = 1, [2] = 2, n = 2 },
             { [1] = 1, [2] = 2, [3] = 3, n = 3 },

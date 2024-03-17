@@ -6,30 +6,30 @@ describe("org-roam.core.utils.uri", function()
 
         -- Just a scheme with nothing else
         uri = Uri:parse("id:")
-        assert.same({
+        assert.are.same({
             scheme = "id",
             path = "",
         }, uri)
 
         -- Just a scheme and path
         uri = Uri:parse("id:abcd-efgh")
-        assert.same({
+        assert.are.same({
             scheme = "id",
             path = "abcd-efgh",
         }, uri)
 
         -- Just a scheme and query
-        uri = Uri:parse("id:?abc=def&ghi=jkl")
-        assert.same({
+        uri = assert(Uri:parse("id:?abc=def&ghi=jkl"))
+        assert.are.same({
             scheme = "id",
             path = "",
             query = "abc=def&ghi=jkl",
         }, uri)
-        assert.same({ ["abc"] = "def", ["ghi"] = "jkl" }, uri:query_params())
+        assert.are.same({ ["abc"] = "def", ["ghi"] = "jkl" }, uri:query_params())
 
         -- Just a scheme and fragment
         uri = Uri:parse("id:#some-fragment")
-        assert.same({
+        assert.are.same({
             scheme = "id",
             path = "",
             fragment = "some-fragment",
@@ -37,7 +37,7 @@ describe("org-roam.core.utils.uri", function()
 
         -- Just a scheme and host
         uri = Uri:parse("id://example.com")
-        assert.same({
+        assert.are.same({
             scheme = "id",
             path = "",
             authority = {
@@ -47,7 +47,7 @@ describe("org-roam.core.utils.uri", function()
 
         -- Just a scheme, host, and port
         uri = Uri:parse("id://example.com:12345")
-        assert.same({
+        assert.are.same({
             scheme = "id",
             path = "",
             authority = {
@@ -58,7 +58,7 @@ describe("org-roam.core.utils.uri", function()
 
         -- Just a scheme and host and username
         uri = Uri:parse("id://username@example.com")
-        assert.same({
+        assert.are.same({
             scheme = "id",
             path = "",
             authority = {
@@ -71,7 +71,7 @@ describe("org-roam.core.utils.uri", function()
 
         -- Just a scheme and host, username, and password
         uri = Uri:parse("id://username:12345@example.com")
-        assert.same({
+        assert.are.same({
             scheme = "id",
             path = "",
             authority = {
@@ -85,7 +85,7 @@ describe("org-roam.core.utils.uri", function()
 
         -- Just a scheme, host, username, password, and port
         uri = Uri:parse("id://username:12345@example.com:6789")
-        assert.same({
+        assert.are.same({
             scheme = "id",
             path = "",
             authority = {
@@ -99,8 +99,8 @@ describe("org-roam.core.utils.uri", function()
         }, uri)
 
         -- Full uri with everything filled out
-        uri = Uri:parse("https://username:12345@example.com:6789/some/path?key1=value1&key2=value2#test-fragment")
-        assert.same({
+        uri = assert(Uri:parse("https://username:12345@example.com:6789/some/path?key1=value1&key2=value2#test-fragment"))
+        assert.are.same({
             scheme = "https",
             path = "/some/path",
             authority = {
@@ -114,7 +114,7 @@ describe("org-roam.core.utils.uri", function()
             query = "key1=value1&key2=value2",
             fragment = "test-fragment",
         }, uri)
-        assert.same({
+        assert.are.same({
             ["key1"] = "value1",
             ["key2"] = "value2",
         }, uri:query_params())
@@ -123,8 +123,8 @@ describe("org-roam.core.utils.uri", function()
         -- Test example URIs from wikipedia
         ----------------------------------------------------------------------
 
-        uri = Uri:parse("https://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top")
-        assert.same({
+        uri = assert(Uri:parse("https://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top"))
+        assert.are.same({
             scheme = "https",
             path = "/forum/questions/",
             authority = {
@@ -137,13 +137,13 @@ describe("org-roam.core.utils.uri", function()
             query = "tag=networking&order=newest",
             fragment = "top",
         }, uri)
-        assert.same({
+        assert.are.same({
             ["tag"] = "networking",
             ["order"] = "newest",
         }, uri:query_params())
 
         uri = Uri:parse("ldap://[2001:db8::7]/c=GB?objectClass?one")
-        assert.same({
+        assert.are.same({
             scheme = "ldap",
             path = "/c=GB",
             authority = {
@@ -153,25 +153,25 @@ describe("org-roam.core.utils.uri", function()
         }, uri)
 
         uri = Uri:parse("mailto:John.Doe@example.com")
-        assert.same({
+        assert.are.same({
             scheme = "mailto",
             path = "John.Doe@example.com",
         }, uri)
 
         uri = Uri:parse("news:comp.infosystems.www.servers.unix")
-        assert.same({
+        assert.are.same({
             scheme = "news",
             path = "comp.infosystems.www.servers.unix",
         }, uri)
 
         uri = Uri:parse("tel:+1-816-555-1212")
-        assert.same({
+        assert.are.same({
             scheme = "tel",
             path = "+1-816-555-1212",
         }, uri)
 
         uri = Uri:parse("telnet://192.0.2.16:80/")
-        assert.same({
+        assert.are.same({
             scheme = "telnet",
             path = "/",
             authority = {
@@ -181,7 +181,7 @@ describe("org-roam.core.utils.uri", function()
         }, uri)
 
         uri = Uri:parse("urn:oasis:names:specification:docbook:dtd:xml:4.1.2")
-        assert.same({
+        assert.are.same({
             scheme = "urn",
             path = "oasis:names:specification:docbook:dtd:xml:4.1.2",
         }, uri)
@@ -195,14 +195,14 @@ describe("org-roam.core.utils.uri", function()
             scheme = "id",
             path = "",
         })
-        assert.equals("id:", uri:as_string())
+        assert.are.equal("id:", uri:as_string())
 
         -- Just a scheme and path
         uri = Uri:new({
             scheme = "id",
             path = "abcd-efgh",
         })
-        assert.equals("id:abcd-efgh", uri:as_string())
+        assert.are.equal("id:abcd-efgh", uri:as_string())
 
         -- Just a scheme and query
         uri = Uri:new({
@@ -210,7 +210,7 @@ describe("org-roam.core.utils.uri", function()
             path = "",
             query = "abc=def&ghi=jkl",
         })
-        assert.equals("id:?abc=def&ghi=jkl", uri:as_string())
+        assert.are.equal("id:?abc=def&ghi=jkl", uri:as_string())
 
         -- Just a scheme and fragment
         uri = Uri:new({
@@ -218,7 +218,7 @@ describe("org-roam.core.utils.uri", function()
             path = "",
             fragment = "some-fragment",
         })
-        assert.equals("id:#some-fragment", uri:as_string())
+        assert.are.equal("id:#some-fragment", uri:as_string())
 
         -- Just a scheme and host
         uri = Uri:new({
@@ -228,7 +228,7 @@ describe("org-roam.core.utils.uri", function()
                 host = "example.com",
             },
         })
-        assert.equals("id://example.com", uri:as_string())
+        assert.are.equal("id://example.com", uri:as_string())
 
         -- Just a scheme, host, and port
         uri = Uri:new({
@@ -239,7 +239,7 @@ describe("org-roam.core.utils.uri", function()
                 port = 12345,
             },
         })
-        assert.equals("id://example.com:12345", uri:as_string())
+        assert.are.equal("id://example.com:12345", uri:as_string())
 
         -- Just a scheme and host and username
         uri = Uri:new({
@@ -252,7 +252,7 @@ describe("org-roam.core.utils.uri", function()
                 },
             },
         })
-        assert.equals("id://username@example.com", uri:as_string())
+        assert.are.equal("id://username@example.com", uri:as_string())
 
         -- Just a scheme and host, username, and password
         uri = Uri:new({
@@ -266,7 +266,7 @@ describe("org-roam.core.utils.uri", function()
                 },
             },
         })
-        assert.equals("id://username:12345@example.com", uri:as_string())
+        assert.are.equal("id://username:12345@example.com", uri:as_string())
 
         -- Just a scheme, host, username, password, and port
         uri = Uri:new({
@@ -281,7 +281,7 @@ describe("org-roam.core.utils.uri", function()
                 },
             },
         })
-        assert.equals("id://username:12345@example.com:6789", uri:as_string())
+        assert.are.equal("id://username:12345@example.com:6789", uri:as_string())
 
         -- Full uri with everything filled out
         uri = Uri:new({
@@ -298,7 +298,7 @@ describe("org-roam.core.utils.uri", function()
             query = "key1=value1&key2=value2",
             fragment = "test-fragment",
         })
-        assert.equals("https://username:12345@example.com:6789/some/path?key1=value1&key2=value2#test-fragment",
+        assert.are.equal("https://username:12345@example.com:6789/some/path?key1=value1&key2=value2#test-fragment",
             uri:as_string())
 
         ----------------------------------------------------------------------
@@ -318,7 +318,7 @@ describe("org-roam.core.utils.uri", function()
             query = "tag=networking&order=newest",
             fragment = "top",
         })
-        assert.equals("https://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top",
+        assert.are.equal("https://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top",
             uri:as_string())
 
         uri = Uri:new({
@@ -329,25 +329,25 @@ describe("org-roam.core.utils.uri", function()
             },
             query = "objectClass?one",
         })
-        assert.equals("ldap://[2001:db8::7]/c=GB?objectClass?one", uri:as_string())
+        assert.are.equal("ldap://[2001:db8::7]/c=GB?objectClass?one", uri:as_string())
 
         uri = Uri:new({
             scheme = "mailto",
             path = "John.Doe@example.com",
         })
-        assert.equals("mailto:John.Doe@example.com", uri:as_string())
+        assert.are.equal("mailto:John.Doe@example.com", uri:as_string())
 
         uri = Uri:new({
             scheme = "news",
             path = "comp.infosystems.www.servers.unix",
         })
-        assert.equals("news:comp.infosystems.www.servers.unix", uri:as_string())
+        assert.are.equal("news:comp.infosystems.www.servers.unix", uri:as_string())
 
         uri = Uri:new({
             scheme = "tel",
             path = "+1-816-555-1212",
         })
-        assert.equals("tel:+1-816-555-1212", uri:as_string())
+        assert.are.equal("tel:+1-816-555-1212", uri:as_string())
 
         uri = Uri:new({
             scheme = "telnet",
@@ -357,12 +357,12 @@ describe("org-roam.core.utils.uri", function()
                 port = 80,
             },
         })
-        assert.equals("telnet://192.0.2.16:80/", uri:as_string())
+        assert.are.equal("telnet://192.0.2.16:80/", uri:as_string())
 
         uri = Uri:new({
             scheme = "urn",
             path = "oasis:names:specification:docbook:dtd:xml:4.1.2",
         })
-        assert.equals("urn:oasis:names:specification:docbook:dtd:xml:4.1.2", uri:as_string())
+        assert.are.equal("urn:oasis:names:specification:docbook:dtd:xml:4.1.2", uri:as_string())
     end)
 end)

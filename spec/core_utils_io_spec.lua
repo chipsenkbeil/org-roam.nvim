@@ -63,7 +63,7 @@ describe("org-roam.core.utils.io", function()
             local path = create_temp_file("hello world")
             local err, data = utils_io.read_file_sync(path)
             assert.is_nil(err)
-            assert.equals("hello world", data)
+            assert.are.equal("hello world", data)
         end)
     end)
 
@@ -99,7 +99,7 @@ describe("org-roam.core.utils.io", function()
             vim.wait(10000, function() return is_done end)
 
             assert.is_nil(error)
-            assert.equals("hello world", data)
+            assert.are.equal("hello world", data)
         end)
     end)
 
@@ -111,7 +111,7 @@ describe("org-roam.core.utils.io", function()
             assert.is_nil(err)
 
             local data = read_temp_file(path)
-            assert.equals("hello world", data)
+            assert.are.equal("hello world", data)
         end)
 
         it("should overwrite a file if it exists", function()
@@ -121,7 +121,7 @@ describe("org-roam.core.utils.io", function()
             assert.is_nil(err)
 
             local data = read_temp_file(path)
-            assert.equals("hello world", data)
+            assert.are.equal("hello world", data)
         end)
     end)
 
@@ -141,7 +141,7 @@ describe("org-roam.core.utils.io", function()
             local data = read_temp_file(path)
 
             assert.is_nil(error)
-            assert.equals("hello world", data)
+            assert.are.equal("hello world", data)
         end)
 
         it("should overwrite a file if it exists", function()
@@ -160,7 +160,7 @@ describe("org-roam.core.utils.io", function()
             local data = read_temp_file(path)
 
             assert.is_nil(error)
-            assert.equals("hello world", data)
+            assert.are.equal("hello world", data)
         end)
     end)
 
@@ -181,7 +181,7 @@ describe("org-roam.core.utils.io", function()
             -- Check something we can verify indicates it works as expected,
             -- which in this case is validating the modification time
             local expected = vim.fn.getftime(path)
-            assert.equals(expected, stat.mtime.sec)
+            assert.are.equal(expected, stat.mtime.sec)
         end)
     end)
 
@@ -222,20 +222,20 @@ describe("org-roam.core.utils.io", function()
             -- Check something we can verify indicates it works as expected,
             -- which in this case is validating the modification time
             local expected = vim.fn.getftime(path)
-            assert.equals(expected, stat.mtime.sec)
+            assert.are.equal(expected, stat.mtime.sec)
         end)
     end)
 
     describe("join_path", function()
         it("should return empty string if no arguments provided", function()
-            assert.equals("", utils_io.join_path())
+            assert.are.equal("", utils_io.join_path())
         end)
 
         it("should combine paths using system separator", function()
             local sep = string.lower(vim.trim(uv.os_uname().sysname)) == "windows"
                 and "\\" or "/"
 
-            assert.equals(
+            assert.are.equal(
                 "path" .. sep .. "to" .. sep .. "file",
                 utils_io.join_path("path", "to", "file")
             )
@@ -245,7 +245,7 @@ describe("org-roam.core.utils.io", function()
             local sep = string.lower(vim.trim(uv.os_uname().sysname)) == "windows"
                 and "\\" or "/"
 
-            assert.equals(
+            assert.are.equal(
                 sep .. "to" .. sep .. "file",
                 utils_io.join_path("path", sep .. "to", "file")
             )
@@ -257,7 +257,7 @@ describe("org-roam.core.utils.io", function()
             local file = create_temp_file("hello")
 
             local entries = utils_io.walk(file, { depth = math.huge }):collect()
-            assert.same({}, entries)
+            assert.are.same({}, entries)
         end)
 
         it("should return an iterator over directory entries", function()
@@ -281,7 +281,7 @@ describe("org-roam.core.utils.io", function()
                 ---@cast b org-roam.core.utils.io.WalkEntry
                 return a.path < b.path
             end)
-            assert.same({
+            assert.are.same({
                 { filename = "dir1",  name = "dir1",                path = dir1,  type = "directory" },
                 { filename = "file1", name = join("dir1", "file1"), path = file1, type = "file" },
                 { filename = "file2", name = join("dir1", "file2"), path = file2, type = "file" },
@@ -310,7 +310,7 @@ describe("org-roam.core.utils.io", function()
                 ---@cast b org-roam.core.utils.io.WalkEntry
                 return a.path < b.path
             end)
-            assert.same({
+            assert.are.same({
                 { filename = "dir1", name = "dir1", path = dir1, type = "directory" },
                 { filename = "dir2", name = "dir2", path = dir2, type = "directory" },
             }, entries)
