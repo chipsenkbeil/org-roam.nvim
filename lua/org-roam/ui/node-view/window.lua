@@ -13,23 +13,12 @@ local tbl_utils = require("org-roam.core.utils.table")
 local utils = require("org-roam.utils")
 local Window = require("org-roam.core.ui.window")
 
----Mapping of kind -> highlight group.
-local HL = {
-    NODE_TITLE    = "Title",
-    SECTION_LABEL = "Title",
-    SECTION_COUNT = "Normal",
-    LINK_TITLE    = "Title",
-    LINK_LOCATION = "Identifier",
-    NORMAL        = "Normal",
-    PREVIEW_LINE  = "PMenu",
-}
-
 local EVENTS = {
     CACHE_UPDATED = "cache-updated",
 }
 
 ---@param cache table<string, {mtime:integer, queued:boolean, lines:string[]}>
----@param opts {emitter:org-roam.core.utils.Emitter, id:org-roam.core.database.Id, path:string, row:integer, col:integer, n:integer, prefix:string}
+---@param opts {emitter:org-roam.core.utils.Emitter, id:org-roam.core.database.Id, path:string, row:integer, col:integer}
 ---@return org-roam.core.ui.Line[]
 local function get_cached_lines(cache, opts)
     local lines = {}
@@ -67,80 +56,60 @@ local function get_cached_lines(cache, opts)
                 if item.mtime < mtime then
                     item.mtime = mtime
 
-                    require("orgmode.files")
-                        :load_file(opts.path)
-                        :next(function(file)
-                            -- Figure out where the link is located using position (1, 0) cursor
-                            local node = file:get_node_at_cursor({ opts.row, opts.col - 1 })
+                    -- NOTE: Loading a file cannot be done within the results of a stat,
+                    --       so we need to schedule followup work.
+                    vim.schedule(function()
+                        require("orgmode.files")
+                            :new({ paths = opts.path })
+                            :load_file(opts.path)
+                            :next(function(file)
+                                ---@cast file OrgFile
+                                -- Figure out where we are located as there are several situations
+                                -- where we load content differently to preview:
+                                --
+                                -- 1. If we are in a list, we return the entire list (list)
+                                -- 2. If we are in a heading, we return the heading's text (item)
+                                -- 3. If we are in a paragraph, we return the entire paragraph (paragraph)
+                                -- 4. If we are in a drawer, we return the entire drawer (drawer)
+                                -- 5. If we are in a property drawer, we return the entire drawer (property_drawer)
+                                -- 5. If we are in a table, we return the entire table (table)
+                                -- 5. Otherwise, just return the line where we are
+                                local node = file:get_node_at_cursor({ opts.row, opts.col - 1 })
+                                local container_types = {
+                                    "paragraph", "list", "item", "table", "drawer", "property_drawer",
+                                }
+                                while node and not vim.tbl_contains(container_types, node:type()) do
+                                    node = node:parent()
 
-                            -- Figure out where we are located as there are several situations
-                            -- where we load content differently to preview:
-                            --
-                            -- 1. If we are in a list, we return the entire list
-                            -- 2. If we are in a heading, we return the heading's text
-                            -- 3. If we are in a paragraph, we return the entire paragraph
-                            -- 4. If we are in a drawer, we return the entire drawer
-                            -- 5. Otherwise, just return the line where we are
-                        end)
+                                    local ty = node and node:type() or ""
+                                    local pty = node:parent() and node:parent():type() or ""
 
-                    ---@diagnostic disable-next-line:redefined-local
-                    io.read_file(opts.path, function(err, data)
-                        item.queued = false
-
-                        if err then
-                            notify.error(err)
-                            return
-                        end
-
-                        ---@cast data -nil
-                        ---@diagnostic disable-next-line:redefined-local
-                        local lines = vim.split(data, "\n", { plain = true })
-                        local start = math.max(opts.row - opts.n, 1)
-                        local end_ = math.min(opts.row + opts.n, #lines)
-                        item.lines = vim.list_slice(lines, start, end_)
-
-                        -- Clean up our lines by finding the minimum leading whitespace
-                        -- and removing it from each line
-                        ---@param line string
-                        ---@type integer
-                        local cnt = math.min(tbl_utils.unpack(vim.tbl_map(function(line)
-                            local cnt = 0
-                            for c in string.gmatch(line, ".") do
-                                if c ~= " " and c ~= "\t" then
-                                    break
+                                    -- Check if we're actually in a list item and advance up out of paragraph
+                                    if ty == "paragraph" and pty == "listitem" then
+                                        node = node:parent()
+                                    end
                                 end
-                                cnt = cnt + 1
-                            end
-                            return cnt
-                        end, item.lines)))
 
-                        for i = 1, #item.lines do
-                            item.lines[i] = string.sub(item.lines[i], cnt + 1)
-                        end
+                                if not node then
+                                    return file
+                                end
 
-                        -- Schedule a re-render at this point
-                        opts.emitter:emit(EVENTS.CACHE_UPDATED)
+                                -- Load the text and split it by line
+                                local text = file:get_node_text(node)
+                                item.lines = vim.split(text, "\n", { plain = true })
+                                item.queued = false
+
+                                -- Schedule a re-render at this point
+                                opts.emitter:emit(EVENTS.CACHE_UPDATED)
+                                return file
+                            end)
                     end)
                 end
             end)
         end)
     end
 
-    ---@param line string
-    ---@type integer
-    local max_line_len = math.max(tbl_utils.unpack(vim.tbl_map(function(line)
-        return string.len(line)
-    end, lines)))
-
-    ---@param line string
-    return vim.tbl_map(function(line)
-        local padding = math.max(0, max_line_len - string.len(line))
-        return {
-            { opts.prefix,              HL.NORMAL },
-            { line,                     HL.PREVIEW_LINE },
-            { string.rep(" ", padding), HL.PREVIEW_LINE },
-        }
-    end, lines)
+    return lines
 end
 
 ---Renders a node within an orgmode buffer.
@@ -161,18 +130,17 @@ local function render(node, emitter, cache)
 
     if node then
         -- Insert a full line that contains the node's title
-        table.insert(lines, { { node.title, HL.NODE_TITLE } })
+        table.insert(lines, string.format("# %s", node.title))
 
         -- Insert a blank line as a divider
         table.insert(lines, "")
 
         -- Insert a multi-highlighted line for backlinks
         local backlinks = db:get_backlinks(node.id)
-        local bcnt = vim.tbl_count(backlinks)
-        table.insert(lines, {
-            { "Backlinks",         HL.SECTION_LABEL },
-            { " (" .. bcnt .. ")", HL.SECTION_COUNT },
-        })
+        table.insert(
+            lines,
+            string.format("* Backlinks (%s)", vim.tbl_count(backlinks))
+        )
 
         for backlink_id, _ in pairs(backlinks) do
             ---@type org-roam.core.database.Node|nil
@@ -186,14 +154,16 @@ local function render(node, emitter, cache)
                     local col = loc.column + 1
 
                     -- Insert line containing node's title and line location
-                    table.insert(lines, {
-                        { backlink_node.title,       HL.LINK_TITLE },
-                        { " ",                       HL.NORMAL },
-                        { "@ " .. row .. "," .. col, HL.LINK_LOCATION },
-                    })
-
-                    -- Add a blank line before content
-                    table.insert(lines, "")
+                    table.insert(
+                        lines,
+                        string.format(
+                            "** [[file://%s::%s][%s @ line %s]]",
+                            backlink_node.file,
+                            row,
+                            backlink_node.title,
+                            row
+                        )
+                    )
 
                     vim.list_extend(lines, get_cached_lines(cache, {
                         emitter = emitter,
@@ -201,8 +171,6 @@ local function render(node, emitter, cache)
                         path = node.file,
                         row = row,
                         col = col,
-                        n = 1,         -- lines to show above and below
-                        prefix = "  ", -- prefix to add to each line
                     }))
 
                     -- Add a blank line to separate post content
@@ -248,17 +216,29 @@ function M:new(opts)
     local widgets = {}
     local id = opts.id
     local cache = {}
-    local name = "org-roam-node-view-cursor"
+    local name = "org-roam-node-view-cursor.org"
     if id then
-        name = "org-roam-node-view-id-" .. id
+        name = "org-roam-node-view-id-" .. id .. ".org"
         table.insert(widgets, function()
             return render(id, emitter, cache)
         end)
     else
+        ---@type org-roam.core.database.Node|nil
+        local last_node = nil
+
         table.insert(widgets, function()
-            ---@type org-roam.core.database.Node|nil
-            local node = async.wait(utils.node_under_cursor)
+            local node = last_node
+
+            -- Only refresh if we are in a different buffer
+            -- NOTE: orgmode plugin prepends our directory in front of the name
+            --       so we have to check if the name ends with our name.
+            if not vim.endswith(vim.api.nvim_buf_get_name(0), name) then
+                ---@type org-roam.core.database.Node|nil
+                node = async.wait(utils.node_under_cursor)
+            end
+
             if node then
+                last_node = node
                 return render(node, emitter, cache)
             else
                 return {}
@@ -269,6 +249,7 @@ function M:new(opts)
     instance.__window = Window:new(vim.tbl_extend("keep", {
         bufopts = {
             name = name,
+            filetype = "org",
         },
         widgets = widgets,
     }, opts))
