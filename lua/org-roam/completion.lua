@@ -27,6 +27,8 @@ function M.complete_node_under_cursor()
     -- to feed into our dialog based on whether
     -- we are on a link or completing an expression
     local selection = ""
+
+    ---@type string|nil
     local input
 
     local link = utils.link_under_cursor()

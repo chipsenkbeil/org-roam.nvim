@@ -17,7 +17,9 @@ local function replace(tbl, opts)
     local config = vim.tbl_deep_extend("force", tbl, opts)
 
     -- Replace all top-level keys of old config with new
+    ---@diagnostic disable-next-line:no-unknown
     for key, value in pairs(config) do
+        ---@diagnostic disable-next-line:no-unknown
         tbl[key] = value
     end
 end

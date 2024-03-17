@@ -23,6 +23,7 @@ local DATABASE = nil
 ---@param cb fun(db:org-roam.core.Database)
 local function create_database(cb)
     -- Need to create path to database
+    ---@type string
     local plugin_data_dir = vim.fs.dirname(DATABASE_PATH)
     vim.fn.mkdir(plugin_data_dir, "p")
 

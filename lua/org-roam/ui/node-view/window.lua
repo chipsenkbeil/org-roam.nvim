@@ -85,6 +85,8 @@ local function get_cached_lines(cache, opts)
 
                         -- Clean up our lines by finding the minimum leading whitespace
                         -- and removing it from each line
+                        ---@param line string
+                        ---@type integer
                         local cnt = math.min(tbl_utils.unpack(vim.tbl_map(function(line)
                             local cnt = 0
                             for c in string.gmatch(line, ".") do
@@ -108,10 +110,13 @@ local function get_cached_lines(cache, opts)
         end)
     end
 
+    ---@param line string
+    ---@type integer
     local max_line_len = math.max(tbl_utils.unpack(vim.tbl_map(function(line)
         return string.len(line)
     end, lines)))
 
+    ---@param line string
     return vim.tbl_map(function(line)
         local padding = math.max(0, max_line_len - string.len(line))
         return {

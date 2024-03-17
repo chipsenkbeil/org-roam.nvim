@@ -19,6 +19,7 @@ local utils = require("org-roam.utils")
 ---@param id org-roam.core.database.Id
 ---@return org-roam.ui.quickfix.Item[]
 local function get_links_as_quickfix_items(db, id)
+    ---@type org-roam.core.database.Id[]
     local ids = vim.tbl_keys(db:get_links(id))
 
     local items = {}
@@ -42,6 +43,8 @@ end
 ---@return org-roam.ui.quickfix.Item[]
 local function get_backlinks_as_quickfix_items(db, id, opts)
     opts = opts or {}
+
+    ---@type org-roam.core.database.Id[]
     local ids = vim.tbl_keys(db:get_backlinks(id))
 
     local items = {}

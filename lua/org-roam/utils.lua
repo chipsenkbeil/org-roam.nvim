@@ -40,6 +40,7 @@ local function get_buffer_cache(bufnr)
             path = vim.api.nvim_buf_get_name(bufnr),
         })
 
+        ---@type org-roam.core.utils.tree.IntervalTree|nil
         local node_tree
         if #scan.nodes > 0 then
             node_tree = IntervalTree:from_list(
@@ -54,6 +55,7 @@ local function get_buffer_cache(bufnr)
             )
         end
 
+        ---@type org-roam.core.utils.tree.IntervalTree|nil
         local link_tree
         if #scan.file.links > 0 then
             link_tree = IntervalTree:from_list(
@@ -93,6 +95,7 @@ function M.expr_under_cursor()
         ---@type TSNode|nil
         local ts_node = vim.treesitter.get_node()
         if ts_node and ts_node:type() == "expr" then
+            ---@type string
             word = vim.treesitter.get_node_text(ts_node, 0)
         end
     end
