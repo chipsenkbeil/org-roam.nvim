@@ -18,11 +18,6 @@ local function render(node)
     ---@type org-roam.core.ui.Line[]
     local lines = {}
 
-    ---@param ... string
-    local function append(...)
-        vim.list_extend(lines, { ... })
-    end
-
     -- If given an id instead of a node, load it here
     if type(node) == "string" then
         node = db:get(node)

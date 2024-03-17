@@ -9,8 +9,6 @@ local Emitter = require("org-roam.core.utils.emitter")
 local tbl_utils = require("org-roam.core.utils.table")
 local Window = require("org-roam.core.ui.window")
 
-local NAMESPACE = vim.api.nvim_create_namespace("org-roam.core.ui.select")
-
 ---Collection of events that can be fired.
 local EVENTS = {
     ---Selection dialog is canceled.
@@ -219,7 +217,6 @@ function M:open()
             },
             widgets = {
                 function() return self:__render_widget() end,
-                function() return self:__apply_highlights() end,
                 function() return self:__reset_cursor_and_mode() end,
             },
         })
@@ -556,15 +553,14 @@ function M:__update_prompt()
         return
     end
 
+    -- Build our prompt text
+    local text = self.__view.prompt
+    text = string.gsub(text, "{sel}", self.__view.selected)
+    text = string.gsub(text, "{cnt}", #self.__view.filtered_items)
+
     local opts = {
         id = self.__state.prompt_id,
-        virt_text = {
-            { string.format("%s/%s",
-                self.__view.selected,
-                #self.__view.filtered_items
-            ), "Comment" },
-            { self.__view.prompt, "Comment" },
-        },
+        virt_text = { { text, "Comment" } },
         hl_mode = "combine",
         right_gravity = false,
     }
@@ -577,7 +573,7 @@ function M:__update_prompt()
 
     -- Create or update the mark
     self.__state.prompt_id = vim.api.nvim_buf_set_extmark(
-        window:bufnr(), NAMESPACE, 0, 0, opts)
+        window:bufnr(), window:buffer():namespace(), 0, 0, opts)
 end
 
 ---@private
@@ -598,7 +594,7 @@ function M:__render()
 end
 
 ---@private
----@return string[]
+---@return org-roam.core.ui.Line[]
 function M:__render_widget()
     local window = self.__state.window
     if not window then
@@ -608,6 +604,7 @@ function M:__render_widget()
     local winnr = assert(window:winnr(), "missing window handle")
     local width = vim.api.nvim_win_get_width(winnr)
 
+    ---@return org-roam.core.ui.Line[]
     local lines = {}
 
     -- Refresh the filtered items
@@ -624,6 +621,7 @@ function M:__render_widget()
     for i = start, end_ do
         local item = self.__view.filtered_items[i]
         local text = self.__params.format(item[2])
+        local highlight = "Normal"
 
         -- Pad our text to fill the length of the window such that
         -- highlighting smoothly covers the entire line
@@ -632,39 +630,20 @@ function M:__render_widget()
             text = text .. string.rep(" ", padding)
         end
 
-        table.insert(lines, text)
+        -- For our selected item, adjust the highlight
+        if i == self.__view.selected then
+            highlight = "PmenuSel"
+        end
+
+        -- Build our line as a single segment with highlight
+        table.insert(lines, { { text, highlight } })
     end
 
     return lines
 end
 
 ---@private
----@return string[]
-function M:__apply_highlights()
-    local window = self.__state.window
-    if not window or not window:is_open() then
-        return {}
-    end
-
-    local bufnr = window:bufnr()
-
-    -- Clear the highlights for the buffer
-    vim.api.nvim_buf_clear_namespace(bufnr, NAMESPACE, 1, -1)
-
-    -- Apply the pmenu highlight to the entire buffer
-    -- vim.api.nvim_buf_add_highlight(bufnr, NAMESPACE, "Pmenu", 0, 0, -1)
-
-    -- Apply a highlight to the selected item
-    local line = self.__view.selected
-    if line > 0 then
-        vim.api.nvim_buf_add_highlight(bufnr, NAMESPACE, "PmenuSel", line, 0, -1)
-    end
-
-    return {}
-end
-
----@private
----@return string[]
+---@return org-roam.core.ui.Line[]
 function M:__reset_cursor_and_mode()
     local window = self.__state.window
     if self.__state.ready or not window or not window:is_open() then
