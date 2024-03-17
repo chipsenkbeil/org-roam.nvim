@@ -37,10 +37,17 @@ return function(opts, cb)
         end
     end
 
+    -- Build our prompt, updating it to a left-hand side
+    -- style if we have neovim 0.10+ which supports inlining
+    local prompt = "(node {sel}/{cnt})"
+    if vim.fn.has("nvim-0.10") == 1 then
+        prompt = "{sel}/{cnt} node> "
+    end
+
     ---@type org-roam.core.ui.select.Opts
     local select_opts = vim.tbl_extend("keep", {
         items = items,
-        prompt = " (node) ",
+        prompt = prompt,
         ---@param item {id:org-roam.core.database.Id, label:string}
         format = function(item)
             return string.format("%s (%s)", item.label, item.id)

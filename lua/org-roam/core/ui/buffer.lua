@@ -122,6 +122,12 @@ function M:bufnr()
     return self.__bufnr
 end
 
+---Returns the namespace associated with the underlying buffer.
+---@return integer
+function M:namespace()
+    return self.__namespace
+end
+
 ---Invokes `cb` right before render has started.
 ---@param cb fun()
 function M:on_pre_render(cb)
