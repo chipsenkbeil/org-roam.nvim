@@ -2,6 +2,7 @@
 -- SELECT.LUA
 --
 -- Fancy alternative to `vim.ui.select` for us to use.
+-- Modelled after Emacs' vertico completion (https://github.com/minad/vertico).
 -------------------------------------------------------------------------------
 
 local Emitter = require("org-roam.core.utils.emitter")
@@ -10,11 +11,24 @@ local Window = require("org-roam.core.ui.window")
 
 local NAMESPACE = vim.api.nvim_create_namespace("org-roam.core.ui.select")
 
+---Collection of events that can be fired.
 local EVENTS = {
+    ---Selection dialog is canceled.
     CANCEL = "select:cancel",
+
+    ---A specific choice from items has been made.
     CHOICE = "select:choice",
-    INTERNAL_CHOICE_OR_CANCEL = "internal:select:choice_or_cancel",
+
+    ---No item was available, so non-existent item has been selected.
+    CHOICE_INPUT = "select:choice-input",
+
+    ---Internal, mapping between choices and cancellation.
+    INTERNAL_MULTIPLEX = "internal:select:multiplex",
+
+    ---Selection has been changed.
     SELECT_CHANGE = "select:select_change",
+
+    ---Input text has been changed.
     TEXT_CHANGE = "select:text_change",
 }
 
@@ -35,10 +49,18 @@ local EVENTS = {
 ---@class (exact) org-roam.core.ui.select.Params
 ---@field items table #raw items available for selection (non-filtered)
 ---@field init_input string #initial text to supply at the beginning
----@field auto_select boolean #if true, will select automatically if only one item (filtered) based on init_filter
+---@field auto_select boolean #if true, will select automatically if only one item (filtered) based on init_input
+---@field allow_select_missing boolean #if true, enables selecting non-existent items
+---@field bindings org-roam.core.ui.select.Bindings #bindings associated with the window
 ---@field format fun(item:any):string #converts item into displayed text
 ---@field filter fun(item:any, input:string):boolean #filters items based on some input
 ---@field rank fun(item:any, input:string):number #ranks items based on some input, higher number means shown earlier
+
+---@class (exact) org-roam.core.ui.select.Bindings
+---@field down string[] #one or more bindings to move selection down
+---@field up string[] #one or more bindings to move selection up
+---@field select string[] #one or more bindings to trigger selection
+---@field select_missing string[] #one or more bindings to directly trigger selection as a missing item
 
 ---@class org-roam.core.ui.Select
 ---@field private __params org-roam.core.ui.select.Params
@@ -53,6 +75,8 @@ M.__index = M
 ---@field prompt? string
 ---@field init_input? string
 ---@field auto_select? boolean
+---@field allow_select_missing? boolean
+---@field bindings? {down?:string|string[], up?:string|string[], select?:string|string[], select_missing?:string|string[]}
 ---@field format? fun(item:any):string
 ---@field filter? fun(item:any, input:string):boolean
 ---@field rank? fun(item:any, text:string):number
@@ -66,11 +90,44 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
 
+    local allow_select_missing = opts.allow_select_missing or false
+    local default_bindings = {
+        down = { "<C-n>", "<Down>" },
+        up = { "<C-p>", "<Up>" },
+        select = { "<Enter>", "<S-Enter>", "<C-Enter>", "<C-S-Enter>" },
+        select_missing = {},
+    }
+
+    -- If we allow selecting non-existent items, then update default bindings
+    -- to support Shift+Enter or Control+Shift+Enter to force that binding
+    if allow_select_missing then
+        default_bindings.select = { "<Enter>", "<C-Enter>" }
+        default_bindings.select_missing = { "<S-Enter>", "<C-S-Enter>" }
+    end
+
+    -- Generate bindings from user input
+    ---@param tbl table<string, string|string[]>
+    ---@return table<string, string[]>
+    local function clean_bindings(tbl)
+        local new = {}
+        for key, value in pairs(tbl) do
+            if type(value) == "string" then
+                new[key] = { value }
+            elseif type(value) == "table" then
+                new[key] = value
+            end
+        end
+        return new
+    end
+    local bindings = clean_bindings(opts.bindings or {})
+
     local format = opts.format or function(item) return tostring(item) end
     instance.__params = {
         items = opts.items or {},
         init_input = opts.init_input or "",
         auto_select = opts.auto_select or false,
+        allow_select_missing = allow_select_missing,
+        bindings = vim.tbl_deep_extend("keep", bindings, default_bindings),
         format = format,
         filter = opts.filter or function(item, input)
             local text = format(item)
@@ -134,6 +191,16 @@ function M:on_choice(f)
     return self
 end
 
+---Register callback when a selection is made for a non-existent item.
+---This will only be triggered when selection of missing items is enabled.
+---This is not triggered if the selection is canceled.
+---@param f fun(item:string)
+---@return org-roam.core.ui.Select
+function M:on_choice_missing(f)
+    self.__state.emitter:on(EVENTS.CHOICE_INPUT, f)
+    return self
+end
+
 ---Opens the selection dialog.
 function M:open()
     if not self.__state.window then
@@ -164,16 +231,25 @@ function M:open()
             })
         end
 
-        -- Register a one-time emitter for selecting or canceling
+        -- Register a one-time emitter for selecting or cancelling
         -- so we can ensure only one is triggered.
-        ---@param item any|nil
-        ---@param idx integer|nil
-        self.__state.emitter:once(EVENTS.INTERNAL_CHOICE_OR_CANCEL, function(item, idx)
-            if type(idx) == "number" then
-                self.__state.emitter:emit(EVENTS.CHOICE, item, idx)
-            else
+        ---@param tbl {type:string}
+        self.__state.emitter:once(EVENTS.INTERNAL_MULTIPLEX, function(tbl)
+            if tbl.type == EVENTS.CHOICE then
+                ---@cast tbl {type:string, item:any, idx:integer}
+                self.__state.emitter:emit(EVENTS.CHOICE, tbl.item, tbl.idx)
+            elseif tbl.type == EVENTS.CHOICE_INPUT then
+                ---@cast tbl {type:string, text:string}
+                self.__state.emitter:emit(EVENTS.CHOICE_INPUT, tbl.text)
+            elseif tbl.type == EVENTS.CANCEL then
                 self.__state.emitter:emit(EVENTS.CANCEL)
             end
+
+            -- NOTE: We schedule to avoid triggering more than one event
+            --       during the closing of the window. For instance, a
+            --       choice is selected, we close, and that causes cancel
+            --       to also fire for some reason.
+            vim.schedule(function() self:close() end)
         end)
 
         -- When the window closes, we trigger our callback
@@ -182,7 +258,9 @@ function M:open()
         window:on_close(function()
             -- Emit a cancellation, which will only count if we have
             -- not selected first
-            self.__state.emitter:emit(EVENTS.INTERNAL_CHOICE_OR_CANCEL)
+            self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
+                type = EVENTS.CANCEL,
+            })
             self.__state.window = nil
         end)
 
@@ -211,18 +289,24 @@ function M:open()
         }
 
         -- Changing selection (down)
-        vim.keymap.set("i", "<C-n>", function() self:__select_move_down() end, kopts)
-        vim.keymap.set("i", "<Down>", function() self:__select_move_down() end, kopts)
+        for _, lhs in ipairs(self.__params.bindings.down) do
+            vim.keymap.set("i", lhs, function() self:__select_move_down() end, kopts)
+        end
 
         -- Changing selection (up)
-        vim.keymap.set("i", "<C-p>", function() self:__select_move_up() end, kopts)
-        vim.keymap.set("i", "<Up>", function() self:__select_move_up() end, kopts)
+        for _, lhs in ipairs(self.__params.bindings.up) do
+            vim.keymap.set("i", lhs, function() self:__select_move_up() end, kopts)
+        end
 
-        -- Register callback when <Enter> is hit as that indicates a selection
-        vim.keymap.set("i", "<Enter>", function() self:__trigger_selection() end, kopts)
-        vim.keymap.set("i", "<S-Enter>", function() self:__trigger_selection() end, kopts)
-        vim.keymap.set("i", "<C-Enter>", function() self:__trigger_selection() end, kopts)
-        vim.keymap.set("i", "<C-S-Enter>", function() self:__trigger_selection() end, kopts)
+        -- Register callback when selecting a choice that exists
+        for _, lhs in ipairs(self.__params.bindings.select) do
+            vim.keymap.set("i", lhs, function() self:__trigger_selection() end, kopts)
+        end
+
+        -- Register callback when selecting a choice that does not exist
+        for _, lhs in ipairs(self.__params.bindings.select_missing) do
+            vim.keymap.set("i", lhs, function() self:__trigger_input_selection() end, kopts)
+        end
 
         self.__state.window = window
     end
@@ -233,10 +317,12 @@ end
 
 ---Closes the selection dialog, canceling the choice.
 function M:close()
-    if self.__state.window then
-        self.__state.window:close()
-    end
+    local window = self.__state.window
     self.__state.window = nil
+
+    if window then
+        window:close()
+    end
 end
 
 ---Returns true if the selection dialog is open.
@@ -339,21 +425,44 @@ end
 
 ---@private
 function M:__trigger_selection()
-    -- If there is nothing to select, ignore enter
+    -- If there is nothing to select, ignore enter; otherwise,
+    -- we have an item, which we pick out
     local idx = self.__view.selected
-    if idx < 1 then
+    local item = self.__view.filtered_items[idx]
+    if not item then
+        if self.__params.allow_select_missing then
+            self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
+                type = EVENTS.CHOICE_INPUT,
+                text = self:__get_input(),
+            })
+        end
+
         return
     end
 
-    -- Otherwise, we have an item, which we pick out
-    local item = self.__view.filtered_items[idx]
+    ---@type integer
+    idx = item[1]
+
+    ---@type any
+    item = self.__params.items[idx]
+
     if item then
-        idx = item[1]
-        item = self.__params.items[idx]
-        if item then
-            self.__state.emitter:emit(EVENTS.INTERNAL_CHOICE_OR_CANCEL, item, idx)
-            self:close()
-        end
+        self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
+            type = EVENTS.CHOICE,
+            item = item,
+            idx = idx,
+        })
+    end
+end
+
+---@private
+function M:__trigger_input_selection()
+    local text = self:__get_input()
+    if text ~= "" then
+        self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
+            type = EVENTS.CHOICE_INPUT,
+            text = text,
+        })
     end
 end
 
