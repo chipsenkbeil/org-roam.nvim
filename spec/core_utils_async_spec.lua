@@ -17,8 +17,8 @@ describe("org-roam.core.utils.async", function()
             ---@type string, integer
             local a, b = async.wait(echo_fn, "hello", 123)
 
-            assert.equals("hello", a)
-            assert.equals(123, b)
+            assert.are.equal("hello", a)
+            assert.are.equal(123, b)
         end)
     end)
 
@@ -54,15 +54,15 @@ describe("org-roam.core.utils.async", function()
             end, { time = 300 })
 
             local res1, res2 = test_fn_sync()
-            assert.equals("start", res1)
-            assert.equals(1, res2)
+            assert.are.equal("start", res1)
+            assert.are.equal(1, res2)
 
             res1, res2 = test_fn_sync()
             assert.is_nil(res1)
-            assert.equals(2, res2)
+            assert.are.equal(2, res2)
 
             res1, res2 = test_fn_sync()
-            assert.equals("done", res1)
+            assert.are.equal("done", res1)
             assert.is_nil(res2)
         end)
 
@@ -80,12 +80,12 @@ describe("org-roam.core.utils.async", function()
             end, { time = 300 })
 
             local res1, res2 = test_fn_sync("hello")
-            assert.equals("hello", res1)
-            assert.equals(1, res2)
+            assert.are.equal("hello", res1)
+            assert.are.equal(1, res2)
 
             res1, res2 = test_fn_sync("world")
-            assert.equals("world", res1)
-            assert.equals(2, res2)
+            assert.are.equal("world", res1)
+            assert.are.equal(2, res2)
         end)
 
         it("should support option n to enforce a minimum argument length", function()
@@ -102,15 +102,15 @@ describe("org-roam.core.utils.async", function()
             end, { time = 300, n = 1 })
 
             local res1, res2 = test_fn_sync("hello")
-            assert.equals("hello", res1)
-            assert.equals(1, res2)
+            assert.are.equal("hello", res1)
+            assert.are.equal(1, res2)
 
             -- Notice here that we do not supply the optional argument.
             -- If we did not set `n` above, this would cause an error
             -- where the callback was placed in the `msg` parameter slot.
             res1, res2 = test_fn_sync()
             assert.is_nil(res1)
-            assert.equals(2, res2)
+            assert.are.equal(2, res2)
         end)
     end)
 end)

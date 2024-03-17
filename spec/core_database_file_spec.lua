@@ -34,7 +34,7 @@ describe("org-roam.core.database.file", function()
         it("should return the normalized path to the file", function()
             local file = File:new("~/path/to/file.txt")
             local tilde = vim.fs.normalize("~")
-            assert.equals(tilde .. "/path/to/file.txt", file:path())
+            assert.are.equal(tilde .. "/path/to/file.txt", file:path())
         end)
     end)
 
@@ -136,7 +136,7 @@ describe("org-roam.core.database.file", function()
 
             with_temp_file(function(path)
                 -- If specified, checksum is loaded automatically
-                assert.equals(checksum, File:new(path, { checksum = true }):checksum())
+                assert.are.equal(checksum, File:new(path, { checksum = true }):checksum())
 
                 -- Otherwise, it is nil
                 assert.is_nil(File:new(path):checksum())
@@ -148,7 +148,7 @@ describe("org-roam.core.database.file", function()
 
             with_temp_file(function(path)
                 -- If specified, checksum is loaded automatically
-                assert.equals(checksum, File:new(path):checksum({ refresh = true }))
+                assert.are.equal(checksum, File:new(path):checksum({ refresh = true }))
             end, "test")
         end)
     end)
@@ -159,7 +159,7 @@ describe("org-roam.core.database.file", function()
                 local mtime = vim.fn.getftime(path)
 
                 -- If specified, mtime is loaded automatically
-                assert.equals(mtime, File:new(path, { mtime = true }):mtime())
+                assert.are.equal(mtime, File:new(path, { mtime = true }):mtime())
 
                 -- Otherwise, it is nil
                 assert.is_nil(File:new(path):mtime())
@@ -169,7 +169,7 @@ describe("org-roam.core.database.file", function()
         it("should be re-populated if refresh option is true", function()
             with_temp_file(function(path)
                 local mtime = vim.fn.getftime(path)
-                assert.equals(mtime, File:new(path):mtime({ refresh = true }))
+                assert.are.equal(mtime, File:new(path):mtime({ refresh = true }))
             end)
         end)
     end)

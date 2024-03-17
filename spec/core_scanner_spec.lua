@@ -44,79 +44,79 @@ describe("org-roam.core.scanner", function()
         local node
 
         node = assert(nodes["1"], "missing node 1")
-        assert.equals("1", node.id)
-        assert.equals(join_path(ORG_FILES_DIR, "one.org"), node.file)
-        assert.equals("one", node.title)
-        assert.same({ "1", "neo", "the one" }, node.aliases)
-        assert.equals(0, node.level)
-        assert.same({ "a", "b", "c" }, node.tags)
-        assert.same({
+        assert.are.equal("1", node.id)
+        assert.are.equal(join_path(ORG_FILES_DIR, "one.org"), node.file)
+        assert.are.equal("one", node.title)
+        assert.are.same({ "1", "neo", "the one" }, node.aliases)
+        assert.are.equal(0, node.level)
+        assert.are.same({ "a", "b", "c" }, node.tags)
+        assert.are.same({
             ["2"] = { { row = 7, column = 2, offset = 138 } },
             ["3"] = { { row = 8, column = 2, offset = 149 } },
             ["4"] = { { row = 9, column = 2, offset = 160 } },
         }, node.linked)
 
         node = assert(nodes["2"], "missing node 2")
-        assert.equals("2", node.id)
-        assert.equals(join_path(ORG_FILES_DIR, "one.org"), node.file)
-        assert.equals("node two", node.title)
-        assert.same({}, node.aliases)
-        assert.equals(1, node.level)
-        assert.same({ "a", "b", "c", "d", "e", "f" }, node.tags)
-        assert.same({
+        assert.are.equal("2", node.id)
+        assert.are.equal(join_path(ORG_FILES_DIR, "one.org"), node.file)
+        assert.are.equal("node two", node.title)
+        assert.are.same({}, node.aliases)
+        assert.are.equal(1, node.level)
+        assert.are.same({ "a", "b", "c", "d", "e", "f" }, node.tags)
+        assert.are.same({
             ["1"] = { { row = 16, column = 36, offset = 258 } },
             ["3"] = { { row = 16, column = 49, offset = 271 } },
         }, node.linked)
 
         node = assert(nodes["3"], "missing node 3")
-        assert.equals("3", node.id)
-        assert.equals(join_path(ORG_FILES_DIR, "one.org"), node.file)
-        assert.equals("node three", node.title)
-        assert.same({}, node.aliases)
-        assert.equals(2, node.level)
-        assert.same({ "a", "b", "c", "d", "e", "f", "g", "h", "i" }, node.tags)
-        assert.same({
+        assert.are.equal("3", node.id)
+        assert.are.equal(join_path(ORG_FILES_DIR, "one.org"), node.file)
+        assert.are.equal("node three", node.title)
+        assert.are.same({}, node.aliases)
+        assert.are.equal(2, node.level)
+        assert.are.same({ "a", "b", "c", "d", "e", "f", "g", "h", "i" }, node.tags)
+        assert.are.same({
             ["2"] = { { row = 23, column = 42, offset = 379 } },
         }, node.linked)
 
         node = assert(nodes["1234"], "missing node 1234")
-        assert.equals("1234", node.id)
-        assert.equals(join_path(ORG_FILES_DIR, "test.org"), node.file)
-        assert.equals("some title", node.title)
-        assert.same({}, node.aliases)
-        assert.equals(0, node.level)
-        assert.same({ "a", "b", "c" }, node.tags)
-        assert.same({
+        assert.are.equal("1234", node.id)
+        assert.are.equal(join_path(ORG_FILES_DIR, "test.org"), node.file)
+        assert.are.equal("some title", node.title)
+        assert.are.same({}, node.aliases)
+        assert.are.equal(0, node.level)
+        assert.are.same({ "a", "b", "c" }, node.tags)
+        assert.are.same({
             ["1234"] = { { row = 22, column = 2, offset = 291 } },
             ["5678"] = { { row = 23, column = 2, offset = 333 } },
         }, node.linked)
 
         node = assert(nodes["5678"], "missing node 5678")
-        assert.equals("5678", node.id)
-        assert.equals(join_path(ORG_FILES_DIR, "test.org"), node.file)
-        assert.equals("Heading 1 that is a node", node.title)
-        assert.same({}, node.aliases)
-        assert.equals(1, node.level)
-        assert.same({ "a", "b", "c" }, node.tags)
-        assert.same({}, node.linked)
+        assert.are.equal("5678", node.id)
+        assert.are.equal(join_path(ORG_FILES_DIR, "test.org"), node.file)
+        assert.are.equal("Heading 1 that is a node", node.title)
+        assert.are.same({}, node.aliases)
+        assert.are.equal(1, node.level)
+        assert.are.same({ "a", "b", "c" }, node.tags)
+        assert.are.same({}, node.linked)
 
         node = assert(nodes["9999"], "missing node 9999")
-        assert.equals("9999", node.id)
-        assert.equals(join_path(ORG_FILES_DIR, "test.org"), node.file)
-        assert.equals("Heading 3 that is a node with tags", node.title)
-        assert.same({}, node.aliases)
-        assert.equals(1, node.level)
-        assert.same({ "a", "b", "c", "tag1", "tag2" }, node.tags)
-        assert.same({}, node.linked)
+        assert.are.equal("9999", node.id)
+        assert.are.equal(join_path(ORG_FILES_DIR, "test.org"), node.file)
+        assert.are.equal("Heading 3 that is a node with tags", node.title)
+        assert.are.same({}, node.aliases)
+        assert.are.equal(1, node.level)
+        assert.are.same({ "a", "b", "c", "tag1", "tag2" }, node.tags)
+        assert.are.same({}, node.linked)
 
         node = assert(nodes["links-1234"], "missing node links-1234")
-        assert.equals("links-1234", node.id)
-        assert.equals(join_path(ORG_FILES_DIR, "links.org"), node.file)
-        assert.equals("links", node.title)
-        assert.same({}, node.aliases)
-        assert.equals(0, node.level)
-        assert.same({}, node.tags)
-        assert.same({
+        assert.are.equal("links-1234", node.id)
+        assert.are.equal(join_path(ORG_FILES_DIR, "links.org"), node.file)
+        assert.are.equal("links", node.title)
+        assert.are.same({}, node.aliases)
+        assert.are.equal(0, node.level)
+        assert.are.same({}, node.tags)
+        assert.are.same({
             ["1234"] = { { row = 6, column = 2, offset = 57 } },
             ["5678"] = { { row = 7, column = 2, offset = 99 } },
         }, node.linked)
@@ -151,7 +151,7 @@ describe("org-roam.core.scanner", function()
         assert(not error, error)
 
         -- Verify the scan path and file are correct
-        assert.equals(join_path(ORG_FILES_DIR, "one.org"), scan.path)
+        assert.are.equal(join_path(ORG_FILES_DIR, "one.org"), scan.path)
         assert.is_not_nil(scan.file)
 
         -- Make a map of node id -> node for tests so we can avoid dependency on order
@@ -164,38 +164,38 @@ describe("org-roam.core.scanner", function()
         local node
 
         node = assert(nodes["1"], "missing node 1")
-        assert.equals("1", node.id)
-        assert.equals(join_path(ORG_FILES_DIR, "one.org"), node.file)
-        assert.equals("one", node.title)
-        assert.same({ "1", "neo", "the one" }, node.aliases)
-        assert.equals(0, node.level)
-        assert.same({ "a", "b", "c" }, node.tags)
-        assert.same({
+        assert.are.equal("1", node.id)
+        assert.are.equal(join_path(ORG_FILES_DIR, "one.org"), node.file)
+        assert.are.equal("one", node.title)
+        assert.are.same({ "1", "neo", "the one" }, node.aliases)
+        assert.are.equal(0, node.level)
+        assert.are.same({ "a", "b", "c" }, node.tags)
+        assert.are.same({
             ["2"] = { { row = 7, column = 2, offset = 138 } },
             ["3"] = { { row = 8, column = 2, offset = 149 } },
             ["4"] = { { row = 9, column = 2, offset = 160 } },
         }, node.linked)
 
         node = assert(nodes["2"], "missing node 2")
-        assert.equals("2", node.id)
-        assert.equals(join_path(ORG_FILES_DIR, "one.org"), node.file)
-        assert.equals("node two", node.title)
-        assert.same({}, node.aliases)
-        assert.equals(1, node.level)
-        assert.same({ "a", "b", "c", "d", "e", "f" }, node.tags)
-        assert.same({
+        assert.are.equal("2", node.id)
+        assert.are.equal(join_path(ORG_FILES_DIR, "one.org"), node.file)
+        assert.are.equal("node two", node.title)
+        assert.are.same({}, node.aliases)
+        assert.are.equal(1, node.level)
+        assert.are.same({ "a", "b", "c", "d", "e", "f" }, node.tags)
+        assert.are.same({
             ["1"] = { { row = 16, column = 36, offset = 258 } },
             ["3"] = { { row = 16, column = 49, offset = 271 } },
         }, node.linked)
 
         node = assert(nodes["3"], "missing node 3")
-        assert.equals("3", node.id)
-        assert.equals(join_path(ORG_FILES_DIR, "one.org"), node.file)
-        assert.equals("node three", node.title)
-        assert.same({}, node.aliases)
-        assert.equals(2, node.level)
-        assert.same({ "a", "b", "c", "d", "e", "f", "g", "h", "i" }, node.tags)
-        assert.same({
+        assert.are.equal("3", node.id)
+        assert.are.equal(join_path(ORG_FILES_DIR, "one.org"), node.file)
+        assert.are.equal("node three", node.title)
+        assert.are.same({}, node.aliases)
+        assert.are.equal(2, node.level)
+        assert.are.same({ "a", "b", "c", "d", "e", "f", "g", "h", "i" }, node.tags)
+        assert.are.same({
             ["2"] = { { row = 23, column = 42, offset = 379 } },
         }, node.linked)
     end)
