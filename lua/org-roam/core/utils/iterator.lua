@@ -38,6 +38,7 @@ M.__index = M
 function M:new(f, opts)
     opts = opts or {}
     local instance = {}
+    ---@diagnostic disable-next-line:param-type-mismatch
     setmetatable(instance, M)
     instance.__allow_nil = opts.allow_nil or false
     instance.__last = nil

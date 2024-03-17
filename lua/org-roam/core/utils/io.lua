@@ -8,7 +8,6 @@ local uv = vim.loop
 
 local async = require("org-roam.core.utils.async")
 local Iterator = require("org-roam.core.utils.iterator")
-local Queue = require("org-roam.core.utils.queue")
 
 -- 0o644 (rw-r--r--)
 -- Owner can read and write.

@@ -45,6 +45,7 @@ M.__index = M
 ---@return org-roam.core.utils.Uri
 function M:new(opts)
     local instance = {}
+    ---@diagnostic disable-next-line:param-type-mismatch
     setmetatable(instance, M)
     instance.scheme = opts.scheme
     instance.authority = opts.authority
@@ -152,6 +153,7 @@ function M:query_params(opts)
     -- Parse query into a table
     local query_table = nil
     if self.query and self.query ~= "" then
+        ---@type {[string]: string}
         query_table = {}
 
         local PATTERN = string.format(

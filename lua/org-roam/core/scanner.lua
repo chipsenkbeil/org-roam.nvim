@@ -253,6 +253,7 @@ local function file_to_nodes(path, file)
     ---@type org-roam.core.utils.tree.IntervalTree|nil
     local tags_tree
     if #file.sections > 0 then
+        ---@param section org-roam.core.parser.Section[]
         tags_tree = IntervalTree:from_list(vim.tbl_map(function(section)
             ---@cast section org-roam.core.parser.Section
             return {
@@ -295,7 +296,10 @@ local function file_to_nodes(path, file)
             end
 
             for _, node in ipairs(nodes) do
-                for _, tag in ipairs(node.data) do
+                ---@type string[]
+                local tagslist = node.data
+
+                for _, tag in ipairs(tagslist) do
                     ---@cast tag string
                     table.insert(tags, tag)
                 end
@@ -323,6 +327,7 @@ local function file_to_nodes(path, file)
     ---@type org-roam.core.utils.tree.IntervalTree|nil
     local section_node_tree
     if #section_nodes > 0 then
+        ---@param t {[1]:org-roam.core.parser.Range, [2]:org-roam.core.database.Node}
         section_node_tree = IntervalTree:from_list(vim.tbl_map(function(t)
             return { t[1].start.offset, t[1].end_.offset, t[2] }
         end, section_nodes))
@@ -339,6 +344,7 @@ local function file_to_nodes(path, file)
         -- cache all links and use the non-id links
         -- externally.
         if link_id then
+            ---@type org-roam.core.database.Node|nil
             local target_node
             if section_node_tree then
                 target_node = section_node_tree:find_last_data({
