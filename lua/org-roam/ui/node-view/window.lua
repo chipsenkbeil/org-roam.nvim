@@ -67,6 +67,22 @@ local function get_cached_lines(cache, opts)
                 if item.mtime < mtime then
                     item.mtime = mtime
 
+                    require("orgmode.files")
+                        :load_file(opts.path)
+                        :next(function(file)
+                            -- Figure out where the link is located using position (1, 0) cursor
+                            local node = file:get_node_at_cursor({ opts.row, opts.col - 1 })
+
+                            -- Figure out where we are located as there are several situations
+                            -- where we load content differently to preview:
+                            --
+                            -- 1. If we are in a list, we return the entire list
+                            -- 2. If we are in a heading, we return the heading's text
+                            -- 3. If we are in a paragraph, we return the entire paragraph
+                            -- 4. If we are in a drawer, we return the entire drawer
+                            -- 5. Otherwise, just return the line where we are
+                        end)
+
                     ---@diagnostic disable-next-line:redefined-local
                     io.read_file(opts.path, function(err, data)
                         item.queued = false
@@ -165,6 +181,7 @@ local function render(node, emitter, cache)
             if backlink_node then
                 local locs = backlink_node.linked[node.id]
                 for _, loc in ipairs(locs or {}) do
+                    -- One-indexed row/column
                     local row = loc.row + 1
                     local col = loc.column + 1
 
