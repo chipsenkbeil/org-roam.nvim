@@ -95,16 +95,16 @@ local function load_lines_at_cursor(path, cursor)
         local sha256 = vim.fn.sha256(file.content)
         local is_new = not CACHE[key] or CACHE[key].sha256 ~= sha256
 
-        -- If our file has changed, re-render
-        if is_new then
-            EMITTER:emit(EVENTS.REFRESH)
-        end
-
         -- Update our cache
         CACHE[key] = {
             sha256 = sha256,
             lines = file_to_lines(file),
         }
+
+        -- If our file has changed, re-render
+        if is_new then
+            EMITTER:emit(EVENTS.REFRESH)
+        end
 
         return file
     end)
@@ -166,9 +166,6 @@ local function render(node)
                     vim.list_extend(lines, load_lines_at_cursor(
                         node.file, { row, col - 1 }
                     ))
-
-                    -- Add a blank line to separate post content
-                    table.insert(lines, "")
                 end
             end
         end
