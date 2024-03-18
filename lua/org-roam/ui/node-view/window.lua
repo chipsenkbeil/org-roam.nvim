@@ -238,7 +238,7 @@ function M:new(opts)
             modifiable = false,
             buftype = "nofile",
             swapfile = false,
-            bufhidden = "delete", -- Completely remove the buffer once hidden
+            -- bufhidden = "delete", -- Completely remove the buffer once hidden
         },
         winopts = {
             foldmethod = "expr",
@@ -248,6 +248,13 @@ function M:new(opts)
         widgets = widgets,
     }, opts))
     instance.__window = window
+
+    vim.api.nvim_create_autocmd("BufReadCmd", {
+        buffer = window:bufnr(),
+        callback = function()
+            window:render()
+        end,
+    })
 
     -- TODO: This is a hack to get orgmode to work properly for a "fake" buffer.
     window:buffer():on_post_render(function()
