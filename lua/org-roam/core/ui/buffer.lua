@@ -128,6 +128,12 @@ function M:namespace()
     return self.__namespace
 end
 
+---Returns the name of the underlying buffer.
+---@return string
+function M:name()
+    return vim.api.nvim_buf_get_name(self.__bufnr)
+end
+
 ---Invokes `cb` right before render has started.
 ---@param cb fun()
 function M:on_pre_render(cb)

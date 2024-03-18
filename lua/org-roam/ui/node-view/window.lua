@@ -9,115 +9,113 @@ local database = require("org-roam.database")
 local Emitter = require("org-roam.core.utils.emitter")
 local io = require("org-roam.core.utils.io")
 local notify = require("org-roam.core.ui.notify")
-local tbl_utils = require("org-roam.core.utils.table")
 local utils = require("org-roam.utils")
 local Window = require("org-roam.core.ui.window")
 
 local EVENTS = {
-    CACHE_UPDATED = "cache-updated",
+    REFRESH = "refresh",
 }
 
----@param cache table<string, {mtime:integer, queued:boolean, lines:string[]}>
----@param opts {emitter:org-roam.core.utils.Emitter, id:org-roam.core.database.Id, path:string, row:integer, col:integer}
----@return org-roam.core.ui.Line[]
-local function get_cached_lines(cache, opts)
-    local lines = {}
-    local key = string.format("%s.%s.%s", opts.id, opts.row, opts.col)
-    local item = cache[key]
+---Cache of files that we've loaded for previewing contents.
+---NOTE: We do not populate paths, but this is okay as we can
+---      still load individual files, which get cached.
+---@type OrgFiles
+local ORG_FILES = require("orgmode.files"):new({ paths = {} })
 
-    -- Populate the lines, or add a placeholder if not available
-    if item and item.lines and item.mtime > 0 then
-        vim.list_extend(lines, item.lines)
-    else
-        table.insert(lines, "<LOADING>")
+---Cache of key -> lines that persists across all windows.
+---Key is `path.row.col`.
+---@type table<string, {sha256:string, lines:string[]}>
+local CACHE = {}
+
+---Global event emitter to ensure all windows stay accurate.
+local EMITTER = Emitter:new()
+
+---Loads file at `path` and figures out the lines of text to use for a preview.
+---@param path string
+---@param cursor {[1]:integer, [2]:integer} # cursor position indexed (1, 0)
+---@return string[]
+local function load_lines_at_cursor(path, cursor)
+    -- Make zero-indexed row and column from cursor
+    local row, col = cursor[1] - 1, cursor[2]
+
+    ---Figures out where we are located and retrieves relevant lines.
+    ---
+    ---Previews can be calculated in a variety of ways:
+    ---1. If we are in a directive, we return the entire directive (directive)
+    ---2. If we are in a list, we return the entire list (list)
+    ---3. If we are in a heading, we return the heading's text (item)
+    ---4. If we are in a paragraph, we return the entire paragraph (paragraph)
+    ---5. If we are in a drawer, we return the entire drawer (drawer)
+    ---6. If we are in a property drawer, we return the entire drawer (property_drawer)
+    ---7. If we are in a table, we return the entire table (table)
+    ---8. Otherwise, capture the entire element and return it (element)
+    ---@param file OrgFile
+    ---@return string[]
+    local function file_to_lines(file)
+        local node = file:get_node_at_cursor(cursor)
+        local container_types = {
+            "directive",
+            "list",
+            "item",
+            "paragraph",
+            "drawer",
+            "property_drawer",
+            "table",
+            "element", -- This should be a catchall
+        }
+
+        while node and not vim.tbl_contains(container_types, node:type()) do
+            node = node:parent()
+
+            local ty = node and node:type() or ""
+            local pty = node and node:parent() and node:parent():type() or ""
+
+            -- Check if we're actually in a list item and advance up out of paragraph
+            if ty == "paragraph" and pty == "listitem" then
+                node = node:parent()
+            end
+        end
+
+        if not node then
+            return {}
+        end
+
+        -- Load the text and split it by line
+        local text = file:get_node_text(node)
+        return vim.split(text, "\n", { plain = true })
     end
 
-    -- If cached item doesn't exist, create a filler
-    item = item or { mtime = 0, queued = false, lines = {} }
-    cache[key] = item
+    -- Get the lines that are available right now
+    local key = string.format("%s.%s.%s", path, row, col)
+    local lines = (CACHE[key] or {}).lines or {}
 
-    -- Schedule a check to see if the file has changed since we last fetched
-    if not item.queued then
-        item.queued = true
+    -- Kick off a reload of lines
+    ORG_FILES:load_file(path):next(function(file)
+        -- Calculate a digest and see if its different
+        local sha256 = vim.fn.sha256(file.content)
+        local is_new = not CACHE[key] or CACHE[key].sha256 ~= sha256
 
-        vim.schedule(function()
-            io.stat(opts.path, function(err, stat)
-                if err then
-                    item.queued = false
-                    notify.error(err)
-                    return
-                end
+        -- If our file has changed, re-render
+        if is_new then
+            EMITTER:emit(EVENTS.REFRESH)
+        end
 
-                ---@cast stat -nil
-                local mtime = stat.mtime.sec
+        -- Update our cache
+        CACHE[key] = {
+            sha256 = sha256,
+            lines = file_to_lines(file),
+        }
 
-                -- If the file has been modified since last checked,
-                -- read the contents again to populate our cache
-                if item.mtime < mtime then
-                    item.mtime = mtime
-
-                    -- NOTE: Loading a file cannot be done within the results of a stat,
-                    --       so we need to schedule followup work.
-                    vim.schedule(function()
-                        require("orgmode.files")
-                            :new({ paths = opts.path })
-                            :load_file(opts.path)
-                            :next(function(file)
-                                ---@cast file OrgFile
-                                -- Figure out where we are located as there are several situations
-                                -- where we load content differently to preview:
-                                --
-                                -- 1. If we are in a list, we return the entire list (list)
-                                -- 2. If we are in a heading, we return the heading's text (item)
-                                -- 3. If we are in a paragraph, we return the entire paragraph (paragraph)
-                                -- 4. If we are in a drawer, we return the entire drawer (drawer)
-                                -- 5. If we are in a property drawer, we return the entire drawer (property_drawer)
-                                -- 5. If we are in a table, we return the entire table (table)
-                                -- 5. Otherwise, just return the line where we are
-                                local node = file:get_node_at_cursor({ opts.row, opts.col - 1 })
-                                local container_types = {
-                                    "paragraph", "list", "item", "table", "drawer", "property_drawer",
-                                }
-                                while node and not vim.tbl_contains(container_types, node:type()) do
-                                    node = node:parent()
-
-                                    local ty = node and node:type() or ""
-                                    local pty = node:parent() and node:parent():type() or ""
-
-                                    -- Check if we're actually in a list item and advance up out of paragraph
-                                    if ty == "paragraph" and pty == "listitem" then
-                                        node = node:parent()
-                                    end
-                                end
-
-                                if not node then
-                                    return file
-                                end
-
-                                -- Load the text and split it by line
-                                local text = file:get_node_text(node)
-                                item.lines = vim.split(text, "\n", { plain = true })
-                                item.queued = false
-
-                                -- Schedule a re-render at this point
-                                opts.emitter:emit(EVENTS.CACHE_UPDATED)
-                                return file
-                            end)
-                    end)
-                end
-            end)
-        end)
-    end
+        return file
+    end)
 
     return lines
 end
 
 ---Renders a node within an orgmode buffer.
 ---@param node org-roam.core.database.Node|org-roam.core.database.Id
----@param emitter org-roam.core.utils.Emitter
----@param cache table<string, {mtime:integer, queued:boolean, lines:string[]}>
 ---@return org-roam.core.ui.Line[] lines
-local function render(node, emitter, cache)
+local function render(node)
     local db = database()
 
     ---@type org-roam.core.ui.Line[]
@@ -165,13 +163,9 @@ local function render(node, emitter, cache)
                         )
                     )
 
-                    vim.list_extend(lines, get_cached_lines(cache, {
-                        emitter = emitter,
-                        id = node.id,
-                        path = node.file,
-                        row = row,
-                        col = col,
-                    }))
+                    vim.list_extend(lines, load_lines_at_cursor(
+                        node.file, { row, col - 1 }
+                    ))
 
                     -- Add a blank line to separate post content
                     table.insert(lines, "")
@@ -201,8 +195,7 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
 
-    local emitter = Emitter:new()
-    emitter:on(EVENTS.CACHE_UPDATED, function()
+    EMITTER:on(EVENTS.REFRESH, function()
         -- NOTE: We MUST schedule this and not render directly
         --       as that will fail with api calls not allowed
         --       in our fast loop!
@@ -215,12 +208,10 @@ function M:new(opts)
     -- the id we provided or looks up the id whenever render is called
     local widgets = {}
     local id = opts.id
-    local cache = {}
-    local name = "org-roam-node-view-cursor.org"
+    local name = vim.fn.tempname() .. "-roam-node-view.org"
     if id then
-        name = "org-roam-node-view-id-" .. id .. ".org"
         table.insert(widgets, function()
-            return render(id, emitter, cache)
+            return render(id)
         end)
     else
         ---@type org-roam.core.database.Node|nil
@@ -239,20 +230,35 @@ function M:new(opts)
 
             if node then
                 last_node = node
-                return render(node, emitter, cache)
+                return render(node)
             else
                 return {}
             end
         end)
     end
 
-    instance.__window = Window:new(vim.tbl_extend("keep", {
+    local window = Window:new(vim.tbl_extend("keep", {
         bufopts = {
             name = name,
             filetype = "org",
+            modifiable = false,
+            buftype = "nofile",
+            swapfile = false,
+            bufhidden = "delete", -- Completely remove the buffer once hidden
         },
         widgets = widgets,
     }, opts))
+    instance.__window = window
+
+    -- TODO: This is a hack to get orgmode to work properly for a "fake" buffer.
+    --[[ window:buffer():on_post_render(function()
+        local text = table.concat(vim.api.nvim_buf_get_lines(window:bufnr(), 0, -1, true), "\n")
+        io.write_file(window:buffer():name(), text, function(err)
+            if err then
+                notify.debug("failed persisting node-view buffer: " .. err)
+            end
+        end)
+    end) ]]
 
     return instance
 end
