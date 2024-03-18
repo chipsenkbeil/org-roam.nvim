@@ -35,9 +35,6 @@ local EMITTER = Emitter:new()
 ---@param cursor {[1]:integer, [2]:integer} # cursor position indexed (1, 0)
 ---@return string[]
 local function load_lines_at_cursor(path, cursor)
-    -- Make zero-indexed row and column from cursor
-    local row, col = cursor[1] - 1, cursor[2]
-
     ---Figures out where we are located and retrieves relevant lines.
     ---
     ---Previews can be calculated in a variety of ways:
@@ -86,7 +83,7 @@ local function load_lines_at_cursor(path, cursor)
     end
 
     -- Get the lines that are available right now
-    local key = string.format("%s.%s.%s", path, row, col)
+    local key = string.format("%s.%s.%s", path, cursor[1], cursor[2])
     local lines = (CACHE[key] or {}).lines or {}
 
     -- Kick off a reload of lines
@@ -243,19 +240,20 @@ function M:new(opts)
             swapfile = false,
             bufhidden = "delete", -- Completely remove the buffer once hidden
         },
+        winopts = {
+            foldmethod = "expr",
+            foldexpr = "nvim_treesitter#foldexpr()",
+            foldenable = true,
+        },
         widgets = widgets,
     }, opts))
     instance.__window = window
 
     -- TODO: This is a hack to get orgmode to work properly for a "fake" buffer.
-    --[[ window:buffer():on_post_render(function()
-        local text = table.concat(vim.api.nvim_buf_get_lines(window:bufnr(), 0, -1, true), "\n")
-        io.write_file(window:buffer():name(), text, function(err)
-            if err then
-                notify.debug("failed persisting node-view buffer: " .. err)
-            end
-        end)
-    end) ]]
+    window:buffer():on_post_render(function()
+        -- Trigger reload of file
+        require("orgmode"):reload(name)
+    end)
 
     return instance
 end
