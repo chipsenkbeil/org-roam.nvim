@@ -241,9 +241,10 @@ function M:new(opts)
             -- bufhidden = "delete", -- Completely remove the buffer once hidden
         },
         winopts = {
-            foldmethod = "expr",
+            --[[ foldmethod = "expr",
             foldexpr = "nvim_treesitter#foldexpr()",
-            foldenable = true,
+            foldenable = true, ]]
+            foldlevel = 1,
         },
         widgets = widgets,
     }, opts))
@@ -253,12 +254,23 @@ function M:new(opts)
         buffer = window:bufnr(),
         callback = function()
             window:render()
+
+            -- Start with previews closed
+            vim.wo[window:winnr()].foldlevel = 1
         end,
     })
 
     -- TODO: This is a hack to get orgmode to work properly for a "fake" buffer.
     window:buffer():on_post_render(function()
-        -- Trigger reload of file
+        -- NOTE: We have to do this to get folding to work.
+        --       Using `vim.filetype.match({ buf = bufnr })` does not work.
+        --
+        -- TODO: We have to select the buffer and make it available in the current
+        --       window for this to work. Maybe the solution is to detect if the
+        --       buffer is visible and jump to a window where it is, run this,
+        --       and then jump back to the previous window.
+        vim.cmd("filetype detect")
+
         require("orgmode"):reload(name)
     end)
 
