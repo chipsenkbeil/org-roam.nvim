@@ -216,7 +216,10 @@ function M:render(opts)
     opts = opts or {}
 
     if self:is_open() or opts.force then
-        self.__buffer:render(opts)
+        self.__buffer:render({
+            delay = opts.delay,
+            sync = opts.sync,
+        })
     end
 end
 
@@ -281,6 +284,17 @@ function M:size()
     local rows = vim.api.nvim_win_get_height(self.__win)
     local cols = vim.api.nvim_win_get_width(self.__win)
     return { rows, cols }
+end
+
+---Returns true if the window's buffer is the same as when it was created.
+---If the buffer has been switched, this will return false.
+---@return boolean
+function M:has_original_buffer()
+    local winnr = self.__win
+    if not winnr then
+        return false
+    end
+    return vim.api.nvim_win_get_buf(winnr) == self:bufnr()
 end
 
 return M

@@ -12,6 +12,8 @@ local notify = require("org-roam.core.ui.notify")
 local utils = require("org-roam.utils")
 local Window = require("org-roam.core.ui.window")
 
+local uv = vim.loop
+
 local EVENTS = {
     REFRESH = "refresh",
 }
@@ -172,6 +174,7 @@ local function render(node)
 end
 
 ---@class org-roam.ui.window.NodeViewWindow
+---@field private __id org-roam.core.database.Id|nil
 ---@field private __window org-roam.core.ui.Window
 local M = {}
 M.__index = M
@@ -189,90 +192,100 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
 
-    EMITTER:on(EVENTS.REFRESH, function()
-        -- NOTE: We MUST schedule this and not render directly
-        --       as that will fail with api calls not allowed
-        --       in our fast loop!
-        vim.schedule(function()
-            instance:render()
-        end)
-    end)
+    instance.__id = opts.id
 
-    -- Hard-code the widgets list to be our custom renderer that uses
-    -- the id we provided or looks up the id whenever render is called
-    local widgets = {}
-    local id = opts.id
-    local name = vim.fn.tempname() .. "-roam-node-view.org"
-    if id then
-        table.insert(widgets, function()
-            return render(id)
-        end)
-    else
-        ---@type org-roam.core.database.Node|nil
-        local last_node = nil
+    ---Cached instance of render that maintains the last id rendered
+    ---if our window suddenly loses any viable target.
+    local cached_render = (function()
+        ---@type org-roam.core.database.Id|nil
+        local last_id = nil
 
-        table.insert(widgets, function()
-            local node = last_node
-
-            -- Only refresh if we are in a different buffer
-            -- NOTE: orgmode plugin prepends our directory in front of the name
-            --       so we have to check if the name ends with our name.
-            if not vim.endswith(vim.api.nvim_buf_get_name(0), name) then
-                ---@type org-roam.core.database.Node|nil
-                node = async.wait(utils.node_under_cursor)
-            end
-
-            if node then
-                last_node = node
-                return render(node)
+        ---@return org-roam.core.ui.Line[]
+        return function()
+            local id = instance.__id or last_id
+            last_id = id
+            if id then
+                return render(id)
             else
                 return {}
             end
-        end)
-    end
+        end
+    end)()
 
     local window = Window:new(vim.tbl_extend("keep", {
         bufopts = {
-            name = name,
+            name = vim.fn.tempname() .. "-roam-node-view.org",
             filetype = "org",
             modifiable = false,
             buftype = "nofile",
             swapfile = false,
-            -- bufhidden = "delete", -- Completely remove the buffer once hidden
         },
         winopts = {
-            --[[ foldmethod = "expr",
-            foldexpr = "nvim_treesitter#foldexpr()",
-            foldenable = true, ]]
+            foldenable = true,
             foldlevel = 1,
         },
-        widgets = widgets,
+        widgets = { cached_render },
     }, opts))
     instance.__window = window
 
     vim.api.nvim_create_autocmd("BufReadCmd", {
         buffer = window:bufnr(),
         callback = function()
-            window:render()
+            -- NOTE: Perform blocking as we need to populate immediately.
+            window:render({ sync = true })
 
-            -- Start with previews closed
-            vim.wo[window:winnr()].foldlevel = 1
+            -- TODO: Hack to support folds when reloaded.
+            -- vim.cmd("filetype detect")
         end,
     })
 
-    -- TODO: This is a hack to get orgmode to work properly for a "fake" buffer.
+    -- TODO: This is a hack to get orgmode folding to work as we need to
+    --       trigger `filetype detect` while also avoiding new renders
+    --       while moving around windows to trigger the detection.
     window:buffer():on_post_render(function()
-        -- NOTE: We have to do this to get folding to work.
-        --       Using `vim.filetype.match({ buf = bufnr })` does not work.
-        --
-        -- TODO: We have to select the buffer and make it available in the current
-        --       window for this to work. Maybe the solution is to detect if the
-        --       buffer is visible and jump to a window where it is, run this,
-        --       and then jump back to the previous window.
-        vim.cmd("filetype detect")
+        local winnr = window:winnr()
+        local buffer = window:buffer()
+        if winnr then
+            -- Pause buffer so we don't re-render from detecting
+            buffer:pause()
 
-        require("orgmode"):reload(name)
+            local curwin = vim.api.nvim_get_current_win()
+            vim.api.nvim_set_current_win(winnr)
+            vim.cmd("filetype detect")
+            vim.api.nvim_set_current_win(curwin)
+
+            -- Resume buffer so we can render going forward
+            buffer:unpause()
+        end
     end)
+
+    EMITTER:on(EVENTS.REFRESH, function()
+        -- NOTE: We MUST schedule this and not render directly
+        --       as that will fail with api calls not allowed
+        --       in our fast loop!
+        vim.schedule(function()
+            window:render()
+        end)
+    end)
+
+    ---@type uv_timer_t|nil
+    --[[ local timer
+
+    window:on_open(function()
+        timer = uv.new_timer()
+        ---@cast timer -nil
+        timer:start(200, 200, vim.schedule_wrap(function()
+            window:render()
+        end))
+    end)
+
+    window:on_close(function()
+        if timer then
+            timer:stop()
+            timer:close()
+            timer = nil
+        end
+    end) ]]
 
     return instance
 end
@@ -299,6 +312,15 @@ function M:is_open()
     end
 end
 
+---@return boolean
+function M:has_original_buffer()
+    if self.__window then
+        return self.__window:has_original_buffer()
+    else
+        return false
+    end
+end
+
 ---Opens the window if closed, or closes if open.
 function M:toggle()
     if self.__window then
@@ -306,10 +328,19 @@ function M:toggle()
     end
 end
 
----Re-renders the window manually.
-function M:render()
-    if self.__window then
-        self.__window:render()
+---@return org-roam.core.database.Id|nil
+function M:get_id()
+    return self.__id
+end
+
+---@param id org-roam.core.database.Id|nil
+function M:set_id(id)
+    local is_new_id = id ~= nil and id ~= self.__id
+
+    self.__id = id
+
+    if is_new_id then
+        EMITTER:emit(EVENTS.REFRESH)
     end
 end
 
