@@ -22,6 +22,9 @@ local STATE = {
     ---When the buffer is not scheduled or rendering.
     IDLE = "idle",
 
+    ---When the buffer is avoiding rending.
+    PAUSED = "paused",
+
     ---When the buffer is scheduled for rendering.
     SCHEDULED = "scheduled",
 
@@ -158,6 +161,11 @@ function M:is_idle()
 end
 
 ---@return boolean
+function M:is_paused()
+    return self.__state == STATE.PAUSED
+end
+
+---@return boolean
 function M:is_scheduled()
     return self.__state == STATE.SCHEDULED
 end
@@ -170,6 +178,18 @@ end
 ---@return boolean
 function M:is_modifiable()
     return vim.api.nvim_buf_get_option(self.__bufnr, "modifiable") == true
+end
+
+---Set buffer to paused rendering state, canceling any scheduled render.
+function M:pause()
+    self.__state = STATE.PAUSED
+end
+
+---Set buffer to unpaused (idle) rendering state if currently paused.
+function M:unpause()
+    if self.__state == STATE.PAUSED then
+        self.__state = STATE.IDLE
+    end
 end
 
 ---Destroys the buffer.
@@ -197,6 +217,11 @@ function M:render(opts)
     end
 
     local function do_render()
+        -- If buffer not in scheduled state (e.g. paused), exit without rendering
+        if self.__state ~= STATE.SCHEDULED then
+            return
+        end
+
         -- Report that we are about to render
         self.__emitter:emit(EVENTS.PRE_RENDER)
 
