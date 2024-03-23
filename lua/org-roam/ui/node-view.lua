@@ -6,6 +6,7 @@
 
 local events = require("org-roam.events")
 local select_node = require("org-roam.ui.select-node")
+local utils = require("org-roam.utils")
 local Window = require("org-roam.ui.node-view.window")
 
 ---@type org-roam.ui.window.NodeViewWindow|nil
@@ -40,7 +41,12 @@ local function toggle_node_view()
     end
 
     if not CURSOR_NODE_VIEW:is_open() then
-        CURSOR_NODE_VIEW:open()
+        -- Manually trigger a capture of the node under cursor to start
+        -- as the event above won't do anything at first
+        utils.node_under_cursor(function(node)
+            CURSOR_NODE_VIEW:set_id(node and node.id)
+            CURSOR_NODE_VIEW:open()
+        end)
     elseif CURSOR_NODE_VIEW:has_original_buffer() then
         CURSOR_NODE_VIEW:close()
     else
