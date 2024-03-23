@@ -14,6 +14,7 @@
 ---@alias org-roam.core.ui.LineSegment
 ---| string #raw text without highlight group
 ---| {[1]:string, [2]:string} #tuple of text and highlight group
+---| {lhs:string, rhs:function, global:boolean|nil}
 
 ---@class org-roam.core.ui.Widget
 ---@field private __namespace integer

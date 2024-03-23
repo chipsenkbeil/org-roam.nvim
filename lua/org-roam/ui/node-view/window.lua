@@ -8,6 +8,7 @@ local async = require("org-roam.core.utils.async")
 local database = require("org-roam.database")
 local Emitter = require("org-roam.core.utils.emitter")
 local io = require("org-roam.core.utils.io")
+local tbl_utils = require("org-roam.core.utils.table")
 local notify = require("org-roam.core.ui.notify")
 local utils = require("org-roam.utils")
 local Window = require("org-roam.core.ui.window")
@@ -27,6 +28,15 @@ local HL = {
     LINK_LOCATION = "Identifier",
     NORMAL        = "Normal",
     PREVIEW_LINE  = "PMenu",
+}
+
+---Mapping of kind -> icon.
+local ICONS = {
+    ---Shown next to a link when the preview is visible.
+    EXPANDED_PREVIEW = "▼",
+
+    ---Shown next to a link when the preview is invisible.
+    UNEXPANDED_PREVIEW = "▶",
 }
 
 ---Cache of files that we've loaded for previewing contents.
@@ -122,10 +132,14 @@ local function load_lines_at_cursor(path, cursor)
     return lines
 end
 
+---@class org-roam.ui.window.NodeViewWindowState
+---@field expanded table<org-roam.core.database.Id, table<integer, table<integer, boolean>>> #mapping of id -> zero-indexed row -> col -> boolean
+
 ---Renders a node within an orgmode buffer.
+---@param state org-roam.ui.window.NodeViewWindowState
 ---@param node org-roam.core.database.Node|org-roam.core.database.Id
 ---@return org-roam.core.ui.Line[] lines
-local function render(node)
+local function render(state, node)
     local db = database()
 
     ---@type org-roam.core.ui.Line[]
@@ -161,16 +175,46 @@ local function render(node)
                     local row = loc.row + 1
                     local col = loc.column + 1
 
+                    ---@type boolean
+                    local is_expanded = tbl_utils.get(state.expanded, backlink_node.id, row - 1, col - 1) or false
+
+                    local function do_expand()
+                        if not state.expanded then
+                            state.expanded = {}
+                        end
+
+                        if not state.expanded[backlink_node.id] then
+                            state.expanded[backlink_node.id] = {}
+                        end
+
+                        if not state.expanded[backlink_node.id][row - 1] then
+                            state.expanded[backlink_node.id][row - 1] = {}
+                        end
+
+                        state.expanded[backlink_node.id][row - 1][col - 1] = not is_expanded
+                    end
+
+                    -- Get prefix based on expansion status
+                    local prefix = { ICONS.UNEXPANDED_PREVIEW, HL.LINK_TITLE }
+                    if is_expanded then
+                        prefix = { ICONS.EXPANDED_PREVIEW, HL.LINK_TITLE }
+                    end
+
                     -- Insert line containing node's title and line location
                     table.insert(lines, {
+                        prefix,
                         { backlink_node.title,       HL.LINK_TITLE },
                         { " ",                       HL.NORMAL },
                         { "@ " .. row .. "," .. col, HL.LINK_LOCATION },
+                        { lhs = "<Tab>",             rhs = do_expand },
                     })
 
-                    vim.list_extend(lines, load_lines_at_cursor(
-                        node.file, { row, col - 1 }
-                    ))
+                    -- If we have toggled for this location, show the preview
+                    if is_expanded then
+                        vim.list_extend(lines, load_lines_at_cursor(
+                            node.file, { row, col - 1 }
+                        ))
+                    end
                 end
             end
         end
@@ -181,6 +225,7 @@ end
 
 ---@class org-roam.ui.window.NodeViewWindow
 ---@field private __id org-roam.core.database.Id|nil
+---@field private __state org-roam.ui.window.NodeViewWindowState
 ---@field private __window org-roam.core.ui.Window
 local M = {}
 M.__index = M
@@ -199,6 +244,7 @@ function M:new(opts)
     setmetatable(instance, M)
 
     instance.__id = opts.id
+    instance.__state = { expanded = {} }
 
     ---Cached instance of render that maintains the last id rendered
     ---if our window suddenly loses any viable target.
@@ -211,7 +257,7 @@ function M:new(opts)
             local id = instance.__id or last_id
             last_id = id
             if id then
-                return render(id)
+                return render(instance.__state, id)
             else
                 return {}
             end
