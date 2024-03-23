@@ -8,7 +8,7 @@ local Emitter = require("org-roam.core.utils.emitter")
 local notify = require("org-roam.core.ui.notify")
 local random = require("org-roam.core.utils.random")
 local tbl_utils = require("org-roam.core.utils.table")
-local Widget = require("org-roam.core.ui.widget")
+local Component = require("org-roam.core.ui.component")
 
 local EVENTS = {
     ---When rendering is about to start.
@@ -44,7 +44,7 @@ local STATE = {
 ---@field private __emitter org-roam.core.utils.Emitter
 ---@field private __state org-roam.core.ui.buffer.State
 ---@field private __keybindings org-roam.core.ui.buffer.Keybindings
----@field private __widgets org-roam.core.ui.Widget[]
+---@field private __components org-roam.core.ui.Component[]
 local M = {}
 M.__index = M
 
@@ -97,30 +97,30 @@ function M:new(opts)
     instance.__emitter     = Emitter:new()
     instance.__state       = STATE.IDLE
     instance.__keybindings = { registered = {}, callbacks = {} }
-    instance.__widgets     = {}
+    instance.__components  = {}
 
     return instance
 end
 
----Adds a widget to be used with this buffer.
----@param widget org-roam.core.ui.Widget|org-roam.core.ui.WidgetFunction
+---Adds a component to be used with this buffer.
+---@param component org-roam.core.ui.Component|org-roam.core.ui.ComponentFunction
 ---@return org-roam.core.ui.Buffer
-function M:add_widget(widget)
-    -- If given a raw function, convert it into a widget
-    if type(widget) == "function" then
-        widget = Widget:new(widget)
+function M:add_component(component)
+    -- If given a raw function, convert it into a component
+    if type(component) == "function" then
+        component = Component:new(component)
     end
 
-    table.insert(self.__widgets, widget)
+    table.insert(self.__components, component)
     return self
 end
 
----Adds widgets to be used with this buffer.
----@param widgets (org-roam.core.ui.Widget|org-roam.core.ui.WidgetFunction)[]
+---Adds components to be used with this buffer.
+---@param components (org-roam.core.ui.Component|org-roam.core.ui.ComponentFunction)[]
 ---@return org-roam.core.ui.Buffer
-function M:add_widgets(widgets)
-    for _, widget in ipairs(widgets) do
-        self:add_widget(widget)
+function M:add_components(components)
+    for _, component in ipairs(components) do
+        self:add_component(component)
     end
 
     return self
@@ -209,7 +209,7 @@ function M:destroy()
     end)
 end
 
----Clear and redraw the buffer using the current widgets.
+---Clear and redraw the buffer using the current components.
 ---
 ---If `delay` specified, will wait N milliseconds before scheduling rendering.
 ---If `sync` specified, will render directly instead of scheduling rendering.
@@ -238,13 +238,13 @@ function M:render(opts)
         -- Clear the buffer of its content
         self:__clear({ force = true })
 
-        -- Redraw content using the provided widgets
-        for _, widget in ipairs(self.__widgets) do
-            local ret = widget:render()
+        -- Redraw content using the provided components
+        for _, component in ipairs(self.__components) do
+            local ret = component:render()
             if ret.ok then
                 self:__apply_lines(ret.lines, true)
             else
-                notify.error("widget failed: " .. ret.error)
+                notify.error("component failed: " .. ret.error)
             end
         end
 

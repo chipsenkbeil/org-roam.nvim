@@ -1,10 +1,10 @@
 -------------------------------------------------------------------------------
--- WIDGET.LUA
+-- COMPONENT.LUA
 --
--- Base interface for an org-roam widget.
+-- Base interface for an org-roam ui component.
 -------------------------------------------------------------------------------
 
----@alias org-roam.core.ui.WidgetFunction
+---@alias org-roam.core.ui.ComponentFunction
 ---| fun():org-roam.core.ui.Line[]
 
 ---@alias org-roam.core.ui.Line
@@ -16,15 +16,15 @@
 ---| {[1]:string, [2]:string} #tuple of text and highlight group
 ---| {lhs:string, rhs:function, global:boolean|nil}
 
----@class org-roam.core.ui.Widget
+---@class org-roam.core.ui.Component
 ---@field private __namespace integer
----@field private __render org-roam.core.ui.WidgetFunction
+---@field private __render org-roam.core.ui.ComponentFunction
 local M = {}
 M.__index = M
 
----Creates a new org-roam ui widget.
----@param render org-roam.core.ui.WidgetFunction
----@return org-roam.core.ui.Widget
+---Creates a new org-roam ui component.
+---@param render org-roam.core.ui.ComponentFunction
+---@return org-roam.core.ui.Component
 function M:new(render)
     local instance = {}
     setmetatable(instance, M)
@@ -34,7 +34,7 @@ function M:new(render)
     return instance
 end
 
----Renders the contents of the widget, returning an object representing the
+---Renders the contents of the component, returning an object representing the
 ---results.
 ---
 ---If successful, `ok` is true and `lines` contains the lines rendered.

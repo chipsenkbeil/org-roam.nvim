@@ -30,7 +30,7 @@ local EVENTS = {
 ---@field destroy_on_close? boolean
 ---@field bufopts? table<string, any>
 ---@field winopts? table<string, any>
----@field widgets? (org-roam.core.ui.Widget|org-roam.core.ui.WidgetFunction)[]
+---@field components? (org-roam.core.ui.Component|org-roam.core.ui.ComponentFunction)[]
 
 ---@class org-roam.core.ui.Window
 ---@field private __buffer org-roam.core.ui.Buffer
@@ -82,9 +82,9 @@ function M:new(opts)
         name = opts.name,
     }))
 
-    -- Apply any widgets we've been assigned
-    if type(opts.widgets) == "table" then
-        instance.__buffer:add_widgets(opts.widgets)
+    -- Apply any components we've been assigned
+    if type(opts.components) == "table" then
+        instance.__buffer:add_components(opts.components)
     end
 
     -- Schedule the first rendering of the buffer
