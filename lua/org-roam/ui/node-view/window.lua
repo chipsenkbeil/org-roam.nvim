@@ -271,7 +271,7 @@ function M:new(opts)
             buftype = "nofile",
             swapfile = false,
         },
-        widgets = { cached_render },
+        components = { cached_render },
     }, opts))
     instance.__window = window
 

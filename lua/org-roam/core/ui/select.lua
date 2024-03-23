@@ -215,8 +215,8 @@ function M:open()
             winopts = {
                 cursorline = false,
             },
-            widgets = {
-                function() return self:__render_widget() end,
+            components = {
+                function() return self:__render_component() end,
                 function() return self:__reset_cursor_and_mode() end,
             },
         })
@@ -595,7 +595,7 @@ end
 
 ---@private
 ---@return org-roam.core.ui.Line[]
-function M:__render_widget()
+function M:__render_component()
     local window = self.__state.window
     if not window then
         return {}
