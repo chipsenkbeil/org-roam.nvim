@@ -7,6 +7,7 @@
 local Emitter = require("org-roam.core.utils.emitter")
 local notify = require("org-roam.core.ui.notify")
 local random = require("org-roam.core.utils.random")
+local tbl_utils = require("org-roam.core.utils.table")
 local Widget = require("org-roam.core.ui.widget")
 
 local EVENTS = {
@@ -32,12 +33,17 @@ local STATE = {
     RENDERING = "rendering",
 }
 
+---@class org-roam.core.ui.buffer.Keybindings
+---@field registered table<string, boolean> #mapping of lhs -> boolean to indicate registration done
+---@field callbacks table<integer, table<string, function[]>> #line -> lhs -> callbacks
+
 ---@class org-roam.core.ui.Buffer
 ---@field private __bufnr integer
 ---@field private __offset integer
 ---@field private __namespace integer
 ---@field private __emitter org-roam.core.utils.Emitter
 ---@field private __state org-roam.core.ui.buffer.State
+---@field private __keybindings org-roam.core.ui.buffer.Keybindings
 ---@field private __widgets org-roam.core.ui.Widget[]
 local M = {}
 M.__index = M
@@ -82,15 +88,16 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
 
-    local offset         = opts.offset or 0
-    opts.offset          = nil
+    local offset           = opts.offset or 0
+    opts.offset            = nil
 
-    instance.__bufnr     = make_buffer(opts)
-    instance.__offset    = offset
-    instance.__namespace = vim.api.nvim_create_namespace(vim.api.nvim_buf_get_name(instance.__bufnr))
-    instance.__emitter   = Emitter:new()
-    instance.__state     = STATE.IDLE
-    instance.__widgets   = {}
+    instance.__bufnr       = make_buffer(opts)
+    instance.__offset      = offset
+    instance.__namespace   = vim.api.nvim_create_namespace(vim.api.nvim_buf_get_name(instance.__bufnr))
+    instance.__emitter     = Emitter:new()
+    instance.__state       = STATE.IDLE
+    instance.__keybindings = { registered = {}, callbacks = {} }
+    instance.__widgets     = {}
 
     return instance
 end
@@ -235,7 +242,7 @@ function M:render(opts)
         for _, widget in ipairs(self.__widgets) do
             local ret = widget:render()
             if ret.ok then
-                self:__append_lines(ret.lines, true)
+                self:__apply_lines(ret.lines, true)
             else
                 notify.error("widget failed: " .. ret.error)
             end
@@ -261,10 +268,10 @@ function M:render(opts)
 end
 
 ---@private
----Appends the provided lines to the end of the buffer.
+---Applies the provided lines to the buffer.
 ---@param ui_lines org-roam.core.ui.Line[]
 ---@param force? boolean
-function M:__append_lines(ui_lines, force)
+function M:__apply_lines(ui_lines, force)
     local bufnr = self.__bufnr
 
     local modifiable = self:is_modifiable()
@@ -283,10 +290,15 @@ function M:__append_lines(ui_lines, force)
     -- Build up the complete lines and highlights
     ---@type string[]
     local lines = {}
+
     ---@type {group:string, line:integer, cstart:integer, cend:integer}[]
     local highlights = {}
 
+    ---@type {lhs:string, rhs:function, line:integer}[]
+    local keybindings = {}
+
     for i, line in ipairs(ui_lines) do
+        ---Zero-indexed line number
         local line_idx = start + i - 1
 
         if type(line) == "string" then
@@ -295,12 +307,19 @@ function M:__append_lines(ui_lines, force)
             local text = ""
 
             -- In this scenario, the line is made up of segments, each
-            -- of which is raw text (string) or a tuple of text & highlight
+            -- of which is raw text (string), a tuple of text & highlight
             -- group, which we will calculate its position within the
-            -- current line
+            -- current line, or a keybinding to apply
             for _, part in ipairs(line) do
                 if type(part) == "string" then
                     text = text .. part
+                elseif type(part) == "table" and type(part["lhs"]) == "string" then
+                    ---@cast part {lhs:string, rhs:function, global:boolean|nil}
+                    table.insert(keybindings, {
+                        lhs = part.lhs,
+                        rhs = part.rhs,
+                        line = part.global and -1 or line_idx,
+                    })
                 elseif type(part) == "table" then
                     -- col start/end are zero-indexed and
                     -- col end is exclusive
@@ -333,6 +352,53 @@ function M:__append_lines(ui_lines, force)
             hl.cstart,
             hl.cend
         )
+    end
+
+    -- Clear out old callbacks in favor of new set so lines rendered
+    -- in new positions don't conflict
+    self.__keybindings.callbacks = {}
+
+    -- Set keybindings for rendered lines
+    for _, kb in ipairs(keybindings) do
+        -- If we have not stored a keybinding for the line (or -1 for global),
+        -- create the mapping instance
+        if not self.__keybindings.callbacks[kb.line] then
+            self.__keybindings.callbacks[kb.line] = {}
+        end
+
+        -- Store our callback for this keybinding
+        if not self.__keybindings.callbacks[kb.line][kb.lhs] then
+            self.__keybindings.callbacks[kb.line][kb.lhs] = {}
+        end
+        table.insert(self.__keybindings.callbacks[kb.line][kb.lhs], kb.rhs)
+
+        if not self.__keybindings.registered then
+            self.__keybindings.registered = {}
+        end
+
+        -- If we have not registered this keybinding before, do so
+        if not self.__keybindings.registered[kb.lhs] then
+            self.__keybindings.registered[kb.lhs] = true
+            vim.keymap.set("n", kb.lhs, function()
+                -- Get position within buffer as zero-indexed line number
+                local line = vim.api.nvim_win_get_cursor(0)[1] - 1
+                local lhs = kb.lhs
+
+                -- Trigger all callbacks for the line
+                for _, cb in ipairs(tbl_utils.get(self.__keybindings.callbacks, line, lhs) or {}) do
+                    vim.schedule(cb)
+                end
+
+                -- Trigger all global callbacks (line == -1)
+                for _, cb in ipairs(tbl_utils.get(self.__keybindings.callbacks, -1, lhs) or {}) do
+                    vim.schedule(cb)
+                end
+            end, {
+                buffer = self.__bufnr,
+                nowait = true,
+                silent = true,
+            })
+        end
     end
 
     if force then
