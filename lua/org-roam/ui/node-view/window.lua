@@ -18,6 +18,17 @@ local EVENTS = {
     REFRESH = "refresh",
 }
 
+---Mapping of kind -> highlight group.
+local HL = {
+    NODE_TITLE    = "Title",
+    SECTION_LABEL = "Title",
+    SECTION_COUNT = "Normal",
+    LINK_TITLE    = "Title",
+    LINK_LOCATION = "Identifier",
+    NORMAL        = "Normal",
+    PREVIEW_LINE  = "PMenu",
+}
+
 ---Cache of files that we've loaded for previewing contents.
 ---NOTE: We do not populate paths, but this is okay as we can
 ---      still load individual files, which get cached.
@@ -127,17 +138,17 @@ local function render(node)
 
     if node then
         -- Insert a full line that contains the node's title
-        table.insert(lines, string.format("# %s", node.title))
+        table.insert(lines, { { node.title, HL.NODE_TITLE } })
 
         -- Insert a blank line as a divider
         table.insert(lines, "")
 
         -- Insert a multi-highlighted line for backlinks
         local backlinks = db:get_backlinks(node.id)
-        table.insert(
-            lines,
-            string.format("* Backlinks (%s)", vim.tbl_count(backlinks))
-        )
+        table.insert(lines, {
+            { "Backlinks",                             HL.SECTION_LABEL },
+            { " (" .. vim.tbl_count(backlinks) .. ")", HL.SECTION_COUNT },
+        })
 
         for backlink_id, _ in pairs(backlinks) do
             ---@type org-roam.core.database.Node|nil
@@ -151,16 +162,11 @@ local function render(node)
                     local col = loc.column + 1
 
                     -- Insert line containing node's title and line location
-                    table.insert(
-                        lines,
-                        string.format(
-                            "** [[file://%s::%s][%s @ line %s]]",
-                            backlink_node.file,
-                            row,
-                            backlink_node.title,
-                            row
-                        )
-                    )
+                    table.insert(lines, {
+                        { backlink_node.title,       HL.LINK_TITLE },
+                        { " ",                       HL.NORMAL },
+                        { "@ " .. row .. "," .. col, HL.LINK_LOCATION },
+                    })
 
                     vim.list_extend(lines, load_lines_at_cursor(
                         node.file, { row, col - 1 }
@@ -214,15 +220,10 @@ function M:new(opts)
 
     local window = Window:new(vim.tbl_extend("keep", {
         bufopts = {
-            name = vim.fn.tempname() .. "-roam-node-view.org",
-            filetype = "org",
+            filetype = "org-roam-node-view",
             modifiable = false,
             buftype = "nofile",
             swapfile = false,
-        },
-        winopts = {
-            foldenable = true,
-            foldlevel = 1,
         },
         widgets = { cached_render },
     }, opts))
@@ -233,30 +234,12 @@ function M:new(opts)
         callback = function()
             -- NOTE: Perform blocking as we need to populate immediately.
             window:render({ sync = true })
-
-            -- TODO: Hack to support folds when reloaded.
-            -- vim.cmd("filetype detect")
         end,
     })
 
-    -- TODO: This is a hack to get orgmode folding to work as we need to
-    --       trigger `filetype detect` while also avoiding new renders
-    --       while moving around windows to trigger the detection.
-    window:buffer():on_post_render(function()
-        local winnr = window:winnr()
-        local buffer = window:buffer()
-        if winnr then
-            -- Pause buffer so we don't re-render from detecting
-            buffer:pause()
-
-            local curwin = vim.api.nvim_get_current_win()
-            vim.api.nvim_set_current_win(winnr)
-            vim.cmd("filetype detect")
-            vim.api.nvim_set_current_win(curwin)
-
-            -- Resume buffer so we can render going forward
-            buffer:unpause()
-        end
+    -- When our window first opens, trigger a refresh
+    window:on_open(function()
+        EMITTER:emit(EVENTS.REFRESH)
     end)
 
     EMITTER:on(EVENTS.REFRESH, function()
@@ -267,25 +250,6 @@ function M:new(opts)
             window:render()
         end)
     end)
-
-    ---@type uv_timer_t|nil
-    --[[ local timer
-
-    window:on_open(function()
-        timer = uv.new_timer()
-        ---@cast timer -nil
-        timer:start(200, 200, vim.schedule_wrap(function()
-            window:render()
-        end))
-    end)
-
-    window:on_close(function()
-        if timer then
-            timer:stop()
-            timer:close()
-            timer = nil
-        end
-    end) ]]
 
     return instance
 end
