@@ -7,7 +7,9 @@
 local Emitter = require("org-roam.core.utils.emitter")
 local notify = require("org-roam.core.ui.notify")
 local random = require("org-roam.core.utils.random")
-local Widget = require("org-roam.core.ui.widget")
+local tbl_utils = require("org-roam.core.utils.table")
+local ui_utils = require("org-roam.core.utils.ui")
+local Component = require("org-roam.core.ui.component")
 
 local EVENTS = {
     ---When rendering is about to start.
@@ -22,6 +24,9 @@ local STATE = {
     ---When the buffer is not scheduled or rendering.
     IDLE = "idle",
 
+    ---When the buffer is avoiding rending.
+    PAUSED = "paused",
+
     ---When the buffer is scheduled for rendering.
     SCHEDULED = "scheduled",
 
@@ -29,13 +34,18 @@ local STATE = {
     RENDERING = "rendering",
 }
 
+---@class org-roam.core.ui.buffer.Keybindings
+---@field registered table<string, boolean> #mapping of lhs -> boolean to indicate registration done
+---@field callbacks table<integer, table<string, function[]>> #line -> lhs -> callbacks
+
 ---@class org-roam.core.ui.Buffer
 ---@field private __bufnr integer
 ---@field private __offset integer
 ---@field private __namespace integer
 ---@field private __emitter org-roam.core.utils.Emitter
 ---@field private __state org-roam.core.ui.buffer.State
----@field private __widgets org-roam.core.ui.Widget[]
+---@field private __keybindings org-roam.core.ui.buffer.Keybindings
+---@field private __components org-roam.core.ui.Component[]
 local M = {}
 M.__index = M
 
@@ -79,38 +89,39 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
 
-    local offset         = opts.offset or 0
-    opts.offset          = nil
+    local offset           = opts.offset or 0
+    opts.offset            = nil
 
-    instance.__bufnr     = make_buffer(opts)
-    instance.__offset    = offset
-    instance.__namespace = vim.api.nvim_create_namespace(vim.api.nvim_buf_get_name(instance.__bufnr))
-    instance.__emitter   = Emitter:new()
-    instance.__state     = STATE.IDLE
-    instance.__widgets   = {}
+    instance.__bufnr       = make_buffer(opts)
+    instance.__offset      = offset
+    instance.__namespace   = vim.api.nvim_create_namespace(vim.api.nvim_buf_get_name(instance.__bufnr))
+    instance.__emitter     = Emitter:new()
+    instance.__state       = STATE.IDLE
+    instance.__keybindings = { registered = {}, callbacks = {} }
+    instance.__components  = {}
 
     return instance
 end
 
----Adds a widget to be used with this buffer.
----@param widget org-roam.core.ui.Widget|org-roam.core.ui.WidgetFunction
+---Adds a component to be used with this buffer.
+---@param component org-roam.core.ui.Component|org-roam.core.ui.ComponentFunction
 ---@return org-roam.core.ui.Buffer
-function M:add_widget(widget)
-    -- If given a raw function, convert it into a widget
-    if type(widget) == "function" then
-        widget = Widget:new(widget)
+function M:add_component(component)
+    -- If given a raw function, convert it into a component
+    if type(component) == "function" then
+        component = Component:new(component)
     end
 
-    table.insert(self.__widgets, widget)
+    table.insert(self.__components, component)
     return self
 end
 
----Adds widgets to be used with this buffer.
----@param widgets (org-roam.core.ui.Widget|org-roam.core.ui.WidgetFunction)[]
+---Adds components to be used with this buffer.
+---@param components (org-roam.core.ui.Component|org-roam.core.ui.ComponentFunction)[]
 ---@return org-roam.core.ui.Buffer
-function M:add_widgets(widgets)
-    for _, widget in ipairs(widgets) do
-        self:add_widget(widget)
+function M:add_components(components)
+    for _, component in ipairs(components) do
+        self:add_component(component)
     end
 
     return self
@@ -126,6 +137,12 @@ end
 ---@return integer
 function M:namespace()
     return self.__namespace
+end
+
+---Returns the name of the underlying buffer.
+---@return string
+function M:name()
+    return vim.api.nvim_buf_get_name(self.__bufnr)
 end
 
 ---Invokes `cb` right before render has started.
@@ -152,6 +169,11 @@ function M:is_idle()
 end
 
 ---@return boolean
+function M:is_paused()
+    return self.__state == STATE.PAUSED
+end
+
+---@return boolean
 function M:is_scheduled()
     return self.__state == STATE.SCHEDULED
 end
@@ -166,6 +188,18 @@ function M:is_modifiable()
     return vim.api.nvim_buf_get_option(self.__bufnr, "modifiable") == true
 end
 
+---Set buffer to paused rendering state, canceling any scheduled render.
+function M:pause()
+    self.__state = STATE.PAUSED
+end
+
+---Set buffer to unpaused (idle) rendering state if currently paused.
+function M:unpause()
+    if self.__state == STATE.PAUSED then
+        self.__state = STATE.IDLE
+    end
+end
+
 ---Destroys the buffer.
 ---NOTE: Once destroyed, the buffer should not be used again.
 function M:destroy()
@@ -176,7 +210,7 @@ function M:destroy()
     end)
 end
 
----Clear and redraw the buffer using the current widgets.
+---Clear and redraw the buffer using the current components.
 ---
 ---If `delay` specified, will wait N milliseconds before scheduling rendering.
 ---If `sync` specified, will render directly instead of scheduling rendering.
@@ -191,23 +225,41 @@ function M:render(opts)
     end
 
     local function do_render()
+        -- If buffer not in scheduled state (e.g. paused), exit without rendering
+        if self.__state ~= STATE.SCHEDULED then
+            return
+        end
+
         -- Report that we are about to render
         self.__emitter:emit(EVENTS.PRE_RENDER)
 
         -- Mark as in the rendering state
         self.__state = STATE.RENDERING
 
+        -- Get position of cursor within windows containing buffer
+        -- so we can restore them after changing the buffer
+        ---@type {win:integer, pos:{[1]:integer, [2]:integer}}[]
+        local cursors = vim.tbl_map(function(winnr)
+            return { win = winnr, pos = vim.api.nvim_win_get_cursor(winnr) }
+        end, ui_utils.get_windows_for_buffer(self.__bufnr))
+
         -- Clear the buffer of its content
         self:__clear({ force = true })
 
-        -- Redraw content using the provided widgets
-        for _, widget in ipairs(self.__widgets) do
-            local ret = widget:render()
+        -- Redraw content using the provided components
+        for _, component in ipairs(self.__components) do
+            local ret = component:render()
             if ret.ok then
-                self:__append_lines(ret.lines, true)
+                self:__apply_lines(ret.lines, true)
             else
-                notify.error("widget failed: " .. ret.error)
+                notify.error("component failed: " .. ret.error)
             end
+        end
+
+        -- Restore cursors of windows where buffer was modified
+        for _, cursor in ipairs(cursors) do
+            -- Each of these can fail, so we just try
+            pcall(vim.api.nvim_win_set_cursor, cursor.win, cursor.pos)
         end
 
         -- Reset to idle state as we're done
@@ -230,10 +282,10 @@ function M:render(opts)
 end
 
 ---@private
----Appends the provided lines to the end of the buffer.
+---Applies the provided lines to the buffer.
 ---@param ui_lines org-roam.core.ui.Line[]
 ---@param force? boolean
-function M:__append_lines(ui_lines, force)
+function M:__apply_lines(ui_lines, force)
     local bufnr = self.__bufnr
 
     local modifiable = self:is_modifiable()
@@ -252,10 +304,15 @@ function M:__append_lines(ui_lines, force)
     -- Build up the complete lines and highlights
     ---@type string[]
     local lines = {}
+
     ---@type {group:string, line:integer, cstart:integer, cend:integer}[]
     local highlights = {}
 
+    ---@type {lhs:string, rhs:function, line:integer}[]
+    local keybindings = {}
+
     for i, line in ipairs(ui_lines) do
+        ---Zero-indexed line number
         local line_idx = start + i - 1
 
         if type(line) == "string" then
@@ -263,21 +320,23 @@ function M:__append_lines(ui_lines, force)
         elseif type(line) == "table" and not vim.tbl_isempty(line) then
             local text = ""
 
-            -- In this scenario, the line is made up of segments, each
-            -- of which is raw text (string) or a tuple of text & highlight
-            -- group, which we will calculate its position within the
-            -- current line
             for _, part in ipairs(line) do
-                if type(part) == "string" then
-                    text = text .. part
-                elseif type(part) == "table" then
+                if part.type == "action" then
+                    table.insert(keybindings, {
+                        lhs = part.lhs,
+                        rhs = part.rhs,
+                        line = part.global and -1 or line_idx,
+                    })
+                elseif part.type == "text" then
+                    text = text .. part.text
+                elseif part.type == "hl" then
                     -- col start/end are zero-indexed and
                     -- col end is exclusive
                     local cstart = string.len(text)
-                    local cend = cstart + string.len(part[1])
-                    text = text .. part[1]
+                    local cend = cstart + string.len(part.text)
+                    text = text .. part.text
                     table.insert(highlights, {
-                        group = part[2],
+                        group = part.group,
                         line = line_idx,
                         cstart = cstart,
                         cend = cend,
@@ -302,6 +361,53 @@ function M:__append_lines(ui_lines, force)
             hl.cstart,
             hl.cend
         )
+    end
+
+    -- Clear out old callbacks in favor of new set so lines rendered
+    -- in new positions don't conflict
+    self.__keybindings.callbacks = {}
+
+    -- Set keybindings for rendered lines
+    for _, kb in ipairs(keybindings) do
+        -- If we have not stored a keybinding for the line (or -1 for global),
+        -- create the mapping instance
+        if not self.__keybindings.callbacks[kb.line] then
+            self.__keybindings.callbacks[kb.line] = {}
+        end
+
+        -- Store our callback for this keybinding
+        if not self.__keybindings.callbacks[kb.line][kb.lhs] then
+            self.__keybindings.callbacks[kb.line][kb.lhs] = {}
+        end
+        table.insert(self.__keybindings.callbacks[kb.line][kb.lhs], kb.rhs)
+
+        if not self.__keybindings.registered then
+            self.__keybindings.registered = {}
+        end
+
+        -- If we have not registered this keybinding before, do so
+        if not self.__keybindings.registered[kb.lhs] then
+            self.__keybindings.registered[kb.lhs] = true
+            vim.keymap.set("n", kb.lhs, function()
+                -- Get position within buffer as zero-indexed line number
+                local line = vim.api.nvim_win_get_cursor(0)[1] - 1
+                local lhs = kb.lhs
+
+                -- Trigger all callbacks for the line
+                for _, cb in ipairs(tbl_utils.get(self.__keybindings.callbacks, line, lhs) or {}) do
+                    vim.schedule(cb)
+                end
+
+                -- Trigger all global callbacks (line == -1)
+                for _, cb in ipairs(tbl_utils.get(self.__keybindings.callbacks, -1, lhs) or {}) do
+                    vim.schedule(cb)
+                end
+            end, {
+                buffer = self.__bufnr,
+                nowait = true,
+                silent = true,
+            })
+        end
     end
 
     if force then

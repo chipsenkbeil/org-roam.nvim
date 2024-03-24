@@ -11,10 +11,20 @@ local random = require("org-roam.core.utils.random")
 ---@enum org-roam.core.ui.window.Open
 local OPEN = {
     ---Configuration to open the window on the right side.
-    RIGHT = "botright vsplit | vertical resize 50",
+    ---@param cols integer|nil
+    ---@return string
+    right = function(cols)
+        cols = cols or 50
+        return string.format("botright vsplit | vertical resize %s", cols)
+    end,
 
     ---Configuration to open the window on the bottom.
-    BOTTOM = "botright split | resize 15",
+    ---@param rows integer|nil
+    ---@return string
+    bottom = function(rows)
+        rows = rows or 15
+        return string.format("botright split | resize %s", rows)
+    end
 }
 
 local EVENTS = {
@@ -30,7 +40,7 @@ local EVENTS = {
 ---@field destroy_on_close? boolean
 ---@field bufopts? table<string, any>
 ---@field winopts? table<string, any>
----@field widgets? (org-roam.core.ui.Widget|org-roam.core.ui.WidgetFunction)[]
+---@field components? (org-roam.core.ui.Component|org-roam.core.ui.ComponentFunction)[]
 
 ---@class org-roam.core.ui.Window
 ---@field private __buffer org-roam.core.ui.Buffer
@@ -45,7 +55,7 @@ local EVENTS = {
 ---@field private __win integer|nil #handle of open window
 local M = {}
 M.__index = M
-M.OPEN = OPEN
+M.calc_open = OPEN
 
 ---Creates a new org-roam ui window with a pre-assigned buffer.
 ---@param opts? org-roam.core.ui.window.Opts
@@ -53,7 +63,7 @@ M.OPEN = OPEN
 function M:new(opts)
     opts = vim.tbl_deep_extend("keep", opts or {}, {
         name = string.format("org-roam-%s", random.uuid_v4()),
-        open = OPEN.RIGHT,
+        open = OPEN.right(),
         bufopts = {
             -- Don't let the buffer represent a file or be editable by default
             modifiable = false,
@@ -82,9 +92,9 @@ function M:new(opts)
         name = opts.name,
     }))
 
-    -- Apply any widgets we've been assigned
-    if type(opts.widgets) == "table" then
-        instance.__buffer:add_widgets(opts.widgets)
+    -- Apply any components we've been assigned
+    if type(opts.components) == "table" then
+        instance.__buffer:add_components(opts.components)
     end
 
     -- Schedule the first rendering of the buffer
@@ -216,7 +226,10 @@ function M:render(opts)
     opts = opts or {}
 
     if self:is_open() or opts.force then
-        self.__buffer:render(opts)
+        self.__buffer:render({
+            delay = opts.delay,
+            sync = opts.sync,
+        })
     end
 end
 
@@ -281,6 +294,17 @@ function M:size()
     local rows = vim.api.nvim_win_get_height(self.__win)
     local cols = vim.api.nvim_win_get_width(self.__win)
     return { rows, cols }
+end
+
+---Returns true if the window's buffer is the same as when it was created.
+---If the buffer has been switched, this will return false.
+---@return boolean
+function M:has_original_buffer()
+    local winnr = self.__win
+    if not winnr then
+        return false
+    end
+    return vim.api.nvim_win_get_buf(winnr) == self:bufnr()
 end
 
 return M

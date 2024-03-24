@@ -6,6 +6,7 @@
 
 local events = require("org-roam.events")
 local select_node = require("org-roam.ui.select-node")
+local utils = require("org-roam.utils")
 local Window = require("org-roam.ui.node-view.window")
 
 ---@type org-roam.ui.window.NodeViewWindow|nil
@@ -19,16 +20,38 @@ local NODE_VIEW = {}
 ---This means that the content of the buffer changes as the point is moved,
 ---if necessary.
 local function toggle_node_view()
-    if not CURSOR_NODE_VIEW then
+    -- Determine if we have a window that is open but not with our
+    -- node-view buffer
+    local invalid_window =
+        (CURSOR_NODE_VIEW
+            and CURSOR_NODE_VIEW:is_open()
+            and CURSOR_NODE_VIEW:has_original_buffer())
+        or false
+
+    if not CURSOR_NODE_VIEW or invalid_window then
         CURSOR_NODE_VIEW = Window:new()
 
         -- Whenever the node changes, rerender the window
-        events:on(events.kind.CURSOR_NODE_CHANGED, function()
-            CURSOR_NODE_VIEW:render()
+        ---@param node org-roam.core.database.Node|nil
+        events:on(events.kind.CURSOR_NODE_CHANGED, function(node)
+            if node then
+                CURSOR_NODE_VIEW:set_id(node.id)
+            end
         end)
     end
 
-    CURSOR_NODE_VIEW:toggle()
+    if not CURSOR_NODE_VIEW:is_open() then
+        -- Manually trigger a capture of the node under cursor to start
+        -- as the event above won't do anything at first
+        utils.node_under_cursor(function(node)
+            CURSOR_NODE_VIEW:set_id(node and node.id)
+            CURSOR_NODE_VIEW:open()
+        end)
+    elseif CURSOR_NODE_VIEW:has_original_buffer() then
+        CURSOR_NODE_VIEW:close()
+    else
+        CURSOR_NODE_VIEW = nil
+    end
 end
 
 ---Launch an org-roam buffer for a specific node without visiting its file.

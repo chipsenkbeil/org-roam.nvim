@@ -23,20 +23,20 @@ local function define_autocmds()
     local group = vim.api.nvim_create_augroup("org-roam.nvim", {})
 
     -- Watch as cursor moves around so we can support node changes
-    local last_id = nil
+    local last_node = nil
     vim.api.nvim_create_autocmd("CursorMoved", {
         group = group,
         pattern = "*.org",
         callback = function()
             local utils = require("org-roam.utils")
-            utils.node_under_cursor(function(id)
+            utils.node_under_cursor(function(node)
                 -- If the node has changed (event getting cleared),
                 -- we want to emit the event
-                if last_id ~= id then
-                    events:emit(events.kind.CURSOR_NODE_CHANGED, id)
+                if last_node ~= node then
+                    events:emit(events.kind.CURSOR_NODE_CHANGED, node)
                 end
 
-                last_id = id
+                last_node = node
             end)
         end,
     })
