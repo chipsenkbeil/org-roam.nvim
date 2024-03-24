@@ -250,7 +250,7 @@ local function render(this, node)
                     -- If we have toggled for this location, show the preview
                     if is_expanded then
                         vim.list_extend(lines, load_lines_at_cursor(
-                            node.file, { row, col - 1 }
+                            backlink_node.file, { row, col - 1 }
                         ))
                     end
                 end
