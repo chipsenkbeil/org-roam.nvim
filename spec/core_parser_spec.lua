@@ -1,6 +1,6 @@
 describe("org-roam.core.parser", function()
   local async = require("org-roam.core.utils.async")
-  local join_path = require("org-roam.core.utils.io").join_path
+  local join_path = require("org-roam.core.utils.path").join
   local Parser = require("org-roam.core.parser")
 
   local ORG_FILES_DIR = (function()

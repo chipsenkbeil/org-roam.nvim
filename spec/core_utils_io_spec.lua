@@ -1,6 +1,6 @@
 describe("org-roam.core.utils.io", function()
     local utils_io = require("org-roam.core.utils.io")
-    local uv = vim.loop
+    local join_path = require("org-roam.core.utils.path").join
 
     ---Reads data of a temporary file and then deletes it.
     ---@param path string
@@ -45,8 +45,8 @@ describe("org-roam.core.utils.io", function()
         local root = vim.fs.dirname(tempname)
         local filename = "temp-" .. vim.fs.basename(tempname)
 
-        local name = utils_io.join_path(...)
-        local path = utils_io.join_path(root, name ~= "" and name or filename)
+        local name = join_path(...)
+        local path = join_path(root, name ~= "" and name or filename)
         assert(vim.fn.mkdir(path, "p"), "Failed to create " .. path)
         return path
     end
@@ -226,32 +226,6 @@ describe("org-roam.core.utils.io", function()
         end)
     end)
 
-    describe("join_path", function()
-        it("should return empty string if no arguments provided", function()
-            assert.are.equal("", utils_io.join_path())
-        end)
-
-        it("should combine paths using system separator", function()
-            local sep = string.lower(vim.trim(uv.os_uname().sysname)) == "windows"
-                and "\\" or "/"
-
-            assert.are.equal(
-                "path" .. sep .. "to" .. sep .. "file",
-                utils_io.join_path("path", "to", "file")
-            )
-        end)
-
-        it("should replace ongoing path with absolute path provided", function()
-            local sep = string.lower(vim.trim(uv.os_uname().sysname)) == "windows"
-                and "\\" or "/"
-
-            assert.are.equal(
-                sep .. "to" .. sep .. "file",
-                utils_io.join_path("path", sep .. "to", "file")
-            )
-        end)
-    end)
-
     describe("walk", function()
         it("should return an iterator that yields nothing if provided path is a file", function()
             local file = create_temp_file("hello")
@@ -261,7 +235,7 @@ describe("org-roam.core.utils.io", function()
         end)
 
         it("should return an iterator over directory entries", function()
-            local join = utils_io.join_path
+            local join = join_path
 
             -- /root
             -- /root/dir1
@@ -290,7 +264,7 @@ describe("org-roam.core.utils.io", function()
         end)
 
         it("should limit entries no deeper than the depth specified", function()
-            local join = utils_io.join_path
+            local join = join_path
 
             -- /root
             -- /root/dir1

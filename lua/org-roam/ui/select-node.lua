@@ -9,8 +9,8 @@ local Select = require("org-roam.core.ui.select")
 
 ---Opens up a selection dialog populated with nodes (titles and aliases).
 ---@overload fun(cb:fun(selection:{id:org-roam.core.database.Id, label:string}))
----@param opts {auto_select?:boolean, init_input?:string}
----@param cb fun(selection:{id:org-roam.core.database.Id, label:string})
+---@param opts {allow_select_missing?:boolean, auto_select?:boolean, init_input?:string}
+---@param cb fun(selection:{id:org-roam.core.database.Id|nil, label:string})
 return function(opts, cb)
     if type(opts) == "function" then
         cb = opts
@@ -49,12 +49,11 @@ return function(opts, cb)
         items = items,
         prompt = prompt,
         ---@param item {id:org-roam.core.database.Id, label:string}
-        format = function(item)
-            return string.format("%s (%s)", item.label, item.id)
-        end,
+        format = function(item) return item.label end,
     }, opts or {})
 
     Select:new(select_opts)
         :on_choice(cb)
+        :on_choice_missing(function(label) cb({ id = nil, label = label }) end)
         :open()
 end

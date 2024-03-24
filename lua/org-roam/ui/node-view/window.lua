@@ -35,12 +35,6 @@ local ICONS = {
     UNEXPANDED_PREVIEW = "▶",
 }
 
----Cache of files that we've loaded for previewing contents.
----NOTE: We do not populate paths, but this is okay as we can
----      still load individual files, which get cached.
----@type OrgFiles
-local ORG_FILES = require("orgmode.files"):new({ paths = {} })
-
 ---Cache of key -> lines that persists across all windows.
 ---Key is `path.row.col`.
 ---@type table<string, {sha256:string, lines:string[]}>
@@ -106,7 +100,7 @@ local function load_lines_at_cursor(path, cursor)
     local lines = (CACHE[key] or {}).lines or {}
 
     -- Kick off a reload of lines
-    ORG_FILES:load_file(path):next(function(file)
+    require("org-roam").files:load_file(path):next(function(file)
         -- Calculate a digest and see if its different
         local sha256 = vim.fn.sha256(file.content)
         local is_new = not CACHE[key] or CACHE[key].sha256 ~= sha256

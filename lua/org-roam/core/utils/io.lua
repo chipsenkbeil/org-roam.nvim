@@ -8,6 +8,7 @@ local uv = vim.loop
 
 local async = require("org-roam.core.utils.async")
 local Iterator = require("org-roam.core.utils.iterator")
+local path_utils = require("org-roam.core.utils.path")
 
 -- 0o644 (rw-r--r--)
 -- Owner can read and write.
@@ -15,20 +16,6 @@ local Iterator = require("org-roam.core.utils.iterator")
 -- Other can read.
 ---@diagnostic disable-next-line:param-type-mismatch
 local DEFAULT_WRITE_PERMISSIONS = tonumber(644, 8)
-
--- From plenary.nvim, determines the path separator.
-local SEP = (function()
-    if jit then
-        local os = string.lower(jit.os)
-        if os ~= "windows" then
-            return "/"
-        else
-            return "\\"
-        end
-    else
-        return package.config:sub(1, 1)
-    end
-end)()
 
 ---@class org-roam.core.utils.IO
 local M = {}
@@ -202,34 +189,6 @@ function M.stat(path, cb)
     uv.fs_stat(path, cb)
 end
 
----Joins one or more paths together as one.
----If any path is absolute, it will replace the currently-constructed path.
----@param ...string
----@return string path
-function M.join_path(...)
-    local path = ""
-
-    --- From plenary.nvim, determines if the path is absolute.
-    ---@param filename string
-    ---@return boolean
-    local is_absolute = function(filename)
-        if SEP == "\\" then
-            return string.match(filename, "^[%a]:\\.*$") ~= nil
-        end
-        return string.sub(filename, 1, 1) == SEP
-    end
-
-    for _, p in ipairs({ ... }) do
-        if path == "" or is_absolute(p) then
-            path = p
-        else
-            path = path .. SEP .. p
-        end
-    end
-
-    return path
-end
-
 ---@alias org-roam.core.utils.io.WalkEntryType
 ---|'"file"'
 ---|'"directory"'
@@ -268,7 +227,7 @@ function M.walk(path, opts)
             return {
                 name     = name,
                 filename = vim.fs.basename(name),
-                path     = M.join_path(path, name),
+                path     = path_utils.join(path, name),
                 type     = type,
             }
         end
