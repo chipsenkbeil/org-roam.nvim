@@ -5,7 +5,7 @@
 -------------------------------------------------------------------------------
 
 local CONFIG = require("org-roam.config")
-local events = require("org-roam.events")
+local EVENTS = require("org-roam.events")
 
 ---@param config org-roam.Config
 local function merge_config(config)
@@ -33,7 +33,7 @@ local function define_autocmds()
                 -- If the node has changed (event getting cleared),
                 -- we want to emit the event
                 if last_node ~= node then
-                    events:emit(events.kind.CURSOR_NODE_CHANGED, node)
+                    EVENTS:emit(EVENTS.KIND.CURSOR_NODE_CHANGED, node)
                 end
 
                 last_node = node

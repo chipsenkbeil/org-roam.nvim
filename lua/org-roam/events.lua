@@ -10,7 +10,7 @@ local Emitter = require("org-roam.core.utils.emitter")
 local EMITTER = Emitter:new()
 
 ---@enum org-roam.events.EventKind
-EMITTER.kind = {
+EMITTER.KIND = {
     CURSOR_NODE_CHANGED = "cursor:node-changed",
 }
 
