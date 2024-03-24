@@ -11,10 +11,20 @@ local random = require("org-roam.core.utils.random")
 ---@enum org-roam.core.ui.window.Open
 local OPEN = {
     ---Configuration to open the window on the right side.
-    RIGHT = "botright vsplit | vertical resize 50",
+    ---@param cols integer|nil
+    ---@return string
+    right = function(cols)
+        cols = cols or 50
+        return string.format("botright vsplit | vertical resize %s", cols)
+    end,
 
     ---Configuration to open the window on the bottom.
-    BOTTOM = "botright split | resize 15",
+    ---@param rows integer|nil
+    ---@return string
+    bottom = function(rows)
+        rows = rows or 15
+        return string.format("botright split | resize %s", rows)
+    end
 }
 
 local EVENTS = {
@@ -45,7 +55,7 @@ local EVENTS = {
 ---@field private __win integer|nil #handle of open window
 local M = {}
 M.__index = M
-M.OPEN = OPEN
+M.calc_open = OPEN
 
 ---Creates a new org-roam ui window with a pre-assigned buffer.
 ---@param opts? org-roam.core.ui.window.Opts
@@ -53,7 +63,7 @@ M.OPEN = OPEN
 function M:new(opts)
     opts = vim.tbl_deep_extend("keep", opts or {}, {
         name = string.format("org-roam-%s", random.uuid_v4()),
-        open = OPEN.RIGHT,
+        open = OPEN.right(),
         bufopts = {
             -- Don't let the buffer represent a file or be editable by default
             modifiable = false,

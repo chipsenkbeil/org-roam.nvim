@@ -205,7 +205,7 @@ function M:open()
     if not self.__state.window then
         local window = Window:new({
             name = "org-roam-select",
-            open = string.format("botright split | resize %s", self.__view.max_rows + 1),
+            open = Window.calc_open.bottom(self.__view.max_rows + 1),
             close_on_bufleave = true,
             destroy_on_close = true,
             focus_on_open = true,

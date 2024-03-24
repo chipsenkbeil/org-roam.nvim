@@ -40,7 +40,7 @@ function M:new(opts)
 
     local instance = {}
     setmetatable(instance, M)
-    instance.__autoselect = type(opts.autoselect) == "boolean" and opts.autoselect or true
+    instance.__autoselect = opts.autoselect or false
     instance.__chars = string.lower(opts.chars or DEFAULT_CHARS)
     instance.__emitter = Emitter:new()
     instance.__filter = opts.filter or function() return true end
