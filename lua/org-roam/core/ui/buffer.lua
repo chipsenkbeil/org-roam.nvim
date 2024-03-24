@@ -8,6 +8,7 @@ local Emitter = require("org-roam.core.utils.emitter")
 local notify = require("org-roam.core.ui.notify")
 local random = require("org-roam.core.utils.random")
 local tbl_utils = require("org-roam.core.utils.table")
+local ui_utils = require("org-roam.core.utils.ui")
 local Component = require("org-roam.core.ui.component")
 
 local EVENTS = {
@@ -235,6 +236,13 @@ function M:render(opts)
         -- Mark as in the rendering state
         self.__state = STATE.RENDERING
 
+        -- Get position of cursor within windows containing buffer
+        -- so we can restore them after changing the buffer
+        ---@type {win:integer, pos:{[1]:integer, [2]:integer}}[]
+        local cursors = vim.tbl_map(function(winnr)
+            return { win = winnr, pos = vim.api.nvim_win_get_cursor(winnr) }
+        end, ui_utils.get_windows_for_buffer(self.__bufnr))
+
         -- Clear the buffer of its content
         self:__clear({ force = true })
 
@@ -246,6 +254,12 @@ function M:render(opts)
             else
                 notify.error("component failed: " .. ret.error)
             end
+        end
+
+        -- Restore cursors of windows where buffer was modified
+        for _, cursor in ipairs(cursors) do
+            -- Each of these can fail, so we just try
+            pcall(vim.api.nvim_win_set_cursor, cursor.win, cursor.pos)
         end
 
         -- Reset to idle state as we're done
@@ -306,28 +320,23 @@ function M:__apply_lines(ui_lines, force)
         elseif type(line) == "table" and not vim.tbl_isempty(line) then
             local text = ""
 
-            -- In this scenario, the line is made up of segments, each
-            -- of which is raw text (string), a tuple of text & highlight
-            -- group, which we will calculate its position within the
-            -- current line, or a keybinding to apply
             for _, part in ipairs(line) do
-                if type(part) == "string" then
-                    text = text .. part
-                elseif type(part) == "table" and type(part["lhs"]) == "string" then
-                    ---@cast part {lhs:string, rhs:function, global:boolean|nil}
+                if part.type == "action" then
                     table.insert(keybindings, {
                         lhs = part.lhs,
                         rhs = part.rhs,
                         line = part.global and -1 or line_idx,
                     })
-                elseif type(part) == "table" then
+                elseif part.type == "text" then
+                    text = text .. part.text
+                elseif part.type == "hl" then
                     -- col start/end are zero-indexed and
                     -- col end is exclusive
                     local cstart = string.len(text)
-                    local cend = cstart + string.len(part[1])
-                    text = text .. part[1]
+                    local cend = cstart + string.len(part.text)
+                    text = text .. part.text
                     table.insert(highlights, {
-                        group = part[2],
+                        group = part.group,
                         line = line_idx,
                         cstart = cstart,
                         cend = cend,

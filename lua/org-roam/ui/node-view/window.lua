@@ -4,16 +4,12 @@
 -- Specialized window representing an org-roam buffer for a particular node.
 -------------------------------------------------------------------------------
 
-local async = require("org-roam.core.utils.async")
+local C = require("org-roam.core.ui.component")
 local database = require("org-roam.database")
 local Emitter = require("org-roam.core.utils.emitter")
-local io = require("org-roam.core.utils.io")
 local tbl_utils = require("org-roam.core.utils.table")
-local notify = require("org-roam.core.ui.notify")
-local utils = require("org-roam.utils")
 local Window = require("org-roam.core.ui.window")
-
-local uv = vim.loop
+local WindowPicker = require("org-roam.core.ui.window-picker")
 
 local EVENTS = {
     REFRESH = "refresh",
@@ -56,7 +52,7 @@ local EMITTER = Emitter:new()
 ---Loads file at `path` and figures out the lines of text to use for a preview.
 ---@param path string
 ---@param cursor {[1]:integer, [2]:integer} # cursor position indexed (1, 0)
----@return string[]
+---@return org-roam.core.ui.Line[]
 local function load_lines_at_cursor(path, cursor)
     ---Figures out where we are located and retrieves relevant lines.
     ---
@@ -129,7 +125,12 @@ local function load_lines_at_cursor(path, cursor)
         return file
     end)
 
-    return lines
+    ---@param line string
+    return vim.tbl_map(function(line)
+        -- TODO: How can we parse lines to get their highlight groups
+        --       and build out our span of highlighted segments?
+        return { C.text(line) }
+    end, lines)
 end
 
 ---@class org-roam.ui.window.NodeViewWindowState
@@ -152,7 +153,7 @@ local function render(state, node)
 
     if node then
         -- Insert a full line that contains the node's title
-        table.insert(lines, { { node.title, HL.NODE_TITLE } })
+        table.insert(lines, { C.hl(node.title, HL.NODE_TITLE) })
 
         -- Insert a blank line as a divider
         table.insert(lines, "")
@@ -160,8 +161,8 @@ local function render(state, node)
         -- Insert a multi-highlighted line for backlinks
         local backlinks = db:get_backlinks(node.id)
         table.insert(lines, {
-            { "Backlinks",                             HL.SECTION_LABEL },
-            { " (" .. vim.tbl_count(backlinks) .. ")", HL.SECTION_COUNT },
+            C.hl("Backlinks", HL.SECTION_LABEL),
+            C.hl(" (" .. vim.tbl_count(backlinks) .. ")", HL.SECTION_COUNT),
         })
 
         for backlink_id, _ in pairs(backlinks) do
@@ -176,7 +177,12 @@ local function render(state, node)
                     local col = loc.column + 1
 
                     ---@type boolean
-                    local is_expanded = tbl_utils.get(state.expanded, backlink_node.id, row - 1, col - 1) or false
+                    local is_expanded = tbl_utils.get(
+                        state.expanded,
+                        backlink_node.id,
+                        row - 1,
+                        col - 1
+                    ) or false
 
                     local function do_expand()
                         if not state.expanded then
@@ -192,21 +198,43 @@ local function render(state, node)
                         end
 
                         state.expanded[backlink_node.id][row - 1][col - 1] = not is_expanded
+                        EMITTER:emit(EVENTS.REFRESH)
+                    end
+
+                    local function do_open()
+                        local win = vim.api.nvim_get_current_win()
+                        local filter = function(winnr) return winnr ~= win end
+
+                        WindowPicker
+                            :new({ filter = filter })
+                            :on_choice(function(winnr)
+                                vim.api.nvim_set_current_win(winnr)
+                                vim.cmd.edit(backlink_node.file)
+
+                                -- NOTE: We need to schedule to ensure the file has loaded
+                                --       into the buffer before we try to move the cursor!
+                                vim.schedule(function()
+                                    vim.api.nvim_win_set_cursor(winnr, { row, col - 1 })
+                                end)
+                            end)
+                            :open()
                     end
 
                     -- Get prefix based on expansion status
-                    local prefix = { ICONS.UNEXPANDED_PREVIEW, HL.LINK_TITLE }
+                    local prefix = C.hl(ICONS.UNEXPANDED_PREVIEW, HL.LINK_TITLE)
                     if is_expanded then
-                        prefix = { ICONS.EXPANDED_PREVIEW, HL.LINK_TITLE }
+                        prefix = C.hl(ICONS.EXPANDED_PREVIEW, HL.LINK_TITLE)
                     end
 
                     -- Insert line containing node's title and line location
                     table.insert(lines, {
                         prefix,
-                        { backlink_node.title,       HL.LINK_TITLE },
-                        { " ",                       HL.NORMAL },
-                        { "@ " .. row .. "," .. col, HL.LINK_LOCATION },
-                        { lhs = "<Tab>",             rhs = do_expand },
+                        C.text(" "),
+                        C.hl(backlink_node.title, HL.LINK_TITLE),
+                        C.text(" "),
+                        C.hl("@ " .. row .. "," .. col - 1, HL.LINK_LOCATION),
+                        C.action("<Tab>", do_expand),
+                        C.action("<Enter>", do_open),
                     })
 
                     -- If we have toggled for this location, show the preview
