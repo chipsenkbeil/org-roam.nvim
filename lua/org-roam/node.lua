@@ -156,6 +156,7 @@ function M.capture(opts, cb)
         files = plugin.files,
         templates = templates,
         on_close = function(_, opts)
+            local filename = opts.destination_file.filename
             local id = opts.source_file:get_property("ID")
 
             -- If we don't find a file-level node, look for headline nodes
@@ -166,7 +167,8 @@ function M.capture(opts, cb)
                 end
             end
 
-            vim.schedule(function() cb(id) end)
+            -- TODO: Load new file and populate database
+            cb(id)
         end,
     })
 
