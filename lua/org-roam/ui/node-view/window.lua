@@ -206,7 +206,10 @@ local function render(state, node)
                         local filter = function(winnr) return winnr ~= win end
 
                         WindowPicker
-                            :new({ filter = filter })
+                            :new({
+                                autoselect = true,
+                                filter = filter,
+                            })
                             :on_choice(function(winnr)
                                 vim.api.nvim_set_current_win(winnr)
                                 vim.cmd.edit(backlink_node.file)
