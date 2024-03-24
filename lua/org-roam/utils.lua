@@ -4,13 +4,13 @@
 -- High-level utility functions leveraged by org-roam.
 -------------------------------------------------------------------------------
 
-local IntervalTree = require("org-roam.core.utils.tree.interval")
+local IntervalTree = require("org-roam.core.utils.tree")
 local Scanner = require("org-roam.core.scanner")
 
 ---@class (exact) org-roam.utils.BufferCache
 ---@field file org-roam.core.parser.File
----@field link_tree org-roam.core.utils.tree.IntervalTree|nil
----@field node_tree org-roam.core.utils.tree.IntervalTree|nil
+---@field link_tree org-roam.core.utils.IntervalTree|nil
+---@field node_tree org-roam.core.utils.IntervalTree|nil
 ---@field tick integer
 
 ---Internal cache of buffer -> cache of node ids used to look up
@@ -40,7 +40,7 @@ local function get_buffer_cache(bufnr)
             path = vim.api.nvim_buf_get_name(bufnr),
         })
 
-        ---@type org-roam.core.utils.tree.IntervalTree|nil
+        ---@type org-roam.core.utils.IntervalTree|nil
         local node_tree
         if #scan.nodes > 0 then
             node_tree = IntervalTree:from_list(
@@ -55,7 +55,7 @@ local function get_buffer_cache(bufnr)
             )
         end
 
-        ---@type org-roam.core.utils.tree.IntervalTree|nil
+        ---@type org-roam.core.utils.IntervalTree|nil
         local link_tree
         if #scan.file.links > 0 then
             link_tree = IntervalTree:from_list(
