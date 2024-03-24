@@ -12,9 +12,10 @@
 ---| org-roam.core.ui.LineSegment[] #list of line segments with or without highlights
 
 ---@alias org-roam.core.ui.LineSegment
----| string #raw text without highlight group
----| {[1]:string, [2]:string} #tuple of text and highlight group
----| {lhs:string, rhs:function, global:boolean|nil}
+---| {type:`group`, segments:org-roam.core.ui.LineSegment[]}
+---| {type:`text`, text:string}
+---| {type:`hl`, text:string, group:string}
+---| {type:`action`, lhs:string, rhs:function, global:boolean|nil}
 
 ---@class org-roam.core.ui.Component
 ---@field private __namespace integer
@@ -55,6 +56,39 @@ function M:render()
         local error = vim.inspect(ret)
         return { ok = ok, error = error }
     end
+end
+
+---Produces a line segment for plain text.
+---@param text string
+---@return org-roam.core.ui.LineSegment
+function M.text(text)
+    return { type = "text", text = text }
+end
+
+---Produces a line segment for some text with a highlight.
+---@param text string
+---@param group string
+---@return org-roam.core.ui.LineSegment
+function M.hl(text, group)
+    return { type = "hl", text = text, group = group }
+end
+
+---Produces a line segment for plain text.
+---@param lhs string
+---@param rhs function
+---@param opts? {global?:boolean}
+---@return org-roam.core.ui.LineSegment
+function M.action(lhs, rhs, opts)
+    opts = opts or {}
+    return { type = "action", lhs = lhs, rhs = rhs, global = opts.global }
+end
+
+---Produces a group of line segments.
+---@param ... org-roam.core.ui.LineSegment|org-roam.core.ui.LineSegment[]
+---@return org-roam.core.ui.LineSegment
+function M.group(...)
+    local segments = { ... }
+    return { type = "group", segments = segments }
 end
 
 return M

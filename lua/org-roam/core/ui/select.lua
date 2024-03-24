@@ -5,6 +5,7 @@
 -- Modelled after Emacs' vertico completion (https://github.com/minad/vertico).
 -------------------------------------------------------------------------------
 
+local C = require("org-roam.core.ui.component")
 local Emitter = require("org-roam.core.utils.emitter")
 local tbl_utils = require("org-roam.core.utils.table")
 local Window = require("org-roam.core.ui.window")
@@ -636,7 +637,7 @@ function M:__render_component()
         end
 
         -- Build our line as a single segment with highlight
-        table.insert(lines, { { text, highlight } })
+        table.insert(lines, { C.hl(text, highlight) })
     end
 
     return lines
