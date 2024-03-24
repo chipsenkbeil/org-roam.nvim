@@ -65,4 +65,10 @@ function M:from_node(node)
     )
 end
 
+---Converts from an nvim-orgmode OrgRange into an org-roam Range.
+---@param range OrgRange
+---@return org-roam.core.parser.Range
+function M:from_org_range(range)
+end
+
 return M

@@ -34,6 +34,13 @@ local STATE = {
     RENDERING = "rendering",
 }
 
+local MOUSE_EVENTS = {
+    "<mousemove>",
+    "<leftdrag>",
+    "<leftrelease>",
+    "<rightmouse>",
+}
+
 ---@class org-roam.core.ui.buffer.Keybindings
 ---@field registered table<string, boolean> #mapping of lhs -> boolean to indicate registration done
 ---@field callbacks table<integer, table<string, function[]>> #line -> lhs -> callbacks
@@ -315,35 +322,42 @@ function M:__apply_lines(ui_lines, force)
         ---Zero-indexed line number
         local line_idx = start + i - 1
 
-        if type(line) == "string" then
-            table.insert(lines, line)
-        elseif type(line) == "table" and not vim.tbl_isempty(line) then
+        ---@param segments org-roam.core.ui.LineSegment[]
+        ---@return string
+        local function process_segments(segments)
             local text = ""
-
-            for _, part in ipairs(line) do
-                if part.type == "action" then
+            for _, seg in ipairs(segments) do
+                if seg.type == "action" then
                     table.insert(keybindings, {
-                        lhs = part.lhs,
-                        rhs = part.rhs,
-                        line = part.global and -1 or line_idx,
+                        lhs = seg.lhs,
+                        rhs = seg.rhs,
+                        line = seg.global and -1 or line_idx,
                     })
-                elseif part.type == "text" then
-                    text = text .. part.text
-                elseif part.type == "hl" then
+                elseif seg.type == "text" then
+                    text = text .. seg.text
+                elseif seg.type == "hl" then
                     -- col start/end are zero-indexed and
                     -- col end is exclusive
                     local cstart = string.len(text)
-                    local cend = cstart + string.len(part.text)
-                    text = text .. part.text
+                    local cend = cstart + string.len(seg.text)
+                    text = text .. seg.text
                     table.insert(highlights, {
-                        group = part.group,
+                        group = seg.group,
                         line = line_idx,
                         cstart = cstart,
                         cend = cend,
                     })
+                elseif seg.type == "group" then
+                    text = text .. process_segments(seg.segments)
                 end
             end
+            return text
+        end
 
+        if type(line) == "string" then
+            table.insert(lines, line)
+        elseif type(line) == "table" and not vim.tbl_isempty(line) then
+            local text = process_segments(line)
             table.insert(lines, text)
         end
     end
@@ -391,6 +405,21 @@ function M:__apply_lines(ui_lines, force)
             vim.keymap.set("n", kb.lhs, function()
                 -- Get position within buffer as zero-indexed line number
                 local line = vim.api.nvim_win_get_cursor(0)[1] - 1
+
+                -- Special handling for mouse events
+                if vim.tbl_contains(MOUSE_EVENTS, string.lower(vim.trim(kb.lhs))) then
+                    local pos = vim.fn.getmousepos()
+                    local win = pos.winid
+
+                    -- Check that we are within the right buffer
+                    local buf = vim.api.nvim_win_get_buf(win)
+                    if buf ~= self.__bufnr then
+                        return
+                    end
+
+                    line = pos.line - 1 -- position within window
+                end
+
                 local lhs = kb.lhs
 
                 -- Trigger all callbacks for the line
