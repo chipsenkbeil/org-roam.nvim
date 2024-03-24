@@ -42,22 +42,22 @@ local function define_autocmds()
     })
 end
 
----@param lhs string|nil
----@param desc string
----@param cb fun()
-local function assign(lhs, desc, cb)
-    if type(lhs) == "string" and lhs ~= "" and type(cb) == "function" then
-        vim.api.nvim_set_keymap("n", lhs, "", {
-            desc = desc,
-            noremap = true,
-            callback = cb,
-        })
-    end
-end
-
 local function define_keybindings()
     -- User can remove all bindings by setting this to nil
     local bindings = CONFIG.bindings or {}
+
+    ---@param lhs string|nil
+    ---@param desc string
+    ---@param cb fun()
+    local function assign(lhs, desc, cb)
+        if type(lhs) == "string" and lhs ~= "" and type(cb) == "function" then
+            vim.api.nvim_set_keymap("n", lhs, "", {
+                desc = desc,
+                noremap = true,
+                callback = cb,
+            })
+        end
+    end
 
     assign(
         bindings.quickfix_backlinks,
