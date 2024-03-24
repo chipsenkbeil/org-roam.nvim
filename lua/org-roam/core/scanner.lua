@@ -6,7 +6,7 @@
 -------------------------------------------------------------------------------
 
 local Emitter      = require("org-roam.core.utils.emitter")
-local IntervalTree = require("org-roam.core.utils.tree.interval")
+local IntervalTree = require("org-roam.core.utils.tree")
 local io           = require("org-roam.core.utils.io")
 local Node         = require("org-roam.core.database.node")
 local parser       = require("org-roam.core.parser")
@@ -250,7 +250,7 @@ local function file_to_nodes(path, file)
 
     -- Second, build an interval tree of our sections so we
     -- can look up tags that apply
-    ---@type org-roam.core.utils.tree.IntervalTree|nil
+    ---@type org-roam.core.utils.IntervalTree|nil
     local tags_tree
     if #file.sections > 0 then
         ---@param section org-roam.core.parser.Section[]
@@ -324,7 +324,7 @@ local function file_to_nodes(path, file)
     end
 
     -- Build an interval tree from our section nodes
-    ---@type org-roam.core.utils.tree.IntervalTree|nil
+    ---@type org-roam.core.utils.IntervalTree|nil
     local section_node_tree
     if #section_nodes > 0 then
         ---@param t {[1]:org-roam.core.parser.Range, [2]:org-roam.core.database.Node}
