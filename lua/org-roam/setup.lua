@@ -8,6 +8,7 @@ local CONFIG = require("org-roam.config")
 local EVENTS = require("org-roam.events")
 
 ---@param config org-roam.Config
+---@return org-roam.Config
 local function merge_config(config)
     assert(config.directory, "missing org-roam directory")
 
@@ -17,6 +18,9 @@ local function merge_config(config)
 
     -- Merge our configuration options into our global config
     CONFIG(config)
+
+    ---@type org-roam.Config
+    return CONFIG
 end
 
 local function define_autocmds()
@@ -93,12 +97,39 @@ local function define_keybindings()
         "Completes link to a node based on expression under cursor",
         require("org-roam.completion").complete_node_under_cursor
     )
+
+    assign(
+        bindings.capture,
+        "Opens org-roam capture window",
+        require("org-roam.node").capture
+    )
+
+    assign(
+        bindings.find_node,
+        "Finds org-roam node and moves to it, creating new one if missing",
+        require("org-roam.node").find
+    )
+
+    assign(
+        bindings.insert_node,
+        "Inserts at cursor position the selected node, creating new one if missing",
+        require("org-roam.node").insert
+    )
 end
 
----Initializes the plugin, returning the database associated with nodes.
----@param opts org-roam.Config
-return function(opts)
-    merge_config(opts)
+---@param plugin org-roam.OrgRoam
+---@param config org-roam.Config
+local function populate_plugin(plugin, config)
+    local Files = require("orgmode.files")
+    plugin.files = Files:new({ paths = { config.directory } })
+end
+
+---Initializes the plugin.
+---@param plugin org-roam.OrgRoam
+---@param config org-roam.Config
+return function(plugin, config)
+    config = merge_config(config)
     define_autocmds()
     define_keybindings()
+    populate_plugin(plugin, config)
 end

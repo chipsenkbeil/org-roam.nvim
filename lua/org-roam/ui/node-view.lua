@@ -78,7 +78,9 @@ local function toggle_fixed_node_view(id)
         toggle_view(id)
     else
         select_node(function(selection)
-            toggle_view(selection.id)
+            if selection.id then
+                toggle_view(selection.id)
+            end
         end)
     end
 end

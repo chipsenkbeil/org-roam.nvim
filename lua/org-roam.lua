@@ -9,19 +9,17 @@ if not pcall(require, "orgmode") then
     error("missing dependency: orgmode")
 end
 
-local database = require("org-roam.database")
-local setup = require("org-roam.setup")
-
 ---@class org-roam.OrgRoam
+---@field files OrgFiles
 local M = {}
 
 ---Called to initialize the org-roam plugin.
----@param opts org-roam.Config
-function M.setup(opts)
-    setup(opts)
+---@param config org-roam.Config
+function M.setup(config)
+    require("org-roam.setup")(M, config)
 
     -- Load the database asynchronously
-    database.load(function() end)
+    require("org-roam.database").load(function() end)
 end
 
 return M

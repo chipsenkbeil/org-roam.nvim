@@ -4,6 +4,8 @@
 -- Contains global config logic used by the plugin.
 -------------------------------------------------------------------------------
 
+local path_utils = require("org-roam.core.utils.path")
+
 ---Overwrites configuration options with those specified.
 ---@param tbl org-roam.Config
 ---@param opts org-roam.Config
@@ -34,8 +36,17 @@ local config = setmetatable({
     ---Bindings associated with org-roam functionality.
     ---@class org-roam.config.Bindings
     bindings = {
+        ---Opens org-roam capture window.
+        capture = "<C-c>nc",
+
         ---Completes the node under cursor.
         complete_at_point = "<C-c><C-c>",
+
+        ---Finds node and moves to it.
+        find_node = "<C-c>nf",
+
+        ---Inserts node at cursor position.
+        insert_node = "<C-c>ni",
 
         ---Prints the node under cursor.
         print_node = "<C-c>np",
@@ -48,6 +59,16 @@ local config = setmetatable({
 
         ---Toggles a fixed org-roam node-view buffer for a selected node.
         toggle_roam_buffer_fixed = "<C-c>nn",
+    },
+
+    ---@class org-roam.config.Templates
+    ---@field [string] table
+    templates = {
+        d = {
+            description = "default",
+            template = "* %?",
+            target = "%r" .. path_utils.separator() .. "%<%Y-%m-%d>.org",
+        },
     },
 }, { __call = replace })
 
