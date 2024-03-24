@@ -87,7 +87,19 @@ end
 ---@param ... org-roam.core.ui.LineSegment|org-roam.core.ui.LineSegment[]
 ---@return org-roam.core.ui.LineSegment
 function M.group(...)
-    local segments = { ... }
+    ---@type org-roam.core.ui.LineSegment[]
+    local segments = {}
+    for _, seg in ipairs({ ... }) do
+        if not vim.tbl_islist(seg) then
+            ---@cast seg org-roam.core.ui.LineSegment
+            table.insert(segments, seg)
+        else
+            ---@cast seg org-roam.core.ui.LineSegment[]
+            for _, segg in ipairs(seg) do
+                table.insert(segments, segg)
+            end
+        end
+    end
     return { type = "group", segments = segments }
 end
 

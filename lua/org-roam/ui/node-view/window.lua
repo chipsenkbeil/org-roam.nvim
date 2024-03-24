@@ -137,11 +137,14 @@ end
 ---@field expanded table<org-roam.core.database.Id, table<integer, table<integer, boolean>>> #mapping of id -> zero-indexed row -> col -> boolean
 
 ---Renders a node within an orgmode buffer.
----@param state org-roam.ui.window.NodeViewWindowState
+---@param this org-roam.ui.window.NodeViewWindow
 ---@param node org-roam.core.database.Node|org-roam.core.database.Id
 ---@return org-roam.core.ui.Line[] lines
-local function render(state, node)
+local function render(this, node)
     local db = database()
+
+    ---@diagnostic disable-next-line:invisible
+    local state = this.__state
 
     ---@type org-roam.core.ui.Line[]
     local lines = {}
@@ -229,13 +232,17 @@ local function render(state, node)
                         prefix = C.hl(ICONS.EXPANDED_PREVIEW, HL.LINK_TITLE)
                     end
 
-                    -- Insert line containing node's title and line location
-                    table.insert(lines, {
+                    local line = C.group(
                         prefix,
                         C.text(" "),
                         C.hl(backlink_node.title, HL.LINK_TITLE),
                         C.text(" "),
-                        C.hl("@ " .. row .. "," .. col - 1, HL.LINK_LOCATION),
+                        C.hl("@ " .. row .. "," .. col - 1, HL.LINK_LOCATION)
+                    )
+
+                    -- Insert line containing node's title and line location
+                    table.insert(lines, {
+                        line,
                         C.action("<Tab>", do_expand),
                         C.action("<Enter>", do_open),
                     })
@@ -288,7 +295,7 @@ function M:new(opts)
             local id = instance.__id or last_id
             last_id = id
             if id then
-                return render(instance.__state, id)
+                return render(instance, id)
             else
                 return {}
             end
