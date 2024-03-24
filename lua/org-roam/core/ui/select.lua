@@ -5,6 +5,7 @@
 -- Modelled after Emacs' vertico completion (https://github.com/minad/vertico).
 -------------------------------------------------------------------------------
 
+local C = require("org-roam.core.ui.component")
 local Emitter = require("org-roam.core.utils.emitter")
 local tbl_utils = require("org-roam.core.utils.table")
 local Window = require("org-roam.core.ui.window")
@@ -204,7 +205,7 @@ function M:open()
     if not self.__state.window then
         local window = Window:new({
             name = "org-roam-select",
-            open = string.format("botright split | resize %s", self.__view.max_rows + 1),
+            open = Window.calc_open.bottom(self.__view.max_rows + 1),
             close_on_bufleave = true,
             destroy_on_close = true,
             focus_on_open = true,
@@ -215,8 +216,8 @@ function M:open()
             winopts = {
                 cursorline = false,
             },
-            widgets = {
-                function() return self:__render_widget() end,
+            components = {
+                function() return self:__render_component() end,
                 function() return self:__reset_cursor_and_mode() end,
             },
         })
@@ -595,7 +596,7 @@ end
 
 ---@private
 ---@return org-roam.core.ui.Line[]
-function M:__render_widget()
+function M:__render_component()
     local window = self.__state.window
     if not window then
         return {}
@@ -636,7 +637,7 @@ function M:__render_widget()
         end
 
         -- Build our line as a single segment with highlight
-        table.insert(lines, { { text, highlight } })
+        table.insert(lines, { C.hl(text, highlight) })
     end
 
     return lines
