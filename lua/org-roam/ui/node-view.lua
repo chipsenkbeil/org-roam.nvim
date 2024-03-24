@@ -4,7 +4,7 @@
 -- Toggles a view of a node's backlinks, citations, and unlinked references.
 -------------------------------------------------------------------------------
 
-local events = require("org-roam.events")
+local EVENTS = require("org-roam.events")
 local select_node = require("org-roam.ui.select-node")
 local utils = require("org-roam.utils")
 local Window = require("org-roam.ui.node-view.window")
@@ -33,7 +33,7 @@ local function toggle_node_view()
 
         -- Whenever the node changes, rerender the window
         ---@param node org-roam.core.database.Node|nil
-        events:on(events.kind.CURSOR_NODE_CHANGED, function(node)
+        EVENTS:on(EVENTS.KIND.CURSOR_NODE_CHANGED, function(node)
             if node then
                 CURSOR_NODE_VIEW:set_id(node.id)
             end
