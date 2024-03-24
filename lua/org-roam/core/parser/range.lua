@@ -65,10 +65,42 @@ function M:from_node(node)
     )
 end
 
----Converts from an nvim-orgmode OrgRange into an org-roam Range.
----@param range OrgRange
+---Converts from an nvim-orgmode OrgFile and OrgRange into an org-roam Range.
+---@param file OrgFile #contains lines which we use to reconstruct offsets
+---@param range OrgRange #one-indexed row and column data
 ---@return org-roam.core.parser.Range
-function M:from_org_range(range)
+function M:from_org_file_and_range(file, range)
+    local start = {
+        row = range.start_line - 1,
+        column = range.start_col,
+        offset = range.start_col - 1,
+    }
+
+    local end_ = {
+        row = range.end_line - 1,
+        column = range.end_col,
+        offset = range.end_col - 1,
+    }
+
+    -- Reverse engineer the starting offset by adding
+    -- the length of each line + a newline character
+    -- up until the line we are on
+    for i = 1, range.start_line - 1 do
+        local line = file.lines[i]
+        if not line then break end
+        start.offset = start.offset + string.len(line) + 1
+    end
+
+    -- Reverse engineer the ending offset by adding
+    -- the length of each line + a newline character
+    -- up until the line we are on
+    for i = 1, range.end_line - 1 do
+        local line = file.lines[i]
+        if not line then break end
+        end_.offset = end_.offset + string.len(line) + 1
+    end
+
+    return M:new(start, end_)
 end
 
 return M
