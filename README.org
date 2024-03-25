@@ -59,16 +59,16 @@
 
 ** Bindings
 
-   | Name                     | Description                                                             | Binding      |
-   |--------------------------+-------------------------------------------------------------------------+--------------|
-   | capture                  | Opens org-roam capture window.                                          | =<C-c>nc=    |
-   | complete_at_point        | Completes the node under cursor.                                        | =<C-c><C-c>= |
-   | find_node                | Finds node and moves to it, creating it if it does not exist.           | =<C-c>nf=    |
-   | insert_node              | Inserts node at cursor position, creating it if it does not exist.      | =<C-c>ni=    |
-   | print_node               | Prints the node under cursor.                                           | =<C-c>np=    |
-   | quickfix_backlinks       | Opens the quickfix menu for backlinks to the current node under cursor. | =<C-c>nq=    |
-   | toggle_roam_buffer       | Toggles the org-roam node-view buffer for the node under cursor.        | =<C-c>nl=    |
-   | toggle_roam_buffer_fixed | Toggles a fixed org-roam node-view buffer for a selected node.          | =<C-c>nn=    |
+   | Name                     | Description                                                             | Binding   |
+   |--------------------------+-------------------------------------------------------------------------+-----------|
+   | capture                  | Opens org-roam capture window.                                          | =<C-c>nc= |
+   | complete_at_point        | Completes the node under cursor.                                        | =<M-/>=   |
+   | find_node                | Finds node and moves to it, creating it if it does not exist.           | =<C-c>nf= |
+   | insert_node              | Inserts node at cursor position, creating it if it does not exist.      | =<C-c>ni= |
+   | print_node               | Prints the node under cursor.                                           | =<C-c>np= |
+   | quickfix_backlinks       | Opens the quickfix menu for backlinks to the current node under cursor. | =<C-c>nq= |
+   | toggle_roam_buffer       | Toggles the org-roam node-view buffer for the node under cursor.        | =<C-c>nl= |
+   | toggle_roam_buffer_fixed | Toggles a fixed org-roam node-view buffer for a selected node.          | =<C-c>nn= |
 
    Bindings can be changed during configuration by overwriting them within the =bindings= table:
 

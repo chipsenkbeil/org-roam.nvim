@@ -40,7 +40,7 @@ local config = setmetatable({
         capture = "<C-c>nc",
 
         ---Completes the node under cursor.
-        complete_at_point = "<C-c><C-c>",
+        complete_at_point = "<M-/>",
 
         ---Finds node and moves to it.
         find_node = "<C-c>nf",
