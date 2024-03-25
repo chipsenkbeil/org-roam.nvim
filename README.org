@@ -13,12 +13,19 @@
 
 ** Installation
 
+   This plugin depends on [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode/orgmode]] @ [[https://github.com/nvim-orgmode/orgmode/commit/606c74709fbacca4b9feade4c0cb583596d4521d][commit 606c747]].
+
 *** lazy.nvim
 
     #+begin_src lua
     {
       "chipsenkbeil/org-roam.nvim",
-      dependencies = { "nvim-orgmode/orgmode" },
+      dependencies = { 
+        { 
+          "nvim-orgmode/orgmode", 
+          commit = "606c74709fbacca4b9feade4c0cb583596d4521d",
+        },
+      },
       config = function()
         require("org-roam").setup({
           directory = "~/orgfiles",
@@ -32,7 +39,12 @@
     #+begin_src lua
     use {
       "chipsenkbeil/org-roam.nvim",
-      requires = { "nvim-orgmode/orgmode" },
+      requires = { 
+        { 
+          "nvim-orgmode/orgmode",
+          commit = "606c74709fbacca4b9feade4c0cb583596d4521d",
+        },
+      },
       config = function()
         require("org-roam"):setup({
           directory = "~/orgfiles",
@@ -49,7 +61,10 @@
 
    | Name                     | Description                                                             | Binding      |
    |--------------------------+-------------------------------------------------------------------------+--------------|
+   | capture                  | Opens org-roam capture window.                                          | =<C-c>nc=    |
    | complete_at_point        | Completes the node under cursor.                                        | =<C-c><C-c>= |
+   | find_node                | Finds node and moves to it, creating it if it does not exist.           | =<C-c>nf=    |
+   | insert_node              | Inserts node at cursor position, creating it if it does not exist.      | =<C-c>ni=    |
    | print_node               | Prints the node under cursor.                                           | =<C-c>np=    |
    | quickfix_backlinks       | Opens the quickfix menu for backlinks to the current node under cursor. | =<C-c>nq=    |
    | toggle_roam_buffer       | Toggles the org-roam node-view buffer for the node under cursor.        | =<C-c>nl=    |
@@ -75,14 +90,23 @@
    })
    #+end_src
 
+** Org Roam Buffer
+
+   When within the org-roam buffer, you can navigate around like normal with a
+   couple of specific bindings available:
+
+   - Press =<Enter>= on a link to navigate to it in another window.
+   - Press =<Tab>= to expand or collapse a preview of the content of a
+     backlink, reference link, or unlinked reference.
+
 ** Roadmap
 
    A collection of features to implement in no particular order.
 
-   - [ ] Implement [[https://www.orgroam.com/manual.html#The-Org_002droam-Buffer][org-roam buffer]]
-     - [ ] Implement *org-roam-buffer-toggle* (tracks current node at point)
-     - [ ] Implement *org-roam-buffer-display-dedicated* (tracks specific node)
-     - [ ] Implement *Backlinks* widget for buffer
+   - [-] Implement [[https://www.orgroam.com/manual.html#The-Org_002droam-Buffer][org-roam buffer]]
+     - [X] Implement *org-roam-buffer-toggle* (tracks current node at point)
+     - [X] Implement *org-roam-buffer-display-dedicated* (tracks specific node)
+     - [X] Implement *Backlinks* widget for buffer
        - View (preview of) nodes that link to this node
      - [ ] Implement *Reference Links* widget for buffer
        - Nodes that reference this node (see [[https://www.orgroam.com/manual.html#Refs][Refs]])
@@ -97,6 +121,9 @@
      - [X] [[https://www.orgroam.com/manual.html#Completing-anywhere][Completing anywhere]]
    - [ ] Support [[https://www.orgroam.com/manual.html#Encryption][encryption]] (emacs supports natively, so we may defer to plugins)
    - [ ] Support [[https://www.orgroam.com/manual.html#The-Templating-System][templating]]
+     - [ ] Implement *org-roam-node-insert*
+     - [ ] Implement *org-roam-node-find*
+     - [ ] Implement *org-roam-capture*
    - [ ] Implement extensions
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002ddailies][org-roam-dailies]]
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002dexport][org-roam-export]]
