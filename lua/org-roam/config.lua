@@ -58,7 +58,7 @@ local config = setmetatable({
         toggle_roam_buffer = "<C-c>nl",
 
         ---Toggles a fixed org-roam node-view buffer for a selected node.
-        toggle_roam_buffer_fixed = "<C-c>nn",
+        toggle_roam_buffer_fixed = "<C-c>nb",
     },
 
     ---@class org-roam.config.Templates
