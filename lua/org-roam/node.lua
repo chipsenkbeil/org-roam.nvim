@@ -6,6 +6,7 @@
 
 local CONFIG = require("org-roam.config")
 local database = require("org-roam.database")
+local io = require("org-roam.core.utils.io")
 local select_node = require("org-roam.ui.select-node")
 
 ---@class org-roam.NodeApi
@@ -135,20 +136,33 @@ function M.capture(opts, cb)
 
         -- Each template should prefix with an org-roam id
         templates[key] = template:on_compile(function(content)
-            local prefix = {
-                ":PROPERTIES:",
-                ":ID: " .. require('orgmode.org.id').new(),
-                ":END:",
-            }
+            -- Figure out our template's target
+            local target = template.target
+                or require("orgmode.config").org_default_notes_file
 
-            -- If we have a title specified, include it
-            if opts.title then
-                table.insert(prefix, "#+TITLE: " .. opts.title)
+            -- Check if the target exists by getting stat of it; if no error, it exists
+            local exists = not io.stat_sync(target)
+
+            -- Fill in org-roam expansions for our content, and if the
+            -- file does not exist then add our prefix
+            content = fill_expansions(content)
+            if not exists then
+                local prefix = {
+                    ":PROPERTIES:",
+                    ":ID: " .. require('orgmode.org.id').new(),
+                    ":END:",
+                }
+
+                -- If we have a title specified, include it
+                if opts.title then
+                    table.insert(prefix, "#+TITLE: " .. opts.title)
+                end
+
+                -- Prepend our prefix ensuring blank line between it and content
+                content = table.concat(prefix, "\n") .. "\n\n" .. content
             end
 
-            return table.concat(prefix, "\n")
-                .. "\n\n"
-                .. fill_expansions(content)
+            return content
         end)
     end
 
@@ -156,7 +170,7 @@ function M.capture(opts, cb)
         files = plugin.files,
         templates = templates,
         on_close = function(_, opts)
-            --[[ local filename = opts.destination_file.filename
+            local filename = opts.destination_file.filename
             local id = opts.source_file:get_property("ID")
 
             -- If we don't find a file-level node, look for headline nodes
@@ -167,8 +181,17 @@ function M.capture(opts, cb)
                 end
             end
 
-            -- TODO: Load new file and populate database
-            cb(id) ]]
+            -- TODO: We need to re-scan the file created to update it in the
+            --       database, but at this stage the refile has not yet happened.
+            --
+            --       Additionally, the refile could be canceled after this, so
+            --       we need some way to hook in post-refile OR kick off a job
+            --       to run to look for the file and re-parse it when it is
+            --       created or updated.
+            --
+            --       The former feels better, but we would need to rewrite capture.
+
+            cb(id)
         end,
     })
 
