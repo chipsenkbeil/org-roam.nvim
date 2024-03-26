@@ -9,8 +9,8 @@ local Emitter      = require("org-roam.core.utils.emitter")
 local IntervalTree = require("org-roam.core.utils.tree")
 local io           = require("org-roam.core.utils.io")
 local Node         = require("org-roam.core.database.node")
-local parser       = require("org-roam.core.parser")
 local parser_utils = require("org-roam.core.parser.utils")
+local Link         = require("org-roam.core.parser.link")
 local Range        = require("org-roam.core.parser.range")
 
 local uv           = vim.loop
@@ -36,7 +36,7 @@ function M:new(paths)
 end
 
 ---@alias org-roam.core.scanner.Scan
----| {path:string, file:org-roam.core.parser.File, nodes:org-roam.core.database.Node[]}
+---| {path:string, file:OrgFile, nodes:org-roam.core.database.Node[]}
 
 ---Register callback to be invoked when a file is scanned.
 ---This can be triggered during the initial scan or when a file is changed.
@@ -160,7 +160,7 @@ end
 
 ---@class org-roam.core.scanner.ScanDirResults
 ---@field entry org-roam.core.utils.io.WalkEntry
----@field file org-roam.core.parser.File
+---@field file OrgFile
 ---@field nodes org-roam.core.database.Node[]
 
 ---Performs a one-time scan of a directory, parsing each org file found,
@@ -208,118 +208,85 @@ function M:__scan_dir(path, cb, done)
 end
 
 ---@param path string
----@param file org-roam.core.parser.File
----@return org-roam.core.database.Node[]
-local function file_to_nodes(path, file)
-    ---@type org-roam.core.database.Node|nil
-    local file_node
+---@param file OrgFile
+---@return org-roam.core.database.Node|nil
+local function make_file_node(path, file)
+    local id = file:get_property("ID")
+
+    if id then
+        local aliases_text = file:get_property("ROAM_ALIASES")
+        local aliases = aliases_text
+            and parser_utils.parse_property_value(aliases_text)
+            or {}
+
+        local title = file:get_directive_property("TITLE")
+        local tags = file:get_filetags()
+
+        return Node:new({
+            id = id,
+            range = Range:new(
+                { row = 0, column = 0, offset = 0 },
+                { row = math.huge, column = math.huge, offset = math.huge }
+            ),
+            file = path,
+            title = title,
+            aliases = aliases,
+            tags = tags,
+            level = 0,
+            linked = {},
+        })
+    end
+
+    return nil
+end
+
+---@param path string
+---@param headline OrgHeadline
+---@return org-roam.core.database.Node|nil
+local function make_section_node(path, headline)
+    local id = headline:get_property("ID")
+    if id then
+        -- Get range that represents the section containing the headline
+        -- which should be the parent from the query (section (headline) @headline)
+        local range = Range:from_node(headline.headline:parent())
+        local aliases_text = headline:get_property("ROAM_ALIASES")
+        local aliases = aliases_text
+            and parser_utils.parse_property_value(aliases_text)
+            or {}
+        local title = headline:get_title()
+
+        -- NOTE: By default, this will get filetags and respect tag inheritance
+        --       for nested headlines. If this is turned off in orgmode, then
+        --       this only returns tags for the headline itself. We're going
+        --       to use this and let that be a decision the user makes.
+        local tags = headline:get_tags()
+        table.sort(tags)
+
+        return Node:new({
+            id = id,
+            range = range,
+            file = path,
+            title = title,
+            aliases = aliases,
+            tags = tags,
+            level = headline:get_level(),
+            linked = {},
+        })
+    end
+end
+
+---@param path string
+---@param file OrgFile
+---@return org-roam.core.database.Node[], org-roam.core.parser.Link[]
+local function file_to_nodes_and_links(path, file)
+    local file_node = make_file_node(path, file)
+
     ---@type {[1]: org-roam.core.parser.Range, [2]: org-roam.core.database.Node}[]
     local section_nodes = {}
-
-    -- First, find the top-level property drawer
-    for _, drawer in ipairs(file.drawers) do
-        local id = drawer:find("id", { case_insensitive = true })
-
-        if id then
-            local aliases_text = drawer:find("ROAM_ALIASES", {
-                case_insensitive = true,
-            })
-
-            local aliases = aliases_text
-                and parser_utils.parse_property_value(aliases_text)
-                or {}
-
-            file_node = Node:new({
-                id = id,
-                range = Range:new(
-                    { row = 0, column = 0, offset = 0 },
-                    { row = math.huge, column = math.huge, offset = math.huge }
-                ),
-                file = path,
-                title = file.title,
-                aliases = aliases,
-                tags = vim.deepcopy(file.filetags),
-                level = 0,
-                linked = {},
-            })
-
-            -- There should only be one top-level node
-            break
-        end
-    end
-
-    -- Second, build an interval tree of our sections so we
-    -- can look up tags that apply
-    ---@type org-roam.core.utils.IntervalTree|nil
-    local tags_tree
-    if #file.sections > 0 then
-        ---@param section org-roam.core.parser.Section[]
-        tags_tree = IntervalTree:from_list(vim.tbl_map(function(section)
-            ---@cast section org-roam.core.parser.Section
-            return {
-                section.range.start.offset,
-                section.range.end_.offset,
-                section.heading:tag_list(),
-            }
-        end, file.sections))
-    end
-
-    -- Third, for each section, check if it has a node
-    for _, section in ipairs(file.sections) do
-        local id = section.property_drawer:find("id", {
-            case_insensitive = true,
-        })
-
-        if id then
-            local heading = section.heading
-            local aliases_text = section.property_drawer:find("ROAM_ALIASES", {
-                case_insensitive = true,
-            })
-
-            local aliases = aliases_text
-                and parser_utils.parse_property_value(aliases_text)
-                or {}
-
-            local title = heading.item and vim.trim(heading.item:text()) or nil
-
-            -- Build up tags for the heading, which is a combination of
-            -- the file tags, any tags from ancestor headings, and
-            -- then this heading
-            local tags = vim.deepcopy(file.filetags)
-            local nodes = {}
-            if tags_tree then
-                nodes = tags_tree:find_all({
-                    section.range.start.offset,
-                    section.range.end_.offset,
-                    match = "contains",
-                })
-            end
-
-            for _, node in ipairs(nodes) do
-                ---@type string[]
-                local tagslist = node.data
-
-                for _, tag in ipairs(tagslist) do
-                    ---@cast tag string
-                    table.insert(tags, tag)
-                end
-            end
-
-            table.sort(tags)
-
-            table.insert(section_nodes, {
-                section.range,
-                Node:new({
-                    id = id,
-                    range = section.range,
-                    file = path,
-                    title = title,
-                    aliases = aliases,
-                    tags = tags,
-                    level = heading.stars,
-                    linked = {},
-                })
-            })
+    for _, headline in ipairs(file:get_headlines()) do
+        local node = make_section_node(path, headline)
+        if node then
+            table.insert(section_nodes, { node.range, node })
         end
     end
 
@@ -334,9 +301,16 @@ local function file_to_nodes(path, file)
     end
 
     -- Figure out which node contains the link
-    for _, link in ipairs(file.links) do
-        local link_path = vim.trim(link.path)
-        local link_id = string.match(link_path, "^id:(.+)$")
+    local links = {}
+    for _, link in ipairs(file:get_links()) do
+        local link_id = link.url:get_id()
+        local range = Range:from_org_file_and_range(file, link.range)
+        table.insert(links, Link:new({
+            kind = "regular",
+            range = range,
+            path = link.url:to_string(),
+            description = link.desc,
+        }))
 
         -- For now, we only consider links that are
         -- standard org id links, nothing else. This
@@ -348,8 +322,8 @@ local function file_to_nodes(path, file)
             local target_node
             if section_node_tree then
                 target_node = section_node_tree:find_last_data({
-                    link.range.start.offset,
-                    link.range.end_.offset,
+                    range.start.offset,
+                    range.end_.offset,
                     match = "contains",
                 })
             end
@@ -364,7 +338,7 @@ local function file_to_nodes(path, file)
                 end
 
                 ---@type org-roam.core.parser.Position
-                local pos = vim.deepcopy(link.range.start)
+                local pos = vim.deepcopy(range.start)
 
                 table.insert(target_node.linked[link_id], pos)
             end
@@ -381,30 +355,34 @@ local function file_to_nodes(path, file)
         table.insert(nodes, tbl[2])
     end
 
-    return nodes
+    return nodes, links
 end
 
 ---@class org-roam.core.scanner.ScanFileResults
----@field file org-roam.core.parser.File
+---@field file OrgFile
 ---@field nodes org-roam.core.database.Node[]
+---@field links org-roam.core.parser.Link[]
 
 ---Performs a one-time scan of a file, parsing the contents.
 ---@private
 ---@param path string
 ---@param cb fun(err:string|nil, results:org-roam.core.scanner.ScanFileResults|nil)
 function M:__scan_file(path, cb)
-    parser.parse_file(path, function(err, file)
-        if err then
-            cb(err)
-            return
-        end
+    local plugin = require("org-roam")
 
-        ---@cast file -nil
-        cb(nil, {
-            file = file,
-            nodes = file_to_nodes(path, file),
-        })
-    end)
+    ---@type OrgPromise
+    plugin.files
+        :load_file(path)
+        :next(function(file)
+            local nodes, links = file_to_nodes_and_links(path, file)
+            cb(nil, {
+                file = file,
+                nodes = nodes,
+                links = links,
+            })
+            return file
+        end)
+        :catch(cb)
 end
 
 ---Performs a one-time scan of a string, parsing the contents.
@@ -412,15 +390,28 @@ end
 ---@param opts? {path?:string}
 ---@return org-roam.core.scanner.ScanFileResults
 function M.scan(contents, opts)
-    opts = opts or {}
-    local file = parser.parse(contents)
+    local OrgFile = require("orgmode.files.file")
 
+    opts = opts or {}
+
+    ---@type OrgFile
+    local file = OrgFile:new({
+        -- Unless a path is provided, we use an empty string, which should
+        -- result in the string parser being used
+        filename = opts.path or "",
+        lines = vim.split(contents, "\n", { plain = true }),
+    })
+
+    file:parse()
+
+    local nodes, links = file_to_nodes_and_links(
+        opts.path or "<STRING>",
+        file
+    )
     return {
         file = file,
-        nodes = file_to_nodes(
-            opts.path or "<STRING>",
-            file
-        ),
+        nodes = nodes,
+        links = links,
     }
 end
 

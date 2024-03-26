@@ -8,7 +8,7 @@ local IntervalTree = require("org-roam.core.utils.tree")
 local Scanner = require("org-roam.core.scanner")
 
 ---@class (exact) org-roam.utils.BufferCache
----@field file org-roam.core.parser.File
+---@field file OrgFile
 ---@field link_tree org-roam.core.utils.IntervalTree|nil
 ---@field node_tree org-roam.core.utils.IntervalTree|nil
 ---@field tick integer
@@ -57,7 +57,7 @@ local function get_buffer_cache(bufnr)
 
         ---@type org-roam.core.utils.IntervalTree|nil
         local link_tree
-        if #scan.file.links > 0 then
+        if #scan.links > 0 then
             link_tree = IntervalTree:from_list(
             ---@param link org-roam.core.parser.Link
                 vim.tbl_map(function(link)
@@ -66,7 +66,7 @@ local function get_buffer_cache(bufnr)
                         link.range.end_.offset,
                         link,
                     }
-                end, scan.file.links)
+                end, scan.links)
             )
         end
 
@@ -103,7 +103,7 @@ function M.expr_under_cursor()
 end
 
 ---Looks for a link under cursor. If it exists, the raw parsed link is returned.
----@return org-roam.core.parser.Link|nil
+---@return OrgLink|nil
 function M.link_under_cursor()
     local bufnr = vim.api.nvim_win_get_buf(0)
     local cursor = vim.api.nvim_win_get_cursor(0)
