@@ -117,6 +117,32 @@ describe("org-roam.core.database", function()
         assert.are.equal("test", db:get(id))
     end)
 
+    it("should support inserting an unlinked node with a specific id", function()
+        local db = Database:new()
+        local id = db:insert("test", { id = "1234" })
+        assert.are.equal("1234", id)
+
+        -- Overwriting with an id that doesn't exist should insert like normal
+        local id2 = db:insert("test", { id = "5678", overwrite = true })
+        assert.are.equal("5678", id2)
+    end)
+
+    it("should throw an error if inserting with an id that already exists", function()
+        local db = Database:new()
+        local id = db:insert("test")
+
+        assert.is.error(function()
+            db:insert("test2", { id = id })
+        end)
+    end)
+
+    it("should remove an existing node if inserting with an id that exists and overwrite is true", function()
+        local db = Database:new()
+        local id = db:insert("test")
+        assert.are.equal(id, db:insert("test2", { id = id, overwrite = true }))
+        assert.are.equal("test2", db:get(id))
+    end)
+
     it("should support removing unlinked nodes", function()
         local db = Database:new()
         local id = db:insert("test")
@@ -189,6 +215,12 @@ describe("org-roam.core.database", function()
         assert.are.same({}, db:get_backlinks(id3))
     end)
 
+    it("should support reporting if a node exists by id", function()
+        local db = Database:new()
+        local id = db:insert("test")
+        assert.is_true(db:has(id))
+    end)
+
     it("should support retrieving a node by its id", function()
         local db = Database:new()
         local id = db:insert("test")
@@ -205,6 +237,26 @@ describe("org-roam.core.database", function()
             [id2] = "two",
             [id3] = "three",
         }, db:get_many(id1, id2, id3))
+    end)
+
+    it("should support retrieving ids within database", function()
+        local db = Database:new()
+        local id1 = db:insert("one")
+        local id2 = db:insert("two")
+        local id3 = db:insert("three")
+
+        local expected = { id1, id2, id3 }
+        table.sort(expected)
+
+        local ids
+
+        ids = db:iter_ids():collect()
+        table.sort(ids)
+        assert.are.same(expected, ids)
+
+        ids = db:ids()
+        table.sort(ids)
+        assert.are.same(expected, ids)
     end)
 
     it("should support getting ids of nodes linked to by a node", function()
@@ -365,6 +417,23 @@ describe("org-roam.core.database", function()
         table.sort(expected)
         table.sort(actual)
         assert.are.same(expected, actual)
+    end)
+
+    it("should support iterating over indexed values", function()
+        local db = Database:new():new_index("name", function(node)
+            return node.name
+        end)
+
+        db:insert({ name = "one", value = 1 })
+        db:insert({ name = "two", value = 2 })
+        db:insert({ name = "three", value = 3 })
+        db:insert({ name = { "four", "five" }, value = 4 })
+
+        -- Retrieves names as the indexed keys for the name indexer
+        local keys = db:iter_index_keys("name"):collect()
+        table.sort(keys)
+
+        assert.are.same({ "five", "four", "one", "three", "two" }, keys)
     end)
 
     it("should support iterating over nodes from a starting node", function()
