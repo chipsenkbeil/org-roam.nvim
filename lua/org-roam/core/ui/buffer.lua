@@ -306,7 +306,8 @@ function M:__apply_lines(ui_lines, force)
         and vim.api.nvim_buf_get_lines(bufnr, 0, 1, false)[1] == ""
 
     -- Calculate the starting line for appending and highlights
-    local start = is_empty and self.__offset or (cnt + self.__offset)
+    -- TODO: Why do I need -1 applied here for select to work?
+    local start = is_empty and self.__offset or (cnt + self.__offset - 1)
 
     -- Build up the complete lines and highlights
     ---@type string[]
