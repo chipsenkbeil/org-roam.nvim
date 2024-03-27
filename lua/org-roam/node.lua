@@ -190,7 +190,6 @@ function M.capture(opts, cb)
             --       created or updated.
             --
             --       The former feels better, but we would need to rewrite capture.
-
             cb(id)
         end,
     })
