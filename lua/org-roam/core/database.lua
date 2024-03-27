@@ -182,9 +182,15 @@ function M:write_to_disk(path, cb)
 end
 
 ---Inserts non-false data into the database as a node with no edges.
----If an id is provided in options, will be used, otherwise a new id is generated.
+---
+---If an `id` is provided in options, will be used, otherwise a new id is
+---generated.
+---
+---If `overwrite` is true and an id is provided that exists, the database will
+---remove the old node before inserting the new one, otherwise if `overwrite`
+---is false then an error will be thrown if the node already exists.
 ---@param data org-roam.core.database.Data
----@param opts? {id?:org-roam.core.database.Id}
+---@param opts? {id?:org-roam.core.database.Id, overwrite?:boolean}
 ---@return org-roam.core.database.Id id #the id of the inserted node
 function M:insert(data, opts)
     assert(data ~= nil, "Cannot insert nil value as data")
@@ -198,6 +204,14 @@ function M:insert(data, opts)
     if type(id) ~= "string" then
         id = random.uuid_v4()
     end
+
+    -- If overwriting, ensure the node is removed first
+    if opts.overwrite then
+        self:remove(id)
+    end
+
+    -- Check if the node exists, and fail if it does
+    assert(not self:has(id), "inserting node " .. id .. ", but already exists")
 
     -- Perform the actual insertion of the node
     self.__nodes[id] = data
@@ -246,6 +260,13 @@ function M:remove(id)
     return node
 end
 
+---Returns true if there exists a node with the specified id.
+---@param id org-roam.core.database.Id
+---@return boolean
+function M:has(id)
+    return self:get(id) ~= nil
+end
+
 ---Retrieves node from the database by its id.
 ---@param id org-roam.core.database.Id
 ---@return org-roam.core.database.Data|nil #the node's data, or nil if none with id found
@@ -267,9 +288,29 @@ function M:get_many(...)
 end
 
 ---Returns a list of all ids of nodes within the database.
+---
+---If the database has a lot of nodes, this can be expensive and slow.
+---Prefer using `iter_ids()` if you expect a large id set.
 ---@return org-roam.core.database.Id[]
 function M:ids()
     return vim.tbl_keys(self.__nodes)
+end
+
+---Returns an iterator of all ids of nodes within the database.
+---@return org-roam.core.utils.Iterator
+function M:iter_ids()
+    return Iterator:from_tbl_keys(self.__nodes)
+end
+
+---Produces an iterator over the index keys tied to an index.
+---
+---For example, if you index nodes by a string field, this function will
+---return an iterator over all of the string field's values.
+---@param name org-roam.core.database.IndexName name of the index
+---@return org-roam.core.utils.Iterator
+function M:iter_index_keys(name)
+    local index = self.__indexes[name] or {}
+    return Iterator:from_tbl_keys(index)
 end
 
 ---Retrieves ids of nodes from the database by some index.
