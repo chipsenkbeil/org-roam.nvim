@@ -13,21 +13,41 @@ describe("org-roam.core.utils.iterator", function()
         assert.are.equal(3, it:next())
     end)
 
-    it("should support being created by calling the class as a function", function()
-        local i = 0
-        local it = Iterator(function()
-            i = i + 1
-            return i
-        end)
+    it("should support being created to iterate over the keys & values of a table", function()
+        local tbl = { a = "d", b = "e", c = "f" }
+        local it = Iterator:from_tbl(tbl)
 
-        assert.are.equal(1, it:next())
-        assert.are.equal(2, it:next())
-        assert.are.equal(3, it:next())
+        local tbl2 = {}
+        for key, value in it do
+            tbl2[key] = value
+        end
+
+        assert.are.same(tbl, tbl2)
+    end)
+
+    it("should support being created to iterate over the keys of a table", function()
+        local tbl = { a = "d", b = "e", c = "f" }
+        local it = Iterator:from_tbl_keys(tbl)
+
+        local keys = it:collect()
+        table.sort(keys)
+
+        assert.are.same({ "a", "b", "c" }, keys)
+    end)
+
+    it("should support being created to iterate over the values of a table", function()
+        local tbl = { a = "d", b = "e", c = "f" }
+        local it = Iterator:from_tbl_values(tbl)
+
+        local values = it:collect()
+        table.sort(values)
+
+        assert.are.same({ "d", "e", "f" }, values)
     end)
 
     it("should support advancing by calling itself (instance only)", function()
         local i = 0
-        local it = Iterator(function()
+        local it = Iterator:new(function()
             i = i + 1
             if i < 4 then
                 return i
