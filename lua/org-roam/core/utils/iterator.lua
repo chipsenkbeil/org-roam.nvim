@@ -11,13 +11,7 @@ local unpack = require("org-roam.core.utils.table").unpack
 ---@field private __allow_nil boolean
 ---@field private __last {n:integer, [integer]:any}|nil
 ---@field private __next fun():...
----@overload fun(f:(fun():...), opts?:{allow_nil?:boolean}):org-roam.core.utils.Iterator
-local M = setmetatable({}, {
-    ---Class-only implementation to mirror call to `Iterator:new()`.
-    __call = function(tbl, ...)
-        return tbl:new(...)
-    end,
-})
+local M = {}
 M.__index = M
 
 ---Creates a new iterator using the provided function to feed in values.
@@ -51,6 +45,35 @@ end
 ---@return ...
 function M:__call()
     return self:next()
+end
+
+---Creates an iterator over the keys and values of a table.
+---@param tbl table
+---@return org-roam.core.utils.Iterator
+function M:from_tbl(tbl)
+    local key, value
+    return M:new(function()
+        key, value = next(tbl, key)
+        return key, value
+    end)
+end
+
+---Creates an iterator over the keys of a table.
+---@param tbl table
+---@return org-roam.core.utils.Iterator
+function M:from_tbl_keys(tbl)
+    return M:from_tbl(tbl):map(function(key, _)
+        return key
+    end)
+end
+
+---Creates an iterator over the values of a table.
+---@param tbl table
+---@return org-roam.core.utils.Iterator
+function M:from_tbl_values(tbl)
+    return M:from_tbl(tbl):map(function(_, value)
+        return value
+    end)
 end
 
 ---Checks if the iterator has another value available.
