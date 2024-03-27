@@ -207,6 +207,7 @@ end
 
 ---@class org-roam.core.utils.io.WalkOpts
 ---@field depth integer|nil #how deep the traverse (default 1)
+---@field resolve boolean|nil #if true, resolves paths
 ---@field skip (fun(dir_name: string): boolean)|nil #predicate
 
 ---Walks the provided `path`, returning an iterator over the entries.
@@ -224,10 +225,18 @@ function M.walk(path, opts)
     ---@return org-roam.core.utils.io.WalkEntry?
     local function map_entry(name, type)
         if name and type then
+            local entry_path = path_utils.join(path, name)
+
+            if opts.resolve then
+                entry_path = vim.fn.resolve(entry_path)
+            end
+
+            entry_path = vim.fs.normalize(entry_path, { expand_env = true })
+
             return {
                 name     = name,
                 filename = vim.fs.basename(name),
-                path     = path_utils.join(path, name),
+                path     = entry_path,
                 type     = type,
             }
         end
