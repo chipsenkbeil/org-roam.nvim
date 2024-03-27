@@ -419,6 +419,15 @@ describe("org-roam.core.database", function()
         assert.are.same(expected, actual)
     end)
 
+    it("should support determining if an index exists", function()
+        local db = Database:new():new_index("name", function(node)
+            return node.name
+        end)
+
+        assert.is_false(db:has_index("key"))
+        assert.is_true(db:has_index("name"))
+    end)
+
     it("should support iterating over indexed values", function()
         local db = Database:new():new_index("name", function(node)
             return node.name
