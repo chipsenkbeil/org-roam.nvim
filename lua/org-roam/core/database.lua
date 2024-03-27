@@ -58,17 +58,6 @@ function M:new()
     return instance
 end
 
----Creates a new index with the given name using the provided indexer.
----@param name org-roam.core.database.IndexName name associated with indexer
----@param indexer org-roam.core.database.Indexer function to perform indexing
----@return org-roam.core.Database #reference to updated database
-function M:new_index(name, indexer)
-    -- Add the indexer to our internal tracker
-    self.__indexers[name] = indexer
-
-    return self
-end
-
 ---Synchronously loads database from disk.
 ---
 ---Note: cannot be called within fast callbacks.
@@ -300,6 +289,24 @@ end
 ---@return org-roam.core.utils.Iterator
 function M:iter_ids()
     return Iterator:from_tbl_keys(self.__nodes)
+end
+
+---Creates a new index with the given name using the provided indexer.
+---@param name org-roam.core.database.IndexName name associated with indexer
+---@param indexer org-roam.core.database.Indexer function to perform indexing
+---@return org-roam.core.Database #reference to updated database
+function M:new_index(name, indexer)
+    -- Add the indexer to our internal tracker
+    self.__indexers[name] = indexer
+
+    return self
+end
+
+---Returns true if an index exists with the given name.
+---@param name org-roam.core.database.IndexName name associated with indexer
+---@return boolean
+function M:has_index(name)
+    return self.__indexers[name] ~= nil
 end
 
 ---Produces an iterator over the index keys tied to an index.
