@@ -5,7 +5,7 @@
 -------------------------------------------------------------------------------
 
 local CONFIG = require("org-roam.config")
-local database = require("org-roam.database")
+local db = require("org-roam.database")
 local io = require("org-roam.core.utils.io")
 local select_node = require("org-roam.ui.select-node")
 
@@ -20,10 +20,7 @@ function M.insert()
 
     ---@param id org-roam.core.database.Id
     local function insert_link(id)
-        local db = database()
-
-        ---@type org-roam.core.database.Node|nil
-        local node = db:get(id)
+        local node = db:get_sync(id)
 
         if node then
             local ok = pcall(vim.api.nvim_set_current_win, winnr)
@@ -65,10 +62,7 @@ function M.find()
 
     ---@param id org-roam.core.database.Id
     local function visit_node(id)
-        local db = database()
-
-        ---@type org-roam.core.database.Node|nil
-        local node = db:get(id)
+        local node = db:get_sync(id)
 
         if node then
             local ok = pcall(vim.api.nvim_set_current_win, winnr)

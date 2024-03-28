@@ -264,12 +264,15 @@ function M:get(id)
 end
 
 ---Retrieves one or more nodes from the database by their ids.
----@param ... org-roam.core.database.Id ids of nodes to retrieve
+---@param ... org-roam.core.database.Id|org-roam.core.database.Id[] ids of nodes to retrieve
 ---@return table<org-roam.core.database.Id, org-roam.core.database.Data[]> #mapping of id -> node data
 function M:get_many(...)
     local nodes = {}
 
-    for _, id in ipairs({ ... }) do
+    ---@type string[]
+    local ids = vim.tbl_flatten({ ... })
+
+    for _, id in ipairs(ids) do
         nodes[id] = self:get(id)
     end
 

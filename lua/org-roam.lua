@@ -19,7 +19,11 @@ function M.setup(config)
     require("org-roam.setup")(M, config)
 
     -- Load the database asynchronously
-    require("org-roam.database").load(function() end)
+    require("org-roam.database"):reload(function(err)
+        if err then
+            require("org-roam.core.ui.notify").error(err)
+        end
+    end)
 end
 
 return M

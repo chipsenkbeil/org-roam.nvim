@@ -5,7 +5,7 @@
 -------------------------------------------------------------------------------
 
 local C = require("org-roam.core.ui.component")
-local database = require("org-roam.database")
+local db = require("org-roam.database")
 local Emitter = require("org-roam.core.utils.emitter")
 local tbl_utils = require("org-roam.core.utils.table")
 local Window = require("org-roam.core.ui.window")
@@ -135,8 +135,6 @@ end
 ---@param node org-roam.core.database.Node|org-roam.core.database.Id
 ---@return org-roam.core.ui.Line[] lines
 local function render(this, node)
-    local db = database()
-
     ---@diagnostic disable-next-line:invisible
     local state = this.__state
 
@@ -145,7 +143,8 @@ local function render(this, node)
 
     -- If given an id instead of a node, load it here
     if type(node) == "string" then
-        node = db:get(node)
+        ---@diagnostic disable-next-line:cast-local-type
+        node = db:get_sync(node)
     end
 
     if node then
@@ -163,8 +162,7 @@ local function render(this, node)
         })
 
         for backlink_id, _ in pairs(backlinks) do
-            ---@type org-roam.core.database.Node|nil
-            local backlink_node = db:get(backlink_id)
+            local backlink_node = db:get_sync(backlink_id)
 
             if backlink_node then
                 local locs = backlink_node.linked[node.id]

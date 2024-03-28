@@ -4,7 +4,7 @@
 -- Opens a dialog to select a node, returning its id.
 -------------------------------------------------------------------------------
 
-local database = require("org-roam.database")
+local db = require("org-roam.database")
 local Select = require("org-roam.core.ui.select")
 
 ---Opens up a selection dialog populated with nodes (titles and aliases).
@@ -18,8 +18,6 @@ return function(opts, cb)
     end
     opts = opts or {}
 
-    local db = database()
-
     -- TODO: Make this more optimal. Probably involves supporting
     --       an async function to return items instead of an
     --       item list so we can query the database by name
@@ -27,8 +25,7 @@ return function(opts, cb)
     ---@type {id:org-roam.core.database.Id, label:string}
     local items = {}
     for _, id in ipairs(db:ids()) do
-        ---@type org-roam.core.database.Node|nil
-        local node = db:get(id)
+        local node = db:get_sync(id)
         if node then
             table.insert(items, { id = id, label = node.title })
             for _, alias in ipairs(node.aliases) do

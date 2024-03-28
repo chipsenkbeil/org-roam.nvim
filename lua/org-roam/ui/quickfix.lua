@@ -4,7 +4,7 @@
 -- Opens a quickfix list for org-roam.
 -------------------------------------------------------------------------------
 
-local database = require("org-roam.database")
+local db = require("org-roam.database")
 local io = require("org-roam.core.utils.io")
 local utils = require("org-roam.utils")
 
@@ -15,17 +15,15 @@ local utils = require("org-roam.utils")
 ---@field col? integer
 ---@field text? string
 
----@param db org-roam.core.Database
 ---@param id org-roam.core.database.Id
 ---@return org-roam.ui.quickfix.Item[]
-local function get_links_as_quickfix_items(db, id)
+local function get_links_as_quickfix_items(id)
     ---@type org-roam.core.database.Id[]
     local ids = vim.tbl_keys(db:get_links(id))
 
     local items = {}
     for _, link_id in ipairs(ids) do
-        ---@type org-roam.core.database.Node|nil
-        local node = db:get(link_id)
+        local node = db:get_sync(link_id)
         if node then
             table.insert(items, {
                 filename = node.file,
@@ -37,11 +35,10 @@ local function get_links_as_quickfix_items(db, id)
     return items
 end
 
----@param db org-roam.core.Database
 ---@param id org-roam.core.database.Id
 ---@param opts? {show_preview?:boolean}
 ---@return org-roam.ui.quickfix.Item[]
-local function get_backlinks_as_quickfix_items(db, id, opts)
+local function get_backlinks_as_quickfix_items(id, opts)
     opts = opts or {}
 
     ---@type org-roam.core.database.Id[]
@@ -49,8 +46,7 @@ local function get_backlinks_as_quickfix_items(db, id, opts)
 
     local items = {}
     for _, backlink_id in ipairs(ids) do
-        ---@type org-roam.core.database.Node|nil
-        local node = db:get(backlink_id)
+        local node = db:get_sync(backlink_id)
 
         if node then
             -- If showing preview of the link, we load the
@@ -82,15 +78,13 @@ end
 ---Opens the quickfix list.
 ---
 ---NOTE: Cannot be called from a lua loop callback!
----@param db org-roam.core.Database
 ---@param id org-roam.core.database.Id
 ---@param opts? {backlinks?:boolean, links?:boolean, show_preview?:boolean}
-local function open(db, id, opts)
+local function open(id, opts)
     opts = opts or {}
 
     local title = (function()
-        ---@type org-roam.core.database.Node|nil
-        local node = db:get(id)
+        local node = db:get_sync(id)
         return node and node.title
     end)()
 
@@ -109,7 +103,7 @@ local function open(db, id, opts)
 
     -- Build up our quickfix list items based on links
     if opts.links then
-        local qfitems = get_links_as_quickfix_items(db, id)
+        local qfitems = get_links_as_quickfix_items(id)
 
         if prefix_module then
             ---@param item org-roam.ui.quickfix.Item
@@ -124,7 +118,7 @@ local function open(db, id, opts)
 
     -- Build up our quickfix list items based on backlinks
     if opts.backlinks then
-        local qfitems = get_backlinks_as_quickfix_items(db, id, opts)
+        local qfitems = get_backlinks_as_quickfix_items(id, opts)
 
         if prefix_module then
             ---@param item org-roam.ui.quickfix.Item
@@ -162,14 +156,12 @@ end
 return function(opts)
     opts = opts or {}
 
-    local db = database()
-
     if opts.id then
-        open(db, opts.id, opts)
+        open(opts.id, opts)
     else
         utils.node_under_cursor(function(node)
             if node then
-                open(db, node.id, opts)
+                open(node.id, opts)
             end
         end)
     end
