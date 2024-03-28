@@ -7,6 +7,7 @@
 local CONFIG = require("org-roam.config")
 local db = require("org-roam.database")
 local io = require("org-roam.core.utils.io")
+local notify = require("org-roam.core.ui.notify")
 local select_node = require("org-roam.ui.select-node")
 
 ---@class org-roam.NodeApi
@@ -175,16 +176,15 @@ function M.capture(opts, cb)
                 end
             end
 
-            -- TODO: We need to re-scan the file created to update it in the
-            --       database, but at this stage the refile has not yet happened.
-            --
-            --       Additionally, the refile could be canceled after this, so
-            --       we need some way to hook in post-refile OR kick off a job
-            --       to run to look for the file and re-parse it when it is
-            --       created or updated.
-            --
-            --       The former feels better, but we would need to rewrite capture.
-            cb(id)
+            db:update({ filename }, vim.schedule_wrap(function(err)
+                if err then
+                    notify.error(err)
+                    cb(nil)
+                    return
+                end
+
+                cb(id)
+            end))
         end,
     })
 
