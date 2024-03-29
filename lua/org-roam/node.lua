@@ -129,6 +129,11 @@ function M.capture(opts, cb)
             template.target = fill_expansions(template.target)
         end
 
+        -- Always include the entire capture contents, not just
+        -- the headline, to make sure the generated property
+        -- drawer and title directive are included
+        template.whole_file = true
+
         -- Each template should prefix with an org-roam id
         templates[key] = template:on_compile(function(content)
             -- Figure out our template's target

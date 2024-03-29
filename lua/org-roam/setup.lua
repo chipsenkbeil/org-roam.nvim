@@ -46,6 +46,16 @@ local function define_autocmds()
     })
 end
 
+local function define_commands()
+    vim.api.nvim_create_user_command("OrgRoamUpdate", function(_)
+        require("org-roam.database"):update({ CONFIG.directory }, function(err)
+            if err then
+                require("org-roam.core.ui.notify").error(err)
+            end
+        end)
+    end, { desc = "Wipes the database" })
+end
+
 local function define_keybindings()
     -- User can remove all bindings by setting this to nil
     local bindings = CONFIG.bindings or {}
@@ -130,6 +140,7 @@ end
 return function(plugin, config)
     config = merge_config(config)
     define_autocmds()
+    define_commands()
     define_keybindings()
     populate_plugin(plugin, config)
 end

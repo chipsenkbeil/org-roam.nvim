@@ -8,11 +8,17 @@ local CONFIG = require("org-roam.config")
 
 local async = require("org-roam.core.utils.async")
 local Database = require("org-roam.core.database")
+local Emitter = require("org-roam.core.utils.emitter")
 local File = require("org-roam.core.database.file")
 local join_path = require("org-roam.core.utils.path").join
 local Scanner = require("org-roam.core.scanner")
 
 local notify = require("org-roam.core.ui.notify")
+
+---@enum org-roam.database.Events
+local EVENTS = {
+    LOADED = "loaded",
+}
 
 ---@enum org-roam.database.Index
 local INDEX = {
@@ -26,7 +32,8 @@ local DATABASE_PATH = join_path(vim.fn.stdpath("data"), "org-roam.nvim", "db")
 
 ---@class org-roam.Database: org-roam.core.Database
 ---@field private __db org-roam.core.Database
----@field private __loaded boolean
+---@field private __emitter org-roam.core.utils.Emitter
+---@field private __loaded boolean|"loading"
 local M = {}
 
 ---Creates a new, unloaded instance of the database.
@@ -35,6 +42,7 @@ function M:new()
     local instance = {}
     setmetatable(instance, M)
     instance.__db = Database:new()
+    instance.__emitter = Emitter:new()
     instance.__loaded = false
     return instance
 end
@@ -90,16 +98,22 @@ end
 ---Returns true if the database has been loaded and is available.
 ---@return boolean
 function M:is_loaded()
-    return self.__loaded
+    return self.__loaded == true
 end
 
 ---@private
 ---@param cb fun(err:string|nil)
 function M:__load(cb)
+    self.__emitter:once(EVENTS.LOADED, cb)
+
     if self:is_loaded() then
-        cb(nil)
+        self.__emitter:emit(EVENTS.LOADED)
+        return
+    elseif self.__loaded == "loading" then
         return
     end
+
+    self.__loaded = "loading"
 
     vim.schedule(function()
         -- Load our database, creating it if it does not exist
@@ -115,33 +129,26 @@ function M:__load(cb)
 
             notify.info("Scanning for org files")
             self:update({ CONFIG.directory }, function(err)
+                self.__loaded = false
+
                 if err then
                     notify.error(err)
-                    cb(err)
+                    self.__emitter:emit(EVENTS.LOADED, err)
                     return
                 end
 
+                notify.debug("Database loaded")
                 self.__loaded = true
-                cb(nil)
+                self.__emitter:emit(EVENTS.LOADED)
             end)
-        else
-            self:reload(cb)
-        end
-    end)
-end
-
----Reloads the database from disk.
----@param cb fun(err:string|nil)
-function M:reload(cb)
-    vim.schedule(function()
-        if not File:new(DATABASE_PATH):exists() then
-            cb(nil)
         else
             notify.debug("Loading database from " .. DATABASE_PATH)
             Database:load_from_disk(DATABASE_PATH, function(err, db)
+                self.__loaded = false
+
                 if err then
                     notify.error(err)
-                    cb(err)
+                    self.__emitter:emit(EVENTS.LOADED, err)
                     return
                 end
 
@@ -149,17 +156,12 @@ function M:reload(cb)
                 self.__db = db
                 self:__apply_database_schema()
 
+                notify.debug("Database loaded")
                 self.__loaded = true
-                cb(nil)
+                self.__emitter:emit(EVENTS.LOADED)
             end)
         end
     end)
-end
-
----Reloads the database from disk.
----@return string|nil err
-function M:reload_sync()
-    return async.wrap(self.reload)(self)
 end
 
 ---Updates the database for the provided paths, recursing through directories.
