@@ -98,6 +98,7 @@ function M:load(cb, opts)
     Loader:new({ database = DATABASE_PATH, files = CONFIG.directory })
         :load()
         :next(function(results)
+            print("RESULTS", vim.inspect(results))
             self.__db = results.database
             self.__files = results.files
             self.__loaded = true
@@ -105,6 +106,7 @@ function M:load(cb, opts)
             return results
         end)
         :catch(function(err)
+            print("ERR", vim.inspect(err))
             self.__loaded = false
             self.__emitter:emit(EVENTS.LOADED, vim.inspect(err))
             return err

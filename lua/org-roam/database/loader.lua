@@ -66,7 +66,7 @@ function M:load()
     -- Reload all org-roam files
     return Promise.all({
         load_database(self.path.database),
-        files:load(),
+        files:load(true), -- force loading
     }):next(function(results)
         ---@type org-roam.core.Database
         local db = results[1]
