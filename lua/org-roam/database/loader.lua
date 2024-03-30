@@ -10,6 +10,7 @@ local io       = require("org-roam.core.utils.io")
 local OrgFiles = require("orgmode.files")
 local path     = require("org-roam.core.utils.path")
 local Promise  = require("orgmode.utils.promise")
+local unpack   = require("org-roam.core.utils.table").unpack
 
 ---@class org-roam.database.Loader
 ---@field force boolean
@@ -141,16 +142,15 @@ function M:load()
                 -- Construct information from org file
                 local roam_file = File:from_org_file(file)
 
-                -- Add in parsed nodes and link them again
+                -- Add in parsed nodes
                 for id, node in pairs(roam_file.nodes) do
-                    db:insert(node, { id = id, overwrite = true })
-                    db:link(id, unpack(vim.tbl_keys(node.linked)))
+                    db:insert(node, { id = id })
                 end
             end
         end
 
-        -- For each file, check the modified time (any node will do) to
-        -- see if we need to refresh nodes for a file
+        -- For each modified file, check the modified time (any node will do)
+        -- to see if we need to refresh nodes for a file
         for _, filename in ipairs(filenames.both) do
             local ids = db:find_by_index("file", filename)
             local node = ids[1] and db:get(ids[1])
@@ -168,10 +168,20 @@ function M:load()
 
                     -- Add in parsed nodes and link them again
                     for id, node in pairs(roam_file.nodes) do
-                        db:insert(node, { id = id, overwrite = true })
-                        db:link(id, unpack(vim.tbl_keys(node.linked)))
+                        db:insert(node, { id = id })
                     end
                 end
+            end
+        end
+
+        -- Re-link all nodes to one another. We do this because removing
+        -- and re-inserting nodes can lose the links from other nodes
+        -- that were made previously
+        for id in db:iter_ids() do
+            local node = db:get(id)
+            local ids = (node and vim.tbl_keys(node.linked)) or {}
+            if #ids > 0 then
+                db:link(id, unpack(ids))
             end
         end
 
