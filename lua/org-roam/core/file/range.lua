@@ -4,21 +4,21 @@
 -- Abstraction for a range within some text.
 -------------------------------------------------------------------------------
 
----@class org-roam.core.nodes.Position
+---@class org-roam.core.file.Position
 ---@field row integer #zero-based row position
 ---@field column integer #zero-based column position (within row)
 ---@field offset integer #zero-based byte position
 
----@class org-roam.core.nodes.Range
----@field start org-roam.core.nodes.Position #inclusive beginning to range
----@field end_ org-roam.core.nodes.Position #inclusive end to range
+---@class org-roam.core.file.Range
+---@field start org-roam.core.file.Position #inclusive beginning to range
+---@field end_ org-roam.core.file.Position #inclusive end to range
 local M = {}
 M.__index = M
 
 ---Creates a new range.
----@param start org-roam.core.nodes.Position
----@param end_ org-roam.core.nodes.Position
----@return org-roam.core.nodes.Range
+---@param start org-roam.core.file.Position
+---@param end_ org-roam.core.file.Position
+---@return org-roam.core.file.Range
 function M:new(start, end_)
     local instance = {}
     setmetatable(instance, M)
@@ -36,7 +36,7 @@ function M:size()
 end
 
 ---Returns true if the `range` will fit within this range.
----@param range org-roam.core.nodes.Range
+---@param range org-roam.core.file.Range
 ---@return boolean
 function M:contains(range)
     return (
@@ -47,7 +47,7 @@ end
 
 ---Creates a range from a treesitter node.
 ---@param node TSNode
----@return org-roam.core.nodes.Range
+---@return org-roam.core.file.Range
 function M:from_node(node)
     local start_row, start_col, start_offset = node:start()
     local end_row, end_col, end_offset = node:end_()
@@ -68,7 +68,7 @@ end
 ---Converts from an nvim-orgmode OrgFile and OrgRange into an org-roam Range.
 ---@param file OrgFile #contains lines which we use to reconstruct offsets
 ---@param range OrgRange #one-indexed row and column data
----@return org-roam.core.nodes.Range
+---@return org-roam.core.file.Range
 function M:from_org_file_and_range(file, range)
     local start = {
         row = range.start_line - 1,
