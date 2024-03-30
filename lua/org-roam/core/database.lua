@@ -331,7 +331,7 @@ function M:find_by_index(name, cmp)
     ---@type string[]
     local ids = {}
 
-    local tbl = self.__indexes[name]
+    local tbl = self.__indexes[name] or {}
 
     -- If cmp is a boolean/integer/string, we do a lookup,
     -- otherwise if it is a function we iterate through keys

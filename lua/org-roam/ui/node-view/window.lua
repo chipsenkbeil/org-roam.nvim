@@ -7,6 +7,7 @@
 local C = require("org-roam.core.ui.component")
 local db = require("org-roam.database")
 local Emitter = require("org-roam.core.utils.emitter")
+local notify = require("org-roam.core.ui.notify")
 local tbl_utils = require("org-roam.core.utils.table")
 local Window = require("org-roam.core.ui.window")
 local WindowPicker = require("org-roam.core.ui.window-picker")
@@ -100,23 +101,29 @@ local function load_lines_at_cursor(path, cursor)
     local lines = (CACHE[key] or {}).lines or {}
 
     -- Kick off a reload of lines
-    require("org-roam").files:load_file(path):next(function(file)
+    require("org-roam.database"):load_file({
+        path = path
+    }, function(err, results)
+        if err then
+            notify.error(err)
+            return
+        end
+
         -- Calculate a digest and see if its different
-        local sha256 = vim.fn.sha256(file.content)
+        ---@cast results -nil
+        local sha256 = vim.fn.sha256(results.file.content)
         local is_new = not CACHE[key] or CACHE[key].sha256 ~= sha256
 
         -- Update our cache
         CACHE[key] = {
             sha256 = sha256,
-            lines = file_to_lines(file),
+            lines = file_to_lines(results.file),
         }
 
         -- If our file has changed, re-render
         if is_new then
             EMITTER:emit(EVENTS.REFRESH)
         end
-
-        return file
     end)
 
     ---@param line string

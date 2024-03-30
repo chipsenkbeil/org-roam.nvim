@@ -181,6 +181,7 @@ function M.capture(opts, cb)
                 end
             end
 
+            -- Reload the file that was written due to a refile
             local filename = opts.destination_file.filename
             db:load_file({ path = filename }, vim.schedule_wrap(function(err)
                 if err then
