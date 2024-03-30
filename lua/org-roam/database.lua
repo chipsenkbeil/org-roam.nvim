@@ -217,5 +217,19 @@ function M:find_nodes_by_tag_sync(tag)
     return async.wrap(self.find_nodes_by_tag_sync)(self, tag)
 end
 
+---Loads org files (or retrieves from cache) asynchronously.
+---@param opts? {force?:boolean, skip?:boolean}
+---@return OrgPromise<OrgFiles>
+function M:files(opts)
+    return self:__get_loader():files(opts)
+end
+
+---Loads org files (or retrieves from cache) synchronously.
+---@param opts? {force?:boolean, timeout?:integer, skip?:boolean}
+---@return OrgFiles
+function M:files_sync(opts)
+    return self:__get_loader():files_sync(opts)
+end
+
 local INSTANCE = M:new()
 return INSTANCE

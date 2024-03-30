@@ -98,7 +98,7 @@ function M.capture(opts, cb)
     opts = opts or {}
     cb = cb or function() end
 
-    local plugin = require("org-roam")
+    local db = require("org-roam.database")
     local Capture = require("orgmode.capture")
     local Templates = require("orgmode.capture.templates")
 
@@ -108,6 +108,11 @@ function M.capture(opts, cb)
         end,
         ['%R'] = function()
             return vim.fs.normalize(vim.fn.resolve(CONFIG.directory))
+        end,
+        ['%[title]'] = function()
+            -- TODO: I think this fails if it returns nil! So we need to prompt
+            --       for the title if we don't get one!
+            return opts.title
         end,
     }
 
@@ -166,36 +171,38 @@ function M.capture(opts, cb)
         end)
     end
 
-    local capture = Capture:new({
-        files = plugin.files,
-        templates = templates,
-        on_close = function(_, opts)
-            -- Look for the id of the newly-captured ram node
-            local id = opts.source_file:get_property("ID")
+    db:files():next(function(files)
+        local capture = Capture:new({
+            files = files,
+            templates = templates,
+            on_close = function(_, opts)
+                -- Look for the id of the newly-captured ram node
+                local id = opts.source_file:get_property("ID")
 
-            -- If we don't find a file-level node, look for headline nodes
-            if not id then
-                for _, headline in ipairs(opts.source_file:get_headlines()) do
-                    id = headline:get_property("ID", false)
-                    if id then break end
-                end
-            end
-
-            -- Reload the file that was written due to a refile
-            local filename = opts.destination_file.filename
-            db:load_file({ path = filename }, vim.schedule_wrap(function(err)
-                if err then
-                    notify.error(err)
-                    cb(nil)
-                    return
+                -- If we don't find a file-level node, look for headline nodes
+                if not id then
+                    for _, headline in ipairs(opts.source_file:get_headlines()) do
+                        id = headline:get_property("ID", false)
+                        if id then break end
+                    end
                 end
 
-                cb(id)
-            end))
-        end,
-    })
+                -- Reload the file that was written due to a refile
+                local filename = opts.destination_file.filename
+                db:load_file({ path = filename }, vim.schedule_wrap(function(err)
+                    if err then
+                        notify.error(err)
+                        cb(nil)
+                        return
+                    end
 
-    capture:prompt()
+                    cb(id)
+                end))
+            end,
+        })
+
+        return capture:prompt()
+    end)
 end
 
 return M

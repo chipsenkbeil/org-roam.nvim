@@ -267,6 +267,22 @@ function M:__load_database()
     end)
 end
 
+---Loads org files (or retrieves from cache) asynchronously.
+---@param opts? {force?:boolean, skip?:boolean}
+---@return OrgPromise<OrgFiles>
+function M:files(opts)
+    opts = opts or {}
+    return self:__load_org_files(opts)
+end
+
+---Loads org files (or retrieves from cache) synchronously.
+---@param opts? {force?:boolean, timeout?:integer, skip?:boolean}
+---@return OrgFiles
+function M:files_sync(opts)
+    opts = opts or {}
+    return self:files(opts):wait(opts.timeout)
+end
+
 ---@private
 ---@param opts? {force?:boolean, skip?:boolean}
 ---@return OrgPromise<OrgFiles>

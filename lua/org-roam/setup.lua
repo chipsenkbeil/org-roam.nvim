@@ -127,20 +127,11 @@ local function define_keybindings()
     )
 end
 
----@param plugin org-roam.OrgRoam
----@param config org-roam.Config
-local function populate_plugin(plugin, config)
-    local Files = require("orgmode.files")
-    plugin.files = Files:new({ paths = { config.directory } })
-end
-
 ---Initializes the plugin.
----@param plugin org-roam.OrgRoam
 ---@param config org-roam.Config
-return function(plugin, config)
+return function(config)
     config = merge_config(config)
     define_autocmds()
     define_commands()
     define_keybindings()
-    populate_plugin(plugin, config)
 end
