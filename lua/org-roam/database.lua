@@ -11,7 +11,7 @@ local Database = require("org-roam.core.database")
 local Emitter = require("org-roam.core.utils.emitter")
 local join_path = require("org-roam.core.utils.path").join
 local Loader = require("org-roam.database.loader")
-local Schema = require("org-roam.database.schema")
+local schema = require("org-roam.database.schema")
 
 local notify = require("org-roam.core.ui.notify")
 
@@ -169,7 +169,7 @@ end
 function M:find_nodes_by_alias(alias, cb)
     self:load(function(err)
         if err then return cb({}) end
-        local ids = self.__db:find_by_index(Schema.INDEX.ALIAS, alias)
+        local ids = self.__db:find_by_index(schema.ALIAS, alias)
         cb(self.__db:get_many(ids))
     end)
 end
@@ -187,7 +187,7 @@ end
 function M:find_nodes_by_file(file, cb)
     self:load(function(err)
         if err then return cb({}) end
-        local ids = self.__db:find_by_index(Schema.INDEX.FILE, file)
+        local ids = self.__db:find_by_index(schema.FILE, file)
         cb(self.__db:get_many(ids))
     end)
 end
@@ -205,7 +205,7 @@ end
 function M:find_nodes_by_tag(tag, cb)
     self:load(function(err)
         if err then return cb({}) end
-        local ids = self.__db:find_by_index(Schema.INDEX.TAG, tag)
+        local ids = self.__db:find_by_index(schema.TAG, tag)
         cb(self.__db:get_many(ids))
     end)
 end

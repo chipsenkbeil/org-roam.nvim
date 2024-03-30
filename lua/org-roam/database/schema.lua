@@ -4,10 +4,8 @@
 -- Contains database schema definitions and logic.
 -------------------------------------------------------------------------------
 
-local M = {}
-
----@enum org-roam.database.Index
-M.INDEX = {
+---@enum org-roam.database.Schema
+local M = {
     ALIAS = "alias",
     FILE = "file",
     TAG = "tag",
@@ -16,7 +14,7 @@ M.INDEX = {
 ---Updates a schema (series of indexes) for the specified database.
 ---@param db org-roam.core.Database
 ---@return org-roam.core.Database
-function M.update(db)
+function M:update(db)
     ---@param name string
     local function field(name)
         ---@param node org-roam.core.file.Node
@@ -28,9 +26,9 @@ function M.update(db)
 
     local new_indexes = {}
     for name, indexer in pairs({
-        [M.INDEX.ALIAS] = field("aliases"),
-        [M.INDEX.FILE] = field("file"),
-        [M.INDEX.TAG] = field("tags"),
+        [self.ALIAS] = field("aliases"),
+        [self.FILE] = field("file"),
+        [self.TAG] = field("tags"),
     }) do
         if not db:has_index(name) then
             db:new_index(name, indexer)

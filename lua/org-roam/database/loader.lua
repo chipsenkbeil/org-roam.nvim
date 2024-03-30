@@ -10,7 +10,7 @@ local io        = require("org-roam.core.utils.io")
 local join_path = require("org-roam.core.utils.path").join
 local OrgFiles  = require("orgmode.files")
 local Promise   = require("orgmode.utils.promise")
-local Schema    = require("org-roam.database.schema")
+local schema    = require("org-roam.database.schema")
 local unpack    = require("org-roam.core.utils.table").unpack
 
 ---@class org-roam.database.Loader
@@ -96,7 +96,7 @@ end
 ---@param db org-roam.core.Database
 ---@param filename string
 local function remove_file_from_database(db, filename)
-    for _, id in ipairs(db:find_by_index(Schema.INDEX.FILE, filename)) do
+    for _, id in ipairs(db:find_by_index(schema.FILE, filename)) do
         db:remove(id)
     end
 end
@@ -108,7 +108,7 @@ local function modify_file_in_database(db, file, opts)
     opts = opts or {}
     if not file then return end
 
-    local ids = db:find_by_index(Schema.INDEX.FILE, file.filename)
+    local ids = db:find_by_index(schema.FILE, file.filename)
     if #ids == 0 then return end
 
     ---@type integer
@@ -175,7 +175,7 @@ function M:load(opts)
         -- Right-only means new
         -- Both means modified
         local filenames = find_distinct(
-            db:iter_index_keys(Schema.INDEX.FILE):collect(),
+            db:iter_index_keys(schema.FILE):collect(),
             files:filenames()
         )
 
@@ -224,7 +224,7 @@ function M:load_file(opts)
 
         return files:load_file(opts.path):next(function(file)
             -- Determine if the file already exists through nodes in the db
-            local has_file = #db:find_by_index(Schema.INDEX.FILE, file.filename) > 0
+            local has_file = #db:find_by_index(schema.FILE, file.filename) > 0
 
             if has_file then
                 modify_file_in_database(db, file)
@@ -234,7 +234,7 @@ function M:load_file(opts)
 
             return {
                 file = file,
-                nodes = db:find_by_index(Schema.INDEX.FILE, file.filename),
+                nodes = db:find_by_index(schema.FILE, file.filename),
             }
         end)
     end)
@@ -248,7 +248,7 @@ function M:__load_database()
         io.stat(self.path.database, function(unavailable)
             if unavailable then
                 local db = Database:new()
-                Schema.update(db)
+                schema:update(db)
                 self.__db = db
                 return resolve(db)
             end
@@ -259,7 +259,7 @@ function M:__load_database()
                 end
 
                 ---@cast db -nil
-                Schema.update(db)
+                schema:update(db)
                 self.__db = db
                 return resolve(db)
             end)
