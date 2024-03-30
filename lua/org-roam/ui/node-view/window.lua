@@ -132,7 +132,7 @@ end
 
 ---Renders a node within an orgmode buffer.
 ---@param this org-roam.ui.window.NodeViewWindow
----@param node org-roam.core.database.Node|org-roam.core.database.Id
+---@param node org-roam.core.file.Node|org-roam.core.database.Id
 ---@return org-roam.core.ui.Line[] lines
 local function render(this, node)
     ---@diagnostic disable-next-line:invisible

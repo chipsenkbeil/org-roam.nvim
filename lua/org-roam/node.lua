@@ -182,7 +182,7 @@ function M.capture(opts, cb)
             end
 
             local filename = opts.destination_file.filename
-            db:update({ filename }, vim.schedule_wrap(function(err)
+            db:load_file({ path = filename }, vim.schedule_wrap(function(err)
                 if err then
                     notify.error(err)
                     cb(nil)

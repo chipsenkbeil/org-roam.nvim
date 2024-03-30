@@ -11,7 +11,7 @@ local utils = require("org-roam.utils")
 return function(opts)
     opts = opts or {}
 
-    ---@param node org-roam.core.database.Node
+    ---@param node org-roam.core.file.Node
     local function print_node(node)
         print(node.id)
     end

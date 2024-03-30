@@ -71,6 +71,7 @@
 ---@field id string #unique id associated with the node
 ---@field range org-roam.core.file.Range #range representing full node
 ---@field file string #path to file where node is located
+---@field mtime integer #last time the node's file was modified
 ---@field title string #title of node, defaulting to file name
 ---@field aliases string[] #alternative titles associated with node
 ---@field tags string[] #tags tied to node
@@ -83,6 +84,7 @@ M.__index = M
 ---@field id string
 ---@field range org-roam.core.file.Range
 ---@field file string
+---@field mtime integer
 ---@field title? string
 ---@field aliases? string[]
 ---@field tags? string[]
@@ -98,6 +100,7 @@ function M:new(opts)
     instance.id = opts.id
     instance.range = opts.range
     instance.file = opts.file
+    instance.mtime = opts.mtime
     instance.title = opts.title or (function()
         local filename = vim.fs.basename(opts.file)
 

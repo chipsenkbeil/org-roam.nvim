@@ -13,7 +13,7 @@ local utils        = require("org-roam.core.file.utils")
 ---@class org-roam.core.File
 ---@field filename string
 ---@field links org-roam.core.file.Link[]
----@field nodes table<org-roam.core.database.Id, org-roam.core.database.Node>
+---@field nodes table<string, org-roam.core.file.Node>
 local M            = {}
 M.__index          = M
 
@@ -35,15 +35,15 @@ function M:new(opts)
 end
 
 ---Retrieves a node from the file by its id.
----@param id org-roam.core.database.Id
----@return org-roam.core.database.Node
+---@param id string
+---@return org-roam.core.file.Node
 function M:get_node(id)
     return self.nodes[id]
 end
 
 ---Retrieves nodes from the collection by their ids.
----@param ... org-roam.core.database.Id|org-roam.core.database.Id[]
----@return org-roam.core.database.Node[]
+---@param ... string|string[]
+---@return org-roam.core.file.Node[]
 function M:get_nodes(...)
     local ids = vim.tbl_flatten({ ... })
     local nodes = {}
@@ -59,7 +59,7 @@ function M:get_nodes(...)
 end
 
 ---Returns nodes as a list.
----@return org-roam.core.database.Node[]
+---@return org-roam.core.file.Node[]
 function M:get_nodes_list()
     return vim.tbl_values(self.nodes)
 end
@@ -96,6 +96,7 @@ function M:from_org_file(file)
                 { row = math.huge, column = math.huge, offset = math.huge }
             ),
             file = file.filename,
+            mtime = file.metadata.mtime,
             title = file:get_directive_property("title"),
             aliases = utils.parse_property_value(file:get_property("roam_aliases") or ""),
             tags = file:get_filetags(),
@@ -119,6 +120,7 @@ function M:from_org_file(file)
                 id = id,
                 range = Range:from_node(headline.headline:parent()),
                 file = file.filename,
+                mtime = file.metadata.mtime,
                 title = headline:get_title(),
                 aliases = utils.parse_property_value(headline:get_property("roam_aliases") or ""),
                 tags = tags,

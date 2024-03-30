@@ -9,15 +9,15 @@ local CONFIG = require("org-roam.config")
 local async = require("org-roam.core.utils.async")
 local Database = require("org-roam.core.database")
 local Emitter = require("org-roam.core.utils.emitter")
-local File = require("org-roam.core.database.file")
+local File = require("org-roam.core.file")
 local join_path = require("org-roam.core.utils.path").join
-local Scanner = require("org-roam.core.scanner")
+local Loader = require("org-roam.database.loader")
 
 local notify = require("org-roam.core.ui.notify")
 
----@enum org-roam.database.Events
 local EVENTS = {
     LOADED = "loaded",
+    SAVED = "saved",
 }
 
 ---@enum org-roam.database.Index
@@ -27,12 +27,14 @@ local INDEX = {
     TAG = "tag",
 }
 
----Default location to find the database stored on disk.
-local DATABASE_PATH = join_path(vim.fn.stdpath("data"), "org-roam.nvim", "db")
+local BASE_PATH = join_path(vim.fn.stdpath("data"), "org-roam.nvim")
+local DATABASE_PATH = join_path(BASE_PATH, "db")
 
 ---@class org-roam.Database: org-roam.core.Database
+---@field private __cache {modified:table<string, integer>}
 ---@field private __db org-roam.core.Database
 ---@field private __emitter org-roam.core.utils.Emitter
+---@field private __files OrgFiles|nil
 ---@field private __loaded boolean|"loading"
 local M = {}
 
@@ -41,6 +43,7 @@ local M = {}
 function M:new()
     local instance = {}
     setmetatable(instance, M)
+    instance.__cache = {}
     instance.__db = Database:new()
     instance.__emitter = Emitter:new()
     instance.__loaded = false
@@ -59,12 +62,197 @@ function M:__index(key)
         or self.__db[key]
 end
 
+---Returns the path to the database on disk.
+---@return string
+function M:path()
+    return DATABASE_PATH
+end
+
+---Returns true if the database has been loaded and is available.
+---@return boolean
+function M:is_loaded()
+    return self.__loaded == true
+end
+
+---Loads the database from disk and re-parses files.
+---@param cb fun(err:string|nil)
+---@param opts? {force?:boolean}
+function M:load(cb, opts)
+    opts = opts or {}
+
+    -- Register our callback to get called once when loaded
+    self.__emitter:once(EVENTS.LOADED, cb)
+
+    -- If we're already loaded, trigger now;
+    -- if we're loading, exit as we'll trigger later
+    if self:is_loaded() then
+        self.__emitter:emit(EVENTS.LOADED)
+        return
+    elseif self.__loaded == "loading" then
+        return
+    end
+
+    -- Mark as loading so we don't repeat ourselves
+    self.__loaded = "loading"
+
+    Loader:new({ database = DATABASE_PATH, files = CONFIG.directory })
+        :load()
+        :next(function(results)
+            self.__db = results.database
+            self.__files = results.files
+            self.__loaded = true
+            self.__emitter:emit(EVENTS.LOADED)
+            return results
+        end)
+        :catch(function(err)
+            self.__loaded = false
+            self.__emitter:emit(EVENTS.LOADED, vim.inspect(err))
+            return err
+        end)
+end
+
+---@param opts {path:string, force?:boolean}
+---@param cb fun(err:string|nil)
+function M:load_file(opts, cb)
+    local files = self.__files
+    if not files then
+        vim.schedule(function()
+            cb("too early: database not yet loaded")
+        end)
+        return
+    end
+
+    ---@param file OrgFile
+    local function on_success(file)
+        local db = self.__db
+        local ids = db:find_by_index("file", file.filename)
+        local node = ids[1] and db:get(ids[1])
+        if node then
+            local mtime = node.mtime
+            if opts.force or (file and file.metadata.mtime > mtime) then
+                -- Construct information from org file
+                local roam_file = File:from_org_file(file)
+
+                -- Clear out existing nodes as some might have moved file
+                for _, id in ipairs(ids) do
+                    db:remove(id)
+                end
+
+                -- Add in parsed nodes and link them again
+                for id, node in pairs(roam_file.nodes) do
+                    db:insert(node, { id = id, overwrite = true })
+                    db:link(id, unpack(vim.tbl_keys(node.linked)))
+                end
+            end
+        end
+    end
+
+    local function on_error(...)
+        local errors = { ... }
+        if #errors == 1 then
+            cb(vim.inspect(errors[1]))
+        else
+            cb(vim.inspect(errors))
+        end
+    end
+
+    files
+        :load_file(opts.path)
+        :next(on_success)
+        :catch(on_error)
+end
+
+---Saves the database to disk.
+---@param cb fun(err:string|nil)
+function M:save(cb)
+    self.__db:write_to_disk(DATABASE_PATH, function(err)
+        if err then
+            notify.error(err)
+            cb(err)
+            return
+        end
+
+        cb(nil)
+    end)
+end
+
+---Retrieves a node from the database by its id.
+---@param id org-roam.core.database.Id
+---@param cb fun(node:org-roam.core.file.Node|nil)
+function M:get(id, cb)
+    self:load(function(err)
+        if err then return cb(nil) end
+        cb(self.__db:get(id))
+    end)
+end
+
+---Retrieves a node from the database by its id.
+---@param id org-roam.core.database.Id
+---@return org-roam.core.file.Node|nil
+function M:get_sync(id)
+    return async.wrap(self.get)(self, id)
+end
+
+---Retrieves nodes with the specified alias.
+---@param alias string
+---@param cb fun(nodes:org-roam.core.file.Node[])
+function M:find_nodes_by_alias(alias, cb)
+    self:load(function(err)
+        if err then return cb({}) end
+        local ids = self.__db:find_by_index(INDEX.ALIAS, alias)
+        cb(self.__db:get_many(ids))
+    end)
+end
+
+---Retrieves nodes with the specified alias.
+---@param alias string
+---@return org-roam.core.file.Node[]
+function M:find_nodes_by_alias_sync(alias)
+    return async.wrap(self.find_nodes_by_alias_sync)(self, alias)
+end
+
+---Retrieves nodes from the specified file.
+---@param file string
+---@param cb fun(nodes:org-roam.core.file.Node[])
+function M:find_nodes_by_file(file, cb)
+    self:load(function(err)
+        if err then return cb({}) end
+        local ids = self.__db:find_by_index(INDEX.FILE, file)
+        cb(self.__db:get_many(ids))
+    end)
+end
+
+---Retrieves nodes from the specified file.
+---@param file string
+---@return org-roam.core.file.Node[]
+function M:find_nodes_by_file_sync(file)
+    return async.wrap(self.find_nodes_by_file_sync)(self, file)
+end
+
+---Retrieves nodes with the specified tag.
+---@param tag string
+---@param cb fun(nodes:org-roam.core.file.Node[])
+function M:find_nodes_by_tag(tag, cb)
+    self:load(function(err)
+        if err then return cb({}) end
+        local ids = self.__db:find_by_index(INDEX.TAG, tag)
+        cb(self.__db:get_many(ids))
+    end)
+end
+
+---Retrieves nodes with the specified tag.
+---@param tag string
+---@return org-roam.core.file.Node[]
+function M:find_nodes_by_tag_sync(tag)
+    return async.wrap(self.find_nodes_by_tag_sync)(self, tag)
+end
+
 ---@private
 ---Applies a schema (series of indexes) to loaded database.
 function M:__apply_database_schema()
     ---@param name string
     local function field(name)
-        ---@param node org-roam.core.database.Node
+        ---@param node org-roam.core.file.Node
         ---@return org-roam.core.database.IndexKeys
         return function(node)
             return node[name]
@@ -87,211 +275,6 @@ function M:__apply_database_schema()
     if #new_indexes > 0 then
         db:reindex({ indexes = new_indexes })
     end
-end
-
----Returns the path to the database on disk.
----@return string
-function M:path()
-    return DATABASE_PATH
-end
-
----Returns true if the database has been loaded and is available.
----@return boolean
-function M:is_loaded()
-    return self.__loaded == true
-end
-
----@private
----@param cb fun(err:string|nil)
-function M:__load(cb)
-    self.__emitter:once(EVENTS.LOADED, cb)
-
-    if self:is_loaded() then
-        self.__emitter:emit(EVENTS.LOADED)
-        return
-    elseif self.__loaded == "loading" then
-        return
-    end
-
-    self.__loaded = "loading"
-
-    vim.schedule(function()
-        -- Load our database, creating it if it does not exist
-        if not File:new(DATABASE_PATH):exists() then
-            notify.debug("Creating database in " .. DATABASE_PATH)
-
-            ---@type string
-            local plugin_data_dir = vim.fs.dirname(DATABASE_PATH)
-            vim.fn.mkdir(plugin_data_dir, "p")
-
-            notify.debug("Creating new database")
-            self:__apply_database_schema()
-
-            notify.info("Scanning for org files")
-            self:update({ CONFIG.directory }, function(err)
-                self.__loaded = false
-
-                if err then
-                    notify.error(err)
-                    self.__emitter:emit(EVENTS.LOADED, err)
-                    return
-                end
-
-                notify.debug("Database loaded")
-                self.__loaded = true
-                self.__emitter:emit(EVENTS.LOADED)
-            end)
-        else
-            notify.debug("Loading database from " .. DATABASE_PATH)
-            Database:load_from_disk(DATABASE_PATH, function(err, db)
-                self.__loaded = false
-
-                if err then
-                    notify.error(err)
-                    self.__emitter:emit(EVENTS.LOADED, err)
-                    return
-                end
-
-                ---@cast db -nil
-                self.__db = db
-                self:__apply_database_schema()
-
-                notify.debug("Database loaded")
-                self.__loaded = true
-                self.__emitter:emit(EVENTS.LOADED)
-            end)
-        end
-    end)
-end
-
----Updates the database for the provided paths, recursing through directories.
----@param paths string[]
----@param cb fun(err:string|nil)
-function M:update(paths, cb)
-    ---@param db org-roam.core.Database
-    local function update_nodes_from_scan(db)
-        ---@param scan org-roam.core.scanner.Scan
-        return function(scan)
-            notify.debug("Scanned " .. scan.path)
-
-            -- Remove any node that exists for the path as we re-add them
-            for _, id in ipairs(db:find_by_index(INDEX.FILE, scan.path)) do
-                db:remove(id)
-            end
-
-            -- Add the nodes for this path back into the database
-            for _, node in ipairs(scan.nodes) do
-                local id = db:insert(node, { id = node.id, overwrite = true })
-                db:link(id, unpack(vim.tbl_keys(node.linked)))
-            end
-        end
-    end
-
-    ---@param db org-roam.core.Database
-    local function write_db(db)
-        return function()
-            db:write_to_disk(self:path(), function(err)
-                if err then
-                    notify.error(err)
-                    cb(err)
-                    return
-                end
-
-                cb(nil)
-            end)
-        end
-    end
-
-    self:__load(function(err)
-        if err then
-            cb(err)
-            return
-        end
-
-        Scanner:new(paths)
-            :on_scan(update_nodes_from_scan(self.__db))
-            :on_error(notify.error)
-            :on_done(write_db(self.__db))
-            :start()
-    end)
-end
-
----Updates the database for the provided paths.
----@param paths string[]
----@return string|nil err
-function M:update_sync(paths)
-    return async.wrap(self.update)(self, paths)
-end
-
----Retrieves a node from the database by its id.
----@param id org-roam.core.database.Id
----@param cb fun(node:org-roam.core.database.Node|nil)
-function M:get(id, cb)
-    self:__load(function(err)
-        if err then return cb(nil) end
-        cb(self.__db:get(id))
-    end)
-end
-
----Retrieves a node from the database by its id.
----@param id org-roam.core.database.Id
----@return org-roam.core.database.Node|nil
-function M:get_sync(id)
-    return async.wrap(self.get)(self, id)
-end
-
----Retrieves nodes with the specified alias.
----@param alias string
----@param cb fun(nodes:org-roam.core.database.Node[])
-function M:find_nodes_by_alias(alias, cb)
-    self:__load(function(err)
-        if err then return cb({}) end
-        local ids = self.__db:find_by_index(INDEX.ALIAS, alias)
-        cb(self.__db:get_many(ids))
-    end)
-end
-
----Retrieves nodes with the specified alias.
----@param alias string
----@return org-roam.core.database.Node[]
-function M:find_nodes_by_alias_sync(alias)
-    return async.wrap(self.find_nodes_by_alias_sync)(self, alias)
-end
-
----Retrieves nodes from the specified file.
----@param file string
----@param cb fun(nodes:org-roam.core.database.Node[])
-function M:find_nodes_by_file(file, cb)
-    self:__load(function(err)
-        if err then return cb({}) end
-        local ids = self.__db:find_by_index(INDEX.FILE, file)
-        cb(self.__db:get_many(ids))
-    end)
-end
-
----Retrieves nodes from the specified file.
----@param file string
----@return org-roam.core.database.Node[]
-function M:find_nodes_by_file_sync(file)
-    return async.wrap(self.find_nodes_by_file_sync)(self, file)
-end
-
----Retrieves nodes with the specified tag.
----@param tag string
----@param cb fun(nodes:org-roam.core.database.Node[])
-function M:find_nodes_by_tag(tag, cb)
-    self:__load(function(err)
-        if err then return cb({}) end
-        local ids = self.__db:find_by_index(INDEX.TAG, tag)
-        cb(self.__db:get_many(ids))
-    end)
-end
-
----Retrieves nodes with the specified tag.
----@param tag string
----@return org-roam.core.database.Node[]
-function M:find_nodes_by_tag_sync(tag)
-    return async.wrap(self.find_nodes_by_tag_sync)(self, tag)
 end
 
 local INSTANCE = M:new()
