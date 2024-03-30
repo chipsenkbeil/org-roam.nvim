@@ -48,7 +48,7 @@ end
 
 local function define_commands()
     vim.api.nvim_create_user_command("OrgRoamUpdate", function(_)
-        require("org-roam.database"):update({ CONFIG.directory }, function(err)
+        require("org-roam.database"):load(function(err)
             if err then
                 require("org-roam.core.ui.notify").error(err)
             end

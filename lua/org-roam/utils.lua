@@ -4,6 +4,7 @@
 -- High-level utility functions leveraged by org-roam.
 -------------------------------------------------------------------------------
 
+local db = require("org-roam.database")
 local File = require("org-roam.core.file")
 local IntervalTree = require("org-roam.core.utils.tree")
 local OrgFile = require("orgmode.files.file")
@@ -50,7 +51,7 @@ local function get_buffer_cache(bufnr)
 
         ---@type org-roam.core.utils.IntervalTree|nil
         local node_tree
-        if #file.nodes > 0 then
+        if not vim.tbl_isempty(file.nodes) then
             node_tree = IntervalTree:from_list(
             ---@param node org-roam.core.file.Node
                 vim.tbl_map(function(node)
@@ -59,7 +60,7 @@ local function get_buffer_cache(bufnr)
                         node.range.end_.offset,
                         node,
                     }
-                end, file.nodes)
+                end, vim.tbl_values(file.nodes))
             )
         end
 
@@ -151,5 +152,8 @@ function M.node_under_cursor(cb)
         cb(get_node())
     end)
 end
+
+---@private
+M.__cache = CACHE
 
 return M

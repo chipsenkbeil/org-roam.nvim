@@ -6,10 +6,10 @@
   "workspace": {
     "library": [
       "$HOME/.local/share/nvim/lazy/neodev.nvim/types/stable",
+      "$HOME/.local/share/nvim/lazy/orgmode/lua",
       "$VIMRUNTIME",
       "$VIMRUNTIME/lua",
       "lua",
-      "vendor/orgmode.nvim/lua",
       "${3rd}/busted/library",
       "${3rd}/luassert/library",
       "${3rd}/luv/library",
