@@ -120,10 +120,10 @@
      - [X] [[https://www.orgroam.com/manual.html#Completing-within-Link-Brackets][Completing within Link Brackets]]
      - [X] [[https://www.orgroam.com/manual.html#Completing-anywhere][Completing anywhere]]
    - [ ] Support [[https://www.orgroam.com/manual.html#Encryption][encryption]] (emacs supports natively, so we may defer to plugins)
-   - [ ] Support [[https://www.orgroam.com/manual.html#The-Templating-System][templating]]
-     - [ ] Implement *org-roam-node-insert*
-     - [ ] Implement *org-roam-node-find*
-     - [ ] Implement *org-roam-capture*
+   - [X] Support [[https://www.orgroam.com/manual.html#The-Templating-System][templating]]
+     - [X] Implement *org-roam-node-insert*
+     - [X] Implement *org-roam-node-find*
+     - [X] Implement *org-roam-capture*
    - [ ] Implement extensions
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002ddailies][org-roam-dailies]]
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002dexport][org-roam-export]]
