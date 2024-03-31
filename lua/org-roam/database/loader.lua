@@ -164,8 +164,8 @@ function M:load(opts)
 
     -- Reload all org-roam files
     return Promise.all({
-        self:__load_database(),
-        self:__load_org_files({ force = force }),
+        self:database(),
+        self:files({ force = force }),
     }):next(function(results)
         ---@type org-roam.core.Database, OrgFiles
         local db, files = results[1], results[2]
@@ -212,12 +212,16 @@ end
 
 ---Loads a file into the database.
 ---
+---Note that this does NOT populate `OrgFiles` standard files list
+---even if the file is within the directory. It just populates
+---a separate file.
+---
 ---@param opts {path:string}
 ---@return OrgPromise<{file:OrgFile, nodes:org-roam.core.file.Node[]}>
 function M:load_file(opts)
     return Promise.all({
-        self:__load_database(),
-        self:__load_org_files({ skip = true }),
+        self:database(),
+        self:files({ skip = true }),
     }):next(function(results)
         ---@type org-roam.core.Database, OrgFiles
         local db, files = results[1], results[2]
@@ -240,9 +244,9 @@ function M:load_file(opts)
     end)
 end
 
----@private
+---Loads database (or retrieves from cache) asynchronously.
 ---@return OrgPromise<org-roam.core.Database>
-function M:__load_database()
+function M:database()
     return self.__db and Promise.resolve(self.__db) or Promise.new(function(resolve, reject)
         -- Load our database from disk if it is available
         io.stat(self.path.database, function(unavailable)
@@ -267,26 +271,18 @@ function M:__load_database()
     end)
 end
 
+---Loads database (or retrieves from cache) synchronously.
+---@param opts? {timeout?:integer}
+---@return org-roam.core.Database
+function M:database_sync(opts)
+    opts = opts or {}
+    return self:database():wait(opts.timeout)
+end
+
 ---Loads org files (or retrieves from cache) asynchronously.
 ---@param opts? {force?:boolean, skip?:boolean}
 ---@return OrgPromise<OrgFiles>
 function M:files(opts)
-    opts = opts or {}
-    return self:__load_org_files(opts)
-end
-
----Loads org files (or retrieves from cache) synchronously.
----@param opts? {force?:boolean, timeout?:integer, skip?:boolean}
----@return OrgFiles
-function M:files_sync(opts)
-    opts = opts or {}
-    return self:files(opts):wait(opts.timeout)
-end
-
----@private
----@param opts? {force?:boolean, skip?:boolean}
----@return OrgPromise<OrgFiles>
-function M:__load_org_files(opts)
     opts = opts or {}
 
     -- Grab or create org files (not loaded)
@@ -299,6 +295,14 @@ function M:__load_org_files(opts)
     else
         return Promise.resolve(files)
     end
+end
+
+---Loads org files (or retrieves from cache) synchronously.
+---@param opts? {force?:boolean, timeout?:integer, skip?:boolean}
+---@return OrgFiles
+function M:files_sync(opts)
+    opts = opts or {}
+    return self:files(opts):wait(opts.timeout)
 end
 
 return M

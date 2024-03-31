@@ -7,7 +7,6 @@
 local CONFIG = require("org-roam.config")
 
 local async = require("org-roam.core.utils.async")
-local Database = require("org-roam.core.database")
 local Emitter = require("org-roam.core.utils.emitter")
 local join_path = require("org-roam.core.utils.path").join
 local Loader = require("org-roam.database.loader")
@@ -25,9 +24,7 @@ local DATABASE_PATH = join_path(BASE_PATH, "db")
 
 ---@class org-roam.Database: org-roam.core.Database
 ---@field private __cache {modified:table<string, integer>}
----@field private __db org-roam.core.Database
 ---@field private __emitter org-roam.core.utils.Emitter
----@field private __files OrgFiles|nil
 ---@field private __loaded boolean|"loading"
 ---@field private __loader org-roam.database.Loader
 local M = {}
@@ -38,7 +35,6 @@ function M:new()
     local instance = {}
     setmetatable(instance, M)
     instance.__cache = {}
-    instance.__db = Database:new()
     instance.__emitter = Emitter:new()
     instance.__loaded = false
     instance.__loader = nil
@@ -54,7 +50,7 @@ function M:__index(key)
     -- and finally fall back to the underlying database
     return rawget(self, key)
         or rawget(getmetatable(self) or {}, key)
-        or self.__db[key]
+        or self:__get_loader():database_sync()[key]
 end
 
 ---@private
@@ -81,7 +77,8 @@ function M:is_loaded()
 end
 
 ---Loads the database from disk and re-parses files.
----@param cb fun(err:string|nil)
+---Callback receives a database reference and collection of files.
+---@param cb fun(err:string|nil, database:org-roam.core.Database|nil, files:OrgFiles|nil)
 ---@param opts? {force?:boolean}
 function M:load(cb, opts)
     opts = opts or {}
@@ -104,10 +101,8 @@ function M:load(cb, opts)
     self:__get_loader()
         :load()
         :next(function(results)
-            self.__db = results.database
-            self.__files = results.files
             self.__loaded = true
-            self.__emitter:emit(EVENTS.LOADED)
+            self.__emitter:emit(EVENTS.LOADED, results.database, results.files)
             return results
         end)
         :catch(function(err)
@@ -135,86 +130,24 @@ end
 ---Saves the database to disk.
 ---@param cb fun(err:string|nil)
 function M:save(cb)
-    self.__db:write_to_disk(DATABASE_PATH, function(err)
+    self:load(function(err, db)
         if err then
             notify.error(err)
             cb(err)
             return
         end
 
-        cb(nil)
+        ---@cast db -nil
+        db:write_to_disk(DATABASE_PATH, function(err)
+            if err then
+                notify.error(err)
+                cb(err)
+                return
+            end
+
+            cb(nil)
+        end)
     end)
-end
-
----Retrieves a node from the database by its id.
----@param id org-roam.core.database.Id
----@param cb fun(node:org-roam.core.file.Node|nil)
-function M:get(id, cb)
-    self:load(function(err)
-        if err then return cb(nil) end
-        cb(self.__db:get(id))
-    end)
-end
-
----Retrieves a node from the database by its id.
----@param id org-roam.core.database.Id
----@return org-roam.core.file.Node|nil
-function M:get_sync(id)
-    return async.wrap(self.get)(self, id)
-end
-
----Retrieves nodes with the specified alias.
----@param alias string
----@param cb fun(nodes:org-roam.core.file.Node[])
-function M:find_nodes_by_alias(alias, cb)
-    self:load(function(err)
-        if err then return cb({}) end
-        local ids = self.__db:find_by_index(schema.ALIAS, alias)
-        cb(self.__db:get_many(ids))
-    end)
-end
-
----Retrieves nodes with the specified alias.
----@param alias string
----@return org-roam.core.file.Node[]
-function M:find_nodes_by_alias_sync(alias)
-    return async.wrap(self.find_nodes_by_alias_sync)(self, alias)
-end
-
----Retrieves nodes from the specified file.
----@param file string
----@param cb fun(nodes:org-roam.core.file.Node[])
-function M:find_nodes_by_file(file, cb)
-    self:load(function(err)
-        if err then return cb({}) end
-        local ids = self.__db:find_by_index(schema.FILE, file)
-        cb(self.__db:get_many(ids))
-    end)
-end
-
----Retrieves nodes from the specified file.
----@param file string
----@return org-roam.core.file.Node[]
-function M:find_nodes_by_file_sync(file)
-    return async.wrap(self.find_nodes_by_file_sync)(self, file)
-end
-
----Retrieves nodes with the specified tag.
----@param tag string
----@param cb fun(nodes:org-roam.core.file.Node[])
-function M:find_nodes_by_tag(tag, cb)
-    self:load(function(err)
-        if err then return cb({}) end
-        local ids = self.__db:find_by_index(schema.TAG, tag)
-        cb(self.__db:get_many(ids))
-    end)
-end
-
----Retrieves nodes with the specified tag.
----@param tag string
----@return org-roam.core.file.Node[]
-function M:find_nodes_by_tag_sync(tag)
-    return async.wrap(self.find_nodes_by_tag_sync)(self, tag)
 end
 
 ---Loads org files (or retrieves from cache) asynchronously.
@@ -229,6 +162,85 @@ end
 ---@return OrgFiles
 function M:files_sync(opts)
     return self:__get_loader():files_sync(opts)
+end
+
+---Retrieves a node from the database by its id.
+---@param id org-roam.core.database.Id
+---@param cb fun(node:org-roam.core.file.Node|nil)
+function M:get(id, cb)
+    self:load(function(err, db)
+        if err then return cb(nil) end
+
+        ---@cast db -nil
+        cb(db:get(id))
+    end)
+end
+
+---Retrieves a node from the database by its id.
+---@param id org-roam.core.database.Id
+---@return org-roam.core.file.Node|nil
+function M:get_sync(id)
+    return async.wrap(self.get)(self, id)
+end
+
+---Retrieves nodes with the specified alias.
+---@param alias string
+---@param cb fun(nodes:org-roam.core.file.Node[])
+function M:find_nodes_by_alias(alias, cb)
+    self:load(function(err, db)
+        if err then return cb({}) end
+
+        ---@cast db -nil
+        local ids = db:find_by_index(schema.ALIAS, alias)
+        cb(db:get_many(ids))
+    end)
+end
+
+---Retrieves nodes with the specified alias.
+---@param alias string
+---@return org-roam.core.file.Node[]
+function M:find_nodes_by_alias_sync(alias)
+    return async.wrap(self.find_nodes_by_alias_sync)(self, alias)
+end
+
+---Retrieves nodes from the specified file.
+---@param file string
+---@param cb fun(nodes:org-roam.core.file.Node[])
+function M:find_nodes_by_file(file, cb)
+    self:load(function(err, db)
+        if err then return cb({}) end
+
+        ---@cast db -nil
+        local ids = db:find_by_index(schema.FILE, file)
+        cb(db:get_many(ids))
+    end)
+end
+
+---Retrieves nodes from the specified file.
+---@param file string
+---@return org-roam.core.file.Node[]
+function M:find_nodes_by_file_sync(file)
+    return async.wrap(self.find_nodes_by_file_sync)(self, file)
+end
+
+---Retrieves nodes with the specified tag.
+---@param tag string
+---@param cb fun(nodes:org-roam.core.file.Node[])
+function M:find_nodes_by_tag(tag, cb)
+    self:load(function(err, db)
+        if err then return cb({}) end
+
+        ---@cast db -nil
+        local ids = db:find_by_index(schema.TAG, tag)
+        cb(db:get_many(ids))
+    end)
+end
+
+---Retrieves nodes with the specified tag.
+---@param tag string
+---@return org-roam.core.file.Node[]
+function M:find_nodes_by_tag_sync(tag)
+    return async.wrap(self.find_nodes_by_tag_sync)(self, tag)
 end
 
 local INSTANCE = M:new()

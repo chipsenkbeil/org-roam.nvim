@@ -98,7 +98,6 @@ function M.capture(opts, cb)
     opts = opts or {}
     cb = cb or function() end
 
-    local db = require("org-roam.database")
     local Capture = require("orgmode.capture")
     local Templates = require("orgmode.capture.templates")
 
@@ -172,6 +171,8 @@ function M.capture(opts, cb)
     end
 
     db:files():next(function(files)
+        print("BEFORE CAPTURE FILES", vim.inspect(files:filenames()))
+
         local capture = Capture:new({
             files = files,
             templates = templates,
@@ -188,16 +189,21 @@ function M.capture(opts, cb)
                 end
 
                 -- Reload the file that was written due to a refile
-                local filename = opts.destination_file.filename
-                db:load_file({ path = filename }, vim.schedule_wrap(function(err)
+                -- NOTE: Due to limitation with `OrgFiles`, we must reload everything
+                --       for it to process completely and enable us to navigate the
+                --       file by id. If this gets changed in the future, we can
+                --       switch to `load_file` instead of `load` using the destination
+                --       file's filename.
+                db:load(function(err)
                     if err then
                         notify.error(err)
                         cb(nil)
                         return
                     end
 
+                    print("POST CAPTURE FILES", vim.inspect(files:filenames()))
                     cb(id)
-                end))
+                end)
             end,
         })
 

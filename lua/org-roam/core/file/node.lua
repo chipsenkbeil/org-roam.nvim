@@ -71,7 +71,7 @@
 ---@field id string #unique id associated with the node
 ---@field range org-roam.core.file.Range #range representing full node
 ---@field file string #path to file where node is located
----@field mtime integer #last time the node's file was modified
+---@field mtime integer #last time the node's file was modified (nanoseconds)
 ---@field title string #title of node, defaulting to file name
 ---@field aliases string[] #alternative titles associated with node
 ---@field tags string[] #tags tied to node
