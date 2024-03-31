@@ -122,7 +122,13 @@ local function load_lines_at_cursor(path, cursor)
 
         -- If our file has changed, re-render
         if is_new then
-            EMITTER:emit(EVENTS.REFRESH)
+            -- NOTE: Introduce a delay before the refresh as this can
+            --       trigger refreshing while the buffer is rendering,
+            --       which would result in the refresh being discarded
+            --       and the update not actually taking place.
+            vim.defer_fn(function()
+                EMITTER:emit(EVENTS.REFRESH)
+            end, 100)
         end
     end)
 
@@ -246,6 +252,7 @@ local function render(this, node)
                         C.action("<Enter>", do_open),
                     })
 
+
                     -- If we have toggled for this location, show the preview
                     if is_expanded then
                         vim.list_extend(lines, load_lines_at_cursor(
@@ -325,12 +332,12 @@ function M:new(opts)
         EMITTER:emit(EVENTS.REFRESH)
     end)
 
-    EMITTER:on(EVENTS.REFRESH, function()
+    EMITTER:on(EVENTS.REFRESH, function(refresh_opts)
         -- NOTE: We MUST schedule this and not render directly
         --       as that will fail with api calls not allowed
         --       in our fast loop!
         vim.schedule(function()
-            window:render()
+            window:render(refresh_opts)
         end)
     end)
 
