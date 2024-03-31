@@ -32,7 +32,7 @@ local function toggle_node_view()
         CURSOR_NODE_VIEW = Window:new()
 
         -- Whenever the node changes, rerender the window
-        ---@param node org-roam.core.database.Node|nil
+        ---@param node org-roam.core.file.Node|nil
         EVENTS:on(EVENTS.KIND.CURSOR_NODE_CHANGED, function(node)
             if node then
                 CURSOR_NODE_VIEW:set_id(node.id)

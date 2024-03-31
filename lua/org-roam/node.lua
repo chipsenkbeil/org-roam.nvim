@@ -5,8 +5,9 @@
 -------------------------------------------------------------------------------
 
 local CONFIG = require("org-roam.config")
-local database = require("org-roam.database")
+local db = require("org-roam.database")
 local io = require("org-roam.core.utils.io")
+local notify = require("org-roam.core.ui.notify")
 local select_node = require("org-roam.ui.select-node")
 
 ---@class org-roam.NodeApi
@@ -20,10 +21,7 @@ function M.insert()
 
     ---@param id org-roam.core.database.Id
     local function insert_link(id)
-        local db = database()
-
-        ---@type org-roam.core.database.Node|nil
-        local node = db:get(id)
+        local node = db:get_sync(id)
 
         if node then
             local ok = pcall(vim.api.nvim_set_current_win, winnr)
@@ -65,10 +63,7 @@ function M.find()
 
     ---@param id org-roam.core.database.Id
     local function visit_node(id)
-        local db = database()
-
-        ---@type org-roam.core.database.Node|nil
-        local node = db:get(id)
+        local node = db:get_sync(id)
 
         if node then
             local ok = pcall(vim.api.nvim_set_current_win, winnr)
@@ -103,16 +98,40 @@ function M.capture(opts, cb)
     opts = opts or {}
     cb = cb or function() end
 
-    local plugin = require("org-roam")
+    local title = opts.title
+    if title then
+        M.__capture({ title = title }, cb)
+    else
+        ---@param input string|nil
+        vim.ui.input({ prompt = "Enter title for node: " }, function(input)
+            if input ~= nil and input ~= "" then
+                M.__capture({ title = input }, cb)
+            else
+                notify.echo_error("Capture needs a title")
+            end
+        end)
+    end
+end
+
+---@private
+---@param opts {title:string}
+---@param cb fun(id:org-roam.core.database.Id|nil)
+function M.__capture(opts, cb)
+    opts = opts or {}
+    cb = cb or function() end
+
     local Capture = require("orgmode.capture")
     local Templates = require("orgmode.capture.templates")
 
     local EXPANSIONS = {
-        ['%r'] = function()
+        ["%r"] = function()
             return CONFIG.directory
         end,
-        ['%R'] = function()
+        ["%R"] = function()
             return vim.fs.normalize(vim.fn.resolve(CONFIG.directory))
+        end,
+        ["%[title]"] = function()
+            return opts.title
         end,
     }
 
@@ -133,6 +152,11 @@ function M.capture(opts, cb)
         if template.target then
             template.target = fill_expansions(template.target)
         end
+
+        -- Always include the entire capture contents, not just
+        -- the headline, to make sure the generated property
+        -- drawer and title directive are included
+        template.whole_file = true
 
         -- Each template should prefix with an org-roam id
         templates[key] = template:on_compile(function(content)
@@ -166,36 +190,43 @@ function M.capture(opts, cb)
         end)
     end
 
-    local capture = Capture:new({
-        files = plugin.files,
-        templates = templates,
-        on_close = function(_, opts)
-            local filename = opts.destination_file.filename
-            local id = opts.source_file:get_property("ID")
+    db:files():next(function(files)
+        local capture = Capture:new({
+            files = files,
+            templates = templates,
+            on_close = function(_, opts)
+                -- Look for the id of the newly-captured ram node
+                local id = opts.source_file:get_property("ID")
 
-            -- If we don't find a file-level node, look for headline nodes
-            if not id then
-                for _, headline in ipairs(opts.source_file:get_headlines()) do
-                    id = headline:get_property("ID", false)
-                    if id then break end
+                -- If we don't find a file-level node, look for headline nodes
+                if not id then
+                    for _, headline in ipairs(opts.source_file:get_headlines()) do
+                        id = headline:get_property("ID", false)
+                        if id then break end
+                    end
                 end
-            end
 
-            -- TODO: We need to re-scan the file created to update it in the
-            --       database, but at this stage the refile has not yet happened.
-            --
-            --       Additionally, the refile could be canceled after this, so
-            --       we need some way to hook in post-refile OR kick off a job
-            --       to run to look for the file and re-parse it when it is
-            --       created or updated.
-            --
-            --       The former feels better, but we would need to rewrite capture.
+                -- Reload the file that was written due to a refile
+                -- NOTE: Due to limitation with `OrgFiles`, we must reload everything
+                --       for it to process completely and enable us to navigate the
+                --       file by id. If this gets changed in the future, we can
+                --       switch to `load_file` instead of `load` using the destination
+                --       file's filename.
+                db:load(function(err)
+                    if err then
+                        notify.error(err)
+                        cb(nil)
+                        return
+                    end
 
-            cb(id)
-        end,
-    })
+                    -- If we don't schedule here, we get stack overflow!
+                    cb(id)
+                end, { force = true })
+            end,
+        })
 
-    capture:prompt()
+        return capture:prompt()
+    end)
 end
 
 return M

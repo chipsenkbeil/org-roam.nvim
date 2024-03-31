@@ -10,7 +10,7 @@ describe("org-roam.core.scanner", function()
     it("should support scanning a directory for org files", function()
         local error
 
-        ---@type {[string]:org-roam.core.database.Node}
+        ---@type {[string]:org-roam.core.file.Node}
         local nodes = {}
 
         local scanner = Scanner
@@ -40,7 +40,7 @@ describe("org-roam.core.scanner", function()
         assert(not scanner:is_running(), "Scanner failed to complete in time")
         assert(not error, error)
 
-        ---@type org-roam.core.database.Node
+        ---@type org-roam.core.file.Node
         local node
 
         node = assert(nodes["1"], "missing node 1")
@@ -160,7 +160,7 @@ describe("org-roam.core.scanner", function()
             nodes[node.id] = node
         end
 
-        ---@type org-roam.core.database.Node
+        ---@type org-roam.core.file.Node
         local node
 
         node = assert(nodes["1"], "missing node 1")
