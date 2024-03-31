@@ -86,73 +86,90 @@ end
 
 ---@param db org-roam.core.Database
 ---@param file OrgFile|nil
+---@return integer inserted_node_cnt
 local function insert_new_file_into_database(db, file)
-    if not file then return end
+    if not file then return 0 end
     local roam_file = File:from_org_file(file)
+    local cnt = 0
     for id, node in pairs(roam_file.nodes) do
         db:insert(node, { id = id })
         db:link(id, vim.tbl_keys(node.linked))
+        cnt = cnt + 1
     end
+    return cnt
 end
 
 ---@param db org-roam.core.Database
 ---@param filename string
+---@return integer removed_node_cnt
 local function remove_file_from_database(db, filename)
+    local cnt = 0
     for _, id in ipairs(db:find_by_index(schema.FILE, filename)) do
         db:remove(id)
+        cnt = cnt + 1
     end
+    return cnt
 end
 
 ---@param db org-roam.core.Database
 ---@param file OrgFile|nil
 ---@param opts? {force?:boolean}
+---@return integer modified_node_cnt
 local function modify_file_in_database(db, file, opts)
     opts = opts or {}
-    if not file then return end
+    if not file then return 0 end
 
     local ids = db:find_by_index(schema.FILE, file.filename)
-    if #ids == 0 then return end
+    if #ids == 0 then return 0 end
 
     ---@type integer
     local mtime = db:get(ids[1]).mtime
 
-    if opts.force or file.metadata.mtime > mtime then
-        -- Construct information from org file
-        local roam_file = File:from_org_file(file)
+    -- Skip if not forcing and the file hasn't changed since
+    -- the last time we inserted/modified nodes
+    if not opts.force and file.metadata.mtime <= mtime then
+        return 0
+    end
 
-        -- Clear out existing nodes as some might have moved file,
-        -- maintaining a mapping of which nodes linked to removed
-        -- nodes so we can restore if they are re-injected
-        ---@type {[string]:string[]}
-        local node_backlinks = {}
-        for _, id in ipairs(ids) do
+    -- Construct information from org file
+    local roam_file = File:from_org_file(file)
+    local cnt = 0
+
+    -- Clear out existing nodes as some might have moved file,
+    -- maintaining a mapping of which nodes linked to removed
+    -- nodes so we can restore if they are re-injected
+    ---@type {[string]:string[]}
+    local node_backlinks = {}
+    for _, id in ipairs(ids) do
+        node_backlinks[id] = vim.tbl_keys(db:get_backlinks(id))
+        db:remove(id)
+    end
+
+    -- Add in parsed nodes and link them again
+    for id, node in pairs(roam_file.nodes) do
+        -- Because overwriting may remove and break links, we
+        -- capture those references prior to re-inserting
+        if db:has(id) then
             node_backlinks[id] = vim.tbl_keys(db:get_backlinks(id))
-            db:remove(id)
         end
 
-        -- Add in parsed nodes and link them again
-        for id, node in pairs(roam_file.nodes) do
-            -- Because overwriting may remove and break links, we
-            -- capture those references prior to re-inserting
-            if db:has(id) then
-                node_backlinks[id] = vim.tbl_keys(db:get_backlinks(id))
-            end
+        db:insert(node, { id = id, overwrite = true })
+        db:link(id, vim.tbl_keys(node.linked))
+        cnt = cnt + 1
+    end
 
-            db:insert(node, { id = id, overwrite = true })
-            db:link(id, vim.tbl_keys(node.linked))
-        end
-
-        -- Repair links that were severed by earlier removal
-        for target_id, origin_ids in pairs(node_backlinks) do
-            if db:has(target_id) then
-                for _, id in ipairs(origin_ids) do
-                    if db:has(id) then
-                        db:link(id, target_id)
-                    end
+    -- Repair links that were severed by earlier removal
+    for target_id, origin_ids in pairs(node_backlinks) do
+        if db:has(target_id) then
+            for _, id in ipairs(origin_ids) do
+                if db:has(id) then
+                    db:link(id, target_id)
                 end
             end
         end
     end
+
+    return cnt
 end
 
 ---Loads all files into the database. If files have not been modified
@@ -181,36 +198,41 @@ function M:load(opts)
             files:filenames()
         )
 
+        local promises = { remove = {}, insert = {}, modify = {} }
+
         -- For each deleted file, remove from database
         for _, filename in ipairs(filenames.left) do
-            remove_file_from_database(db, filename)
+            local p = Promise.new(function(resolve)
+                vim.schedule(function()
+                    resolve(remove_file_from_database(db, filename))
+                end)
+            end)
+            table.insert(promises.remove, p)
         end
 
         -- For each new file, insert into database
         for _, filename in ipairs(filenames.right) do
-            insert_new_file_into_database(db, files:load_file_sync(filename))
+            local p = files:load_file(filename):next(function(file)
+                return insert_new_file_into_database(db, file)
+            end)
+            table.insert(promises.insert, p)
         end
 
         -- For each modified file, check the modified time (any node will do)
         -- to see if we need to refresh nodes for a file
         for _, filename in ipairs(filenames.both) do
-            modify_file_in_database(db, files:load_file_sync(filename), {
-                force = force,
-            })
+            local p = files:load_file(filename):next(function(file)
+                return modify_file_in_database(db, file, {
+                    force = force,
+                })
+            end)
+            table.insert(promises.modify, p)
         end
 
-        -- Re-link all nodes to one another. We do this because removing
-        -- and re-inserting nodes can lose the links from other nodes
-        -- that were made previously
-        --[[ for id in db:iter_ids() do
-            local node = db:get(id)
-            local ids = (node and vim.tbl_keys(node.linked)) or {}
-            if #ids > 0 then
-                db:link(id, ids)
-            end
-        end ]]
-
-        return { database = db, files = files }
+        return Promise.all(promises.remove)
+            :next(function() return Promise.all(promises.insert) end)
+            :next(function() return Promise.all(promises.modify) end)
+            :next(function() return { database = db, files = files } end)
     end)
 end
 
