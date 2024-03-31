@@ -495,14 +495,17 @@ function M:get_backlinks(id, opts)
 end
 
 ---Creates outbound edges from node `id`. Only in the direction of node[id] -> node.
----@param id org-roam.core.database.Id id of node
----@param ... org-roam.core.database.Id ids of nodes to form edges (node[id] -> node)
+---@param id org-roam.core.database.Id #id of node
+---@param ... org-roam.core.database.Id|org-roam.core.database.Id[] #ids of nodes to form edges (node[id] -> node)
 function M:link(id, ...)
     -- Grab the outbound edges from `node`, which are cached by id
     local outbound = self.__outbound[id] or {}
 
+    ---@type org-roam.core.database.Id[]
+    local ids = vim.tbl_flatten({ ... })
+
     -- Ensure the new nodes are cached as an outbound edges
-    for _, node in ipairs({ ... }) do
+    for _, node in ipairs(ids) do
         outbound[node] = true
 
         -- For each outbound, we also want to cache as inbound for the nodes
@@ -517,14 +520,15 @@ end
 
 ---Removes outbound edges from node `id`.
 ---@param id org-roam.core.database.Id id of node
----@param ... org-roam.core.database.Id ids of nodes to remove edges (node[id] -> node); if none provided, all outbound edges removed
+---@param ... org-roam.core.database.Id|org-roam.core.database.Id[] # ids of nodes to remove edges (node[id] -> node); if none provided, all outbound edges removed
 ---@return org-roam.core.database.Id[] #list of ids of nodes where an outbound edge was removed
 function M:unlink(id, ...)
     -- Grab the outbound edges, which are cached by id
     local outbound = self.__outbound[id] or {}
 
     -- Build the list of nodes we will be removing from the edges list
-    local nodes = { ... }
+    ---@type org-roam.core.database.Id[]
+    local nodes = vim.tbl_flatten({ ... })
     if #nodes == 0 then
         nodes = vim.tbl_keys(outbound)
     end

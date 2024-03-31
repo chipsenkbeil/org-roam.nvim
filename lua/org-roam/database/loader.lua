@@ -11,7 +11,6 @@ local join_path = require("org-roam.core.utils.path").join
 local OrgFiles  = require("orgmode.files")
 local Promise   = require("orgmode.utils.promise")
 local schema    = require("org-roam.database.schema")
-local unpack    = require("org-roam.core.utils.table").unpack
 
 ---@class org-roam.database.Loader
 ---@field path {database:string, files:string[]}
@@ -60,18 +59,21 @@ local function find_distinct(left, right)
     local i = 1
     local j = 1
     while i <= #left and j <= #right do
+        local litem = left[i]
+        local ritem = right[j]
+
         -- Both same, then we add to the set of both
         -- Otherwise if left comes before right, we add to left
         -- Otherwise we add to right set
-        if left[i] == right[i] then
-            table.insert(bset, left[i])
+        if litem == ritem then
+            table.insert(bset, litem)
             i = i + 1
             j = j + 1
-        elseif left[i] < right[i] then
-            table.insert(lset, left[i])
+        elseif litem < ritem then
+            table.insert(lset, litem)
             i = i + 1
-        elseif left[i] > right[i] then
-            table.insert(rset, right[i])
+        elseif litem > ritem then
+            table.insert(rset, ritem)
             j = j + 1
         end
     end
@@ -89,7 +91,7 @@ local function insert_new_file_into_database(db, file)
     local roam_file = File:from_org_file(file)
     for id, node in pairs(roam_file.nodes) do
         db:insert(node, { id = id })
-        db:link(id, unpack(vim.tbl_keys(node.linked)))
+        db:link(id, vim.tbl_keys(node.linked))
     end
 end
 
@@ -137,7 +139,7 @@ local function modify_file_in_database(db, file, opts)
             end
 
             db:insert(node, { id = id, overwrite = true })
-            db:link(id, unpack(vim.tbl_keys(node.linked)))
+            db:link(id, vim.tbl_keys(node.linked))
         end
 
         -- Repair links that were severed by earlier removal
@@ -202,7 +204,7 @@ function M:load(opts)
             local node = db:get(id)
             local ids = (node and vim.tbl_keys(node.linked)) or {}
             if #ids > 0 then
-                db:link(id, unpack(ids))
+                db:link(id, ids)
             end
         end ]]
 

@@ -171,8 +171,6 @@ function M.capture(opts, cb)
     end
 
     db:files():next(function(files)
-        print("BEFORE CAPTURE FILES", vim.inspect(files:filenames()))
-
         local capture = Capture:new({
             files = files,
             templates = templates,
@@ -201,9 +199,9 @@ function M.capture(opts, cb)
                         return
                     end
 
-                    print("POST CAPTURE FILES", vim.inspect(files:filenames()))
+                    -- If we don't schedule here, we get stack overflow!
                     cb(id)
-                end)
+                end, { force = true })
             end,
         })
 

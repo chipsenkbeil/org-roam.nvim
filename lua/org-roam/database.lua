@@ -45,12 +45,15 @@ end
 ---@param key string
 ---@return any
 function M:__index(key)
+    ---@type org-roam.database.Loader|nil
+    local loader = rawget(self, "__loader")
+
     -- Check the fields of the table, then the metatable
     -- of the tabe which includes methods defined below,
     -- and finally fall back to the underlying database
     return rawget(self, key)
         or rawget(getmetatable(self) or {}, key)
-        or self:__get_loader():database_sync()[key]
+        or (loader and loader:database_sync()[key])
 end
 
 ---@private
@@ -84,25 +87,19 @@ function M:load(cb, opts)
     opts = opts or {}
 
     -- Register our callback to get called once when loaded
-    self.__emitter:once(EVENTS.LOADED, cb)
+    self.__emitter:once(EVENTS.LOADED, vim.schedule_wrap(cb))
 
-    -- If we're already loaded, trigger now;
-    -- if we're loading, exit as we'll trigger later
-    if self:is_loaded() then
-        self.__emitter:emit(EVENTS.LOADED)
-        return
-    elseif self.__loaded == "loading" then
-        return
-    end
+    -- Avoid loading while already loading
+    if self.__loaded == "loading" then return end
 
     -- Mark as loading so we don't repeat ourselves
     self.__loaded = "loading"
 
     self:__get_loader()
-        :load()
+        :load({ force = opts.force })
         :next(function(results)
             self.__loaded = true
-            self.__emitter:emit(EVENTS.LOADED, results.database, results.files)
+            self.__emitter:emit(EVENTS.LOADED, nil, results.database, results.files)
             return results
         end)
         :catch(function(err)
