@@ -171,7 +171,21 @@ local function modify_orgmode_plugin()
 
         -- If we found a node, open the file at the start of the node
         if node then
+            local winnr = vim.api.nvim_get_current_win()
             vim.cmd.edit(node.file)
+
+            -- NOTE: Schedule so we have time to process loading the buffer first!
+            vim.schedule(function()
+                -- Ensure that we do not jump past our buffer's last line!
+                local bufnr = vim.api.nvim_win_get_buf(winnr)
+                local line = math.min(
+                    vim.api.nvim_buf_line_count(bufnr),
+                    node.range.start.row + 1
+                )
+
+                vim.api.nvim_win_set_cursor(winnr, { line, 0 })
+            end)
+
             return
         end
 
