@@ -98,19 +98,39 @@ function M.capture(opts, cb)
     opts = opts or {}
     cb = cb or function() end
 
+    local title = opts.title
+    if title then
+        M.__capture({ title = title }, cb)
+    else
+        ---@param input string|nil
+        vim.ui.input({ prompt = "Enter title for node: " }, function(input)
+            if input ~= nil and input ~= "" then
+                M.__capture({ title = input }, cb)
+            else
+                notify.echo_error("Capture needs a title")
+            end
+        end)
+    end
+end
+
+---@private
+---@param opts {title:string}
+---@param cb fun(id:org-roam.core.database.Id|nil)
+function M.__capture(opts, cb)
+    opts = opts or {}
+    cb = cb or function() end
+
     local Capture = require("orgmode.capture")
     local Templates = require("orgmode.capture.templates")
 
     local EXPANSIONS = {
-        ['%r'] = function()
+        ["%r"] = function()
             return CONFIG.directory
         end,
-        ['%R'] = function()
+        ["%R"] = function()
             return vim.fs.normalize(vim.fn.resolve(CONFIG.directory))
         end,
-        ['%[title]'] = function()
-            -- TODO: I think this fails if it returns nil! So we need to prompt
-            --       for the title if we don't get one!
+        ["%[title]"] = function()
             return opts.title
         end,
     }
