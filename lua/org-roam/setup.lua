@@ -153,6 +153,33 @@ local function define_keybindings()
     )
 end
 
+local function modify_orgmode_plugin()
+    -- Provide a wrapper around `open_at_point` from orgmode mappings so we can
+    -- attempt to jump to an id referenced by our database first, and then fall
+    -- back to orgmode's id handling second.
+    --
+    -- This is needed as the default `open_at_point` only respects orgmode's
+    -- files list and not org-roam's files list; so, we need to manually intercept!
+    ---@diagnostic disable-next-line:duplicate-set-field
+    require("orgmode").org_mappings.open_at_point = function(self)
+        local link = require("orgmode.org.hyperlinks.link").at_pos(
+            vim.fn.getline("."),
+            vim.fn.col(".") or 0
+        )
+        local id = link and link.url:get_id()
+        local node = id and require("org-roam.database"):get_sync(id)
+
+        -- If we found a node, open the file at the start of the node
+        if node then
+            vim.cmd.edit(node.file)
+            return
+        end
+
+        -- Fall back to the default implementation
+        return require("orgmode.org.mappings").open_at_point(self)
+    end
+end
+
 ---Initializes the plugin.
 ---@param config org-roam.Config
 return function(config)
@@ -160,4 +187,5 @@ return function(config)
     define_autocmds(config)
     define_commands()
     define_keybindings()
+    modify_orgmode_plugin()
 end
