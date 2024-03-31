@@ -67,22 +67,24 @@
 --
 -------------------------------------------------------------------------------
 
----@class org-roam.core.database.Node
+---@class org-roam.core.file.Node
 ---@field id string #unique id associated with the node
----@field range org-roam.core.parser.Range #range representing full node
+---@field range org-roam.core.file.Range #range representing full node
 ---@field file string #path to file where node is located
+---@field mtime integer #last time the node's file was modified (nanoseconds)
 ---@field title string #title of node, defaulting to file name
 ---@field aliases string[] #alternative titles associated with node
 ---@field tags string[] #tags tied to node
 ---@field level integer #heading level (0 means top-level)
----@field linked table<string, org-roam.core.parser.Position[]> #ids of nodes referenced by this node, mapped to positions of the links
+---@field linked table<string, org-roam.core.file.Position[]> #ids of nodes referenced by this node, mapped to positions of the links
 local M = {}
 M.__index = M
 
----@class org-roam.core.database.Node.NewOpts
+---@class org-roam.core.file.Node.NewOpts
 ---@field id string
----@field range org-roam.core.parser.Range
+---@field range org-roam.core.file.Range
 ---@field file string
+---@field mtime integer
 ---@field title? string
 ---@field aliases? string[]
 ---@field tags? string[]
@@ -90,14 +92,15 @@ M.__index = M
 ---@field linked? table<string, {[1]:integer, [2]:integer}[]>
 
 ---Creates a new node.
----@param opts org-roam.core.database.Node.NewOpts
----@return org-roam.core.database.Node
+---@param opts org-roam.core.file.Node.NewOpts
+---@return org-roam.core.file.Node
 function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
     instance.id = opts.id
     instance.range = opts.range
     instance.file = opts.file
+    instance.mtime = opts.mtime
     instance.title = opts.title or (function()
         local filename = vim.fs.basename(opts.file)
 
@@ -143,7 +146,7 @@ function M:hash()
         table.concat(self.tags, ","),
         tostring(self.level),
         vim.tbl_map(function(key)
-            ---@param loc org-roam.core.parser.Position
+            ---@param loc org-roam.core.file.Position
             return table.concat(vim.tbl_map(function(loc)
                 return loc.offset
             end, self.linked[key]), ",")

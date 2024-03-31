@@ -10,16 +10,19 @@ if not pcall(require, "orgmode") then
 end
 
 ---@class org-roam.OrgRoam
----@field files OrgFiles
 local M = {}
 
 ---Called to initialize the org-roam plugin.
 ---@param config org-roam.Config
 function M.setup(config)
-    require("org-roam.setup")(M, config)
+    require("org-roam.setup")(config)
 
     -- Load the database asynchronously
-    require("org-roam.database").load(function() end)
+    require("org-roam.database"):load(function(err)
+        if err then
+            require("org-roam.core.ui.notify").error(err)
+        end
+    end)
 end
 
 return M

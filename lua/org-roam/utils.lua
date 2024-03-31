@@ -4,11 +4,13 @@
 -- High-level utility functions leveraged by org-roam.
 -------------------------------------------------------------------------------
 
+local db = require("org-roam.database")
+local File = require("org-roam.core.file")
 local IntervalTree = require("org-roam.core.utils.tree")
-local Scanner = require("org-roam.core.scanner")
+local OrgFile = require("orgmode.files.file")
 
 ---@class (exact) org-roam.utils.BufferCache
----@field file org-roam.core.parser.File
+---@field file org-roam.core.File
 ---@field link_tree org-roam.core.utils.IntervalTree|nil
 ---@field node_tree org-roam.core.utils.IntervalTree|nil
 ---@field tick integer
@@ -35,44 +37,51 @@ local function get_buffer_cache(bufnr)
         --       and `find_by_index` to get nodes connected to the
         --       file represented by the buffer to build this
         --       up versus re-parsing the buffer?
-        local contents = table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
-        local scan = Scanner.scan(contents, {
-            path = vim.api.nvim_buf_get_name(bufnr),
+        ---@type OrgFile
+        local orgfile = OrgFile:new({
+            filename = vim.api.nvim_buf_get_name(bufnr),
+            lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false),
         })
+
+        -- Trigger parsing of content, which should use string treesitter parser
+        orgfile:parse()
+
+        -- Convert file into roam version
+        local file = File:from_org_file(orgfile)
 
         ---@type org-roam.core.utils.IntervalTree|nil
         local node_tree
-        if #scan.nodes > 0 then
+        if not vim.tbl_isempty(file.nodes) then
             node_tree = IntervalTree:from_list(
-            ---@param node org-roam.core.database.Node
+            ---@param node org-roam.core.file.Node
                 vim.tbl_map(function(node)
                     return {
                         node.range.start.offset,
                         node.range.end_.offset,
                         node,
                     }
-                end, scan.nodes)
+                end, vim.tbl_values(file.nodes))
             )
         end
 
         ---@type org-roam.core.utils.IntervalTree|nil
         local link_tree
-        if #scan.file.links > 0 then
+        if #file.links > 0 then
             link_tree = IntervalTree:from_list(
-            ---@param link org-roam.core.parser.Link
+            ---@param link org-roam.core.file.Link
                 vim.tbl_map(function(link)
                     return {
                         link.range.start.offset,
                         link.range.end_.offset,
                         link,
                     }
-                end, scan.file.links)
+                end, file.links)
             )
         end
 
         -- Update cache pointer to reflect the current state
         CACHE[bufnr] = {
-            file = scan.file,
+            file = file,
             link_tree = link_tree,
             node_tree = node_tree,
             tick = tick,
@@ -103,7 +112,7 @@ function M.expr_under_cursor()
 end
 
 ---Looks for a link under cursor. If it exists, the raw parsed link is returned.
----@return org-roam.core.parser.Link|nil
+---@return org-roam.core.file.Link|nil
 function M.link_under_cursor()
     local bufnr = vim.api.nvim_win_get_buf(0)
     local cursor = vim.api.nvim_win_get_cursor(0)
@@ -122,13 +131,13 @@ end
 ---      result when possible. The cache is discarded whenever the current
 ---      buffer is detected as changed as seen via `b:changedtick`.
 ---
----@param cb fun(id:org-roam.core.database.Node|nil)
+---@param cb fun(id:org-roam.core.file.Node|nil)
 function M.node_under_cursor(cb)
     local bufnr = vim.api.nvim_win_get_buf(0)
     local cursor = vim.api.nvim_win_get_cursor(0)
     local offset = vim.api.nvim_buf_get_offset(bufnr, cursor[1] - 1) + cursor[2]
 
-    ---@return org-roam.core.database.Node|nil
+    ---@return org-roam.core.file.Node|nil
     local function get_node()
         local cache = get_buffer_cache(bufnr)
         local tree = cache and cache.node_tree
@@ -143,5 +152,8 @@ function M.node_under_cursor(cb)
         cb(get_node())
     end)
 end
+
+---@private
+M.__cache = CACHE
 
 return M

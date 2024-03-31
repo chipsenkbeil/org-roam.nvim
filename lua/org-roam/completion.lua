@@ -4,7 +4,7 @@
 -- Contains functionality tied to org-roam completion.
 -------------------------------------------------------------------------------
 
-local database = require("org-roam.database")
+local db = require("org-roam.database")
 local utils = require("org-roam.utils")
 
 local M = {}
@@ -19,7 +19,6 @@ local M = {}
 ---* `org-roam-complete-link-at-point`
 ---* `org-roam-complete-everywhere`
 function M.complete_node_under_cursor()
-    local db = database()
     local winnr = vim.api.nvim_get_current_win()
     local bufnr = vim.api.nvim_get_current_buf()
 
@@ -58,8 +57,7 @@ function M.complete_node_under_cursor()
         auto_select = true,
         init_input = input,
     }, function(choice)
-        ---@type org-roam.core.database.Node|nil
-        local node = db:get(choice.id)
+        local node = db:get_sync(choice.id)
 
         if node then
             -- Get our cursor position
