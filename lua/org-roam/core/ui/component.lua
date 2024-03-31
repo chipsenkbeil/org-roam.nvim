@@ -7,8 +7,12 @@
 ---@alias org-roam.core.ui.ComponentFunction
 ---| fun():org-roam.core.ui.Line[]
 
+---@alias org-roam.core.ui.LazyHighlightFunction
+---| fun(buf:integer, ns_id:integer, ranges:{[1]:integer, [2]:integer}[])
+
 ---@alias org-roam.core.ui.Line
 ---| string #raw line without any highlights
+---| {lazy:true, global?:boolean, text:string, hl:org-roam.core.ui.LazyHighlightFunction}
 ---| org-roam.core.ui.LineSegment[] #list of line segments with or without highlights
 
 ---@alias org-roam.core.ui.LineSegment
@@ -101,6 +105,29 @@ function M.group(...)
         end
     end
     return { type = "group", segments = segments }
+end
+
+---Produce a line that is lazy in highlighting, using the provided function.
+---Ranges contain starting & ending lines and are zero-based and end-exclusive.
+---
+---NOTE: If more than one consecutive line is marked lazy with the same
+---      function, then the function will be called once with an ending line
+---      representing the full range.
+---
+---NOTE: If `global` is true, then all lazy ranges will be provided exactly
+---      one time to this function instead of individual lazy ranges.
+---@param text string #entire line of text
+---@param f org-roam.core.ui.LazyHighlightFunction
+---@param opts? {global?:boolean}
+---@return org-roam.core.ui.Line
+function M.lazy(text, f, opts)
+    opts = opts or {}
+    return {
+        lazy = true,
+        global = opts.global,
+        text = text,
+        hl = f,
+    }
 end
 
 return M

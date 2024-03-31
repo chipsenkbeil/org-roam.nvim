@@ -74,6 +74,20 @@ local config = setmetatable({
             target = "%r" .. path_utils.separator() .. "%<%Y-%m-%d>-%[title].org",
         },
     },
+
+    ---@class org-roam.config.UserInterface
+    ui = {
+        ---@class org-roam.config.ui.NodeView
+        node_view = {
+            ---If true, previews will be highlighted as org syntax when expanded.
+            ---
+            ---NOTE: This can cause flickering on initial expansion, but preview
+            ---      highlights are then cached for future renderings. If flickering
+            ---      is undesired, disable highlight previews.
+            ---@type boolean
+            highlight_previews = true,
+        },
+    },
 }, { __call = replace })
 
 return config
