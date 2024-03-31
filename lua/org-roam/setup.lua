@@ -23,7 +23,8 @@ local function merge_config(config)
     return CONFIG
 end
 
-local function define_autocmds()
+---@param config org-roam.Config
+local function define_autocmds(config)
     local group = vim.api.nvim_create_augroup("org-roam.nvim", {})
 
     -- Watch as cursor moves around so we can support node changes
@@ -44,6 +45,31 @@ local function define_autocmds()
             end)
         end,
     })
+
+    -- If configured to update on save, listen for buffer writing
+    -- and trigger reload if an org-roam buffer
+    if config.update_on_save then
+        vim.api.nvim_create_autocmd({ "BufWritePost", "FileWritePost" }, {
+            group = group,
+            pattern = "*.org",
+            callback = function()
+                -- TODO: If the directory format changes to blob in the
+                --       future, this will break. Is there a better way
+                --       to check if a file is an org-roam file?
+                local path = vim.fn.expand("<afile>:p")
+                local is_roam_file = vim.startswith(path, config.directory)
+
+                if is_roam_file then
+                    require("org-roam.database"):load(function(err)
+                        if err then
+                            require("org-roam.core.ui.notify").error(err)
+                            return
+                        end
+                    end, { force = true })
+                end
+            end,
+        })
+    end
 end
 
 local function define_commands()
@@ -131,7 +157,7 @@ end
 ---@param config org-roam.Config
 return function(config)
     config = merge_config(config)
-    define_autocmds()
+    define_autocmds(config)
     define_commands()
     define_keybindings()
 end

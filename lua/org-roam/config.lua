@@ -33,6 +33,10 @@ local config = setmetatable({
     ---@type string
     directory = "",
 
+    ---If true, updates database whenever a write occurs.
+    ---@type boolean
+    update_on_save = true,
+
     ---Bindings associated with org-roam functionality.
     ---@class org-roam.config.Bindings
     bindings = {

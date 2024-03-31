@@ -194,7 +194,9 @@ function M:load(opts)
         -- For each modified file, check the modified time (any node will do)
         -- to see if we need to refresh nodes for a file
         for _, filename in ipairs(filenames.both) do
-            modify_file_in_database(db, files:load_file_sync(filename))
+            modify_file_in_database(db, files:load_file_sync(filename), {
+                force = force,
+            })
         end
 
         -- Re-link all nodes to one another. We do this because removing
@@ -218,7 +220,7 @@ end
 ---even if the file is within the directory. It just populates
 ---a separate file.
 ---
----@param opts {path:string}
+---@param opts {path:string, force?:boolean}
 ---@return OrgPromise<{file:OrgFile, nodes:org-roam.core.file.Node[]}>
 function M:load_file(opts)
     return Promise.all({
@@ -233,7 +235,7 @@ function M:load_file(opts)
             local has_file = #db:find_by_index(schema.FILE, file.filename) > 0
 
             if has_file then
-                modify_file_in_database(db, file)
+                modify_file_in_database(db, file, { force = opts.force })
             else
                 insert_new_file_into_database(db, file)
             end
