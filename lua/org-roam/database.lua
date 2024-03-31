@@ -165,11 +165,9 @@ end
 ---@param id org-roam.core.database.Id
 ---@param cb fun(node:org-roam.core.file.Node|nil)
 function M:get(id, cb)
-    self:load(function(err, db)
-        if err then return cb(nil) end
-
-        ---@cast db -nil
+    self:__get_loader():database():next(function(db)
         cb(db:get(id))
+        return db
     end)
 end
 
@@ -184,12 +182,10 @@ end
 ---@param alias string
 ---@param cb fun(nodes:org-roam.core.file.Node[])
 function M:find_nodes_by_alias(alias, cb)
-    self:load(function(err, db)
-        if err then return cb({}) end
-
-        ---@cast db -nil
+    self:__get_loader():database():next(function(db)
         local ids = db:find_by_index(schema.ALIAS, alias)
         cb(db:get_many(ids))
+        return db
     end)
 end
 
@@ -204,12 +200,10 @@ end
 ---@param file string
 ---@param cb fun(nodes:org-roam.core.file.Node[])
 function M:find_nodes_by_file(file, cb)
-    self:load(function(err, db)
-        if err then return cb({}) end
-
-        ---@cast db -nil
+    self:__get_loader():database():next(function(db)
         local ids = db:find_by_index(schema.FILE, file)
         cb(db:get_many(ids))
+        return db
     end)
 end
 
@@ -224,12 +218,10 @@ end
 ---@param tag string
 ---@param cb fun(nodes:org-roam.core.file.Node[])
 function M:find_nodes_by_tag(tag, cb)
-    self:load(function(err, db)
-        if err then return cb({}) end
-
-        ---@cast db -nil
+    self:__get_loader():database():next(function(db)
         local ids = db:find_by_index(schema.TAG, tag)
         cb(db:get_many(ids))
+        return db
     end)
 end
 
