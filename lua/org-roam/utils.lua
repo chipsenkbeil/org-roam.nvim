@@ -4,7 +4,6 @@
 -- High-level utility functions leveraged by org-roam.
 -------------------------------------------------------------------------------
 
-local db = require("org-roam.database")
 local File = require("org-roam.core.file")
 local IntervalTree = require("org-roam.core.utils.tree")
 local OrgFile = require("orgmode.files.file")

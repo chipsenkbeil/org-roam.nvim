@@ -5,8 +5,10 @@
 -------------------------------------------------------------------------------
 
 local C = require("org-roam.core.ui.component")
+local CONFIG = require("org-roam.config")
 local db = require("org-roam.database")
 local Emitter = require("org-roam.core.utils.emitter")
+local highlighter = require("org-roam.core.ui.highlighter")
 local notify = require("org-roam.core.ui.notify")
 local tbl_utils = require("org-roam.core.utils.table")
 local Window = require("org-roam.core.ui.window")
@@ -43,6 +45,19 @@ local CACHE = {}
 
 ---Global event emitter to ensure all windows stay accurate.
 local EMITTER = Emitter:new()
+
+---Highlights lazy ranges in the window as org syntax.
+---
+---NOTE: This function must be the same for global highlighting to work, so define it here
+---@param buf integer
+---@param ns_id integer
+---@param ranges {[1]:integer, [2]:integer}[] # (start, end) base-zero, end-exclusive
+local function lazy_highlight_for_org(buf, ns_id, ranges)
+    highlighter.highlight_ranges_as_org(buf, ranges, {
+        ephemeral = true,
+        namespace = ns_id,
+    })
+end
 
 ---Loads file at `path` and figures out the lines of text to use for a preview.
 ---@param path string
@@ -134,9 +149,13 @@ local function load_lines_at_cursor(path, cursor)
 
     ---@param line string
     return vim.tbl_map(function(line)
-        -- TODO: How can we parse lines to get their highlight groups
-        --       and build out our span of highlighted segments?
-        return { C.text(line) }
+        -- Because this can have a performance hit & flickering, we only
+        -- do lazy highlighting as org syntax if enabled
+        if CONFIG.ui.node_view.highlight_previews then
+            return C.lazy(line, lazy_highlight_for_org, { global = true })
+        else
+            return { C.text(line) }
+        end
     end, lines)
 end
 

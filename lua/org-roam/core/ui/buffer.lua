@@ -325,12 +325,15 @@ function M:__apply_lines(ui_lines, force)
     ---@type {group:string, line:integer, cstart:integer, cend:integer}[]
     local highlights = {}
 
+    ---@type {start:integer, end_:integer, global:boolean, f:org-roam.core.ui.LazyHighlightFunction}[]
+    local lazy = {}
+
     ---@type {lhs:string, rhs:function, line:integer}[]
     local keybindings = {}
 
-    for i, line in ipairs(ui_lines) do
+    for _, line in ipairs(ui_lines) do
         ---Zero-indexed line number
-        local line_idx = start + i - 1
+        local line_idx = start + #lines
 
         ---@param segments org-roam.core.ui.LineSegment[]
         ---@return string
@@ -366,6 +369,26 @@ function M:__apply_lines(ui_lines, force)
 
         if type(line) == "string" then
             table.insert(lines, line)
+        elseif type(line) == "table" and line.lazy then
+            local last_lazy = lazy[#lazy]
+            -- If the function is the same function as before
+            -- and our position is just after the last line
+            -- then we grow our lazy range instead of appending
+            if last_lazy and last_lazy.f == line.hl and last_lazy.end_ == line_idx then
+                last_lazy.end_ = line_idx + 1
+                if line.global == true and not last_lazy.global then
+                    last_lazy.global = true
+                end
+            else
+                table.insert(lazy, {
+                    start = line_idx,
+                    end_ = line_idx + 1,
+                    global = line.global or false,
+                    f = line.hl,
+                })
+            end
+
+            table.insert(lines, line.text)
         elseif type(line) == "table" and not vim.tbl_isempty(line) then
             local text = process_segments(line)
             table.insert(lines, text)
@@ -385,6 +408,33 @@ function M:__apply_lines(ui_lines, force)
             hl.cstart,
             hl.cend
         )
+    end
+
+    -- Extract out global lazy functions so we don't call them
+    -- for individual local ranges and instead for all ranges
+    ---@type org-roam.core.ui.LazyHighlightFunction[]
+    local global_lazy_hl = {}
+    for _, hl in ipairs(lazy) do
+        if hl.global then
+            table.insert(global_lazy_hl, hl.f)
+            hl.f = nil
+        end
+    end
+
+    -- Apply all lazy highlights that are not global and build up
+    -- our list of ranges for global highlighting
+    local ranges = {}
+    for _, hl in ipairs(lazy) do
+        local f = hl.f
+        if f then
+            f(self.__bufnr, self.__namespace, { { hl.start, hl.end_ } })
+        end
+        table.insert(ranges, { hl.start, hl.end_ })
+    end
+
+    -- Apply all global lazy highlights
+    for _, f in ipairs(global_lazy_hl) do
+        f(self.__bufnr, self.__namespace, ranges)
     end
 
     -- Clear out old callbacks in favor of new set so lines rendered
