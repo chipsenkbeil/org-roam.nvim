@@ -60,9 +60,7 @@ local function define_autocmds(config)
                 local is_roam_file = vim.startswith(path, config.directory)
 
                 if is_roam_file then
-                    require("org-roam.database"):load_file({
-                        path = path,
-                    }, function(err)
+                    require("org-roam.database"):load_file({ path = path }, function(err)
                         if err then
                             require("org-roam.core.ui.notify").error(err)
                             return

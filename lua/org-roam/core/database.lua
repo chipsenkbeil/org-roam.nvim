@@ -182,9 +182,8 @@ end
 ---@param opts? {id?:org-roam.core.database.Id, overwrite?:boolean}
 ---@return org-roam.core.database.Id id #the id of the inserted node
 function M:insert(data, opts)
-    assert(data ~= nil, "Cannot insert nil value as data")
-
     opts = opts or {}
+    assert(data ~= nil, "Cannot insert nil value as data")
 
     ---@type org-roam.core.database.Id
     local id = opts.id

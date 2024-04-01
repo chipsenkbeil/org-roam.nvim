@@ -88,8 +88,10 @@ local CACHE = setmetatable({ files = {}, hashes = {} }, { __mode = "k" })
 ---@return org-roam.core.File
 function M:from_org_file(file)
     local nodes = {}
+
+    -- Check if we have a cached value for this file specifically
     local key = vim.fn.sha256(file.content)
-    if CACHE.files[key] then
+    if CACHE.files[key] and CACHE.hashes[file.filename] == key then
         return CACHE.files[key]
     end
 
