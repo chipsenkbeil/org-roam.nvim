@@ -7,6 +7,8 @@
 local M = {}
 
 ---Parses the value of a property, properly handling double-quoted content,
+---
+---Supports escaping quotes using \" as this appears to be what org-roam does.
 ---returning a list of entries.
 ---@param value string
 ---@return string[]
@@ -14,6 +16,7 @@ function M.parse_property_value(value)
     local items = {}
     local QUOTE = string.byte("\"")
     local SPACE = string.byte(" ")
+    local BACKSLASH = string.byte("\\")
 
     local i = 1
     local j = 0
@@ -31,14 +34,20 @@ function M.parse_property_value(value)
     for idx = 1, string.len(value) do
         local b = string.byte(value, idx)
 
-        if b == QUOTE or (b == SPACE and not within_quote) then
+        -- Unescaped quote is a " not preceded by \
+        local unescaped_quote = b == QUOTE and (
+            idx == 1
+            or string.byte(value, idx - 1) ~= BACKSLASH
+        )
+
+        if unescaped_quote or (b == SPACE and not within_quote) then
             add_item()
 
             -- Adjust start to be after quote or space
             i = idx + 1
 
             -- Update whether or not we are inside a quote
-            if b == QUOTE then
+            if unescaped_quote then
                 within_quote = not within_quote
             end
         end
@@ -52,7 +61,11 @@ function M.parse_property_value(value)
         add_item()
     end
 
-    return items
+    -- Remove any escaped quotes \" from the items
+    return vim.tbl_map(function(item)
+        item = string.gsub(item, "\\\"", "\"")
+        return item
+    end, items)
 end
 
 return M

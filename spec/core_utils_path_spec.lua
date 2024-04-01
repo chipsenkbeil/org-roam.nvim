@@ -1,10 +1,10 @@
 describe("org-roam.core.utils.path", function()
-    local utils_path = require("org-roam.core.utils.path")
+    local path = require("org-roam.core.utils.path")
     local uv = vim.loop
 
-    describe("join_path", function()
+    describe("join", function()
         it("should return empty string if no arguments provided", function()
-            assert.are.equal("", utils_path.join_path())
+            assert.are.equal("", path.join())
         end)
 
         it("should combine paths using system separator", function()
@@ -13,7 +13,7 @@ describe("org-roam.core.utils.path", function()
 
             assert.are.equal(
                 "path" .. sep .. "to" .. sep .. "file",
-                utils_path.join_path("path", "to", "file")
+                path.join("path", "to", "file")
             )
         end)
 
@@ -23,7 +23,7 @@ describe("org-roam.core.utils.path", function()
 
             assert.are.equal(
                 sep .. "to" .. sep .. "file",
-                utils_path.join_path("path", sep .. "to", "file")
+                path.join("path", sep .. "to", "file")
             )
         end)
     end)
