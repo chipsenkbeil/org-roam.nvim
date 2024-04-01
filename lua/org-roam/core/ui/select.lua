@@ -106,8 +106,7 @@ end)()
 ---@field allow_select_missing boolean #if true, enables selecting non-existent items
 ---@field bindings org-roam.core.ui.select.Bindings #bindings associated with the window
 ---@field format fun(item:any):string #converts item into displayed text
----@field filter fun(item:any, input:string):boolean #filters items based on some input
----@field highlight fun(item:any, input:string):{[1]:integer, [2]:integer}[] #returns ranges (start/end col) to highlight matches (one-indexed, inclusive)
+---@field match fun(item:any, input:string):{[1]:integer, [2]:integer}[] #returns ranges (start/end col) of matches (one-indexed, inclusive)
 ---@field rank fun(item:any, input:string):number #ranks items based on some input, higher number means shown earlier
 
 ---@class (exact) org-roam.core.ui.select.Bindings
@@ -132,8 +131,7 @@ M.__index = M
 ---@field allow_select_missing? boolean
 ---@field bindings? {down?:string|string[], up?:string|string[], select?:string|string[], select_missing?:string|string[]}
 ---@field format? fun(item:any):string
----@field filter? fun(item:any, input:string):boolean
----@field highlight? fun(item:any, input:string):{[1]:integer, [2]:integer}[]
+---@field match? fun(item:any, input:string):{[1]:integer, [2]:integer}[]
 ---@field rank? fun(item:any, text:string):number
 
 ---Creates a new org-roam select dialog.
@@ -184,12 +182,7 @@ function M:new(opts)
         allow_select_missing = allow_select_missing,
         bindings = vim.tbl_deep_extend("keep", bindings, default_bindings),
         format = format,
-        filter = opts.filter or function(item, input)
-            local text = string.lower(format(item))
-            input = string.lower(input)
-            return string.find(text, input, 1, true)
-        end,
-        highlight = opts.highlight or function(item, input)
+        match = opts.match or function(item, input)
             local text = string.lower(format(item))
             input = string.lower(input)
 
@@ -595,7 +588,15 @@ function M:__update_filtered_items()
     local rank = self.__params.rank
 
     for i, item in ipairs(self.__params.items) do
-        if input == "" or self.__params.filter(item, input) then
+        local keep = input == ""
+
+        -- If input not empty, check if we match anything, which means keep it
+        if not keep then
+            local matches = self.__params.match(item, input)
+            keep = not vim.tbl_isempty(matches)
+        end
+
+        if keep then
             local x = { i, item }
             if rank then
                 x[3] = rank(item, input)
@@ -712,7 +713,7 @@ function M:__render_component()
         end
 
         local raw_item = self.__params.items[item[1]]
-        local matches = self.__params.highlight(raw_item, input)
+        local matches = self.__params.match(raw_item, input)
         table.sort(matches, function(a, b) return a[1] < b[1] end)
 
         -- Build up our line segments (start, end, highlight) (one-indexed, end-inclusive)
