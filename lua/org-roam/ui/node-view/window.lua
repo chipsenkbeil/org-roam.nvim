@@ -18,6 +18,29 @@ local EVENTS = {
     REFRESH = "refresh",
 }
 
+local KEYBINDINGS = {
+    OPEN_LINK = {
+        key = "<Enter>",
+        desc = "open a link in another window",
+        order = 1,
+    },
+    EXPAND = {
+        key = "<Tab>",
+        desc = "expand/collapse a link",
+        order = 2,
+    },
+    EXPAND_ALL = {
+        key = "<S-Tab>",
+        desc = "expand/collapse all links",
+        order = 3,
+    },
+    REFRESH_BUFFER = {
+        key = "<C-r>",
+        desc = "refresh buffer",
+        order = 4,
+    },
+}
+
 ---Mapping of kind -> highlight group.
 local HL = {
     NODE_TITLE    = "Title",
@@ -170,8 +193,9 @@ end
 ---Renders a node within an orgmode buffer.
 ---@param this org-roam.ui.window.NodeViewWindow
 ---@param node org-roam.core.file.Node|org-roam.core.database.Id
+---@param details {fixed:boolean}
 ---@return org-roam.core.ui.Line[] lines
-local function render(this, node)
+local function render(this, node, details)
     ---@diagnostic disable-next-line:invisible
     local state = this.__state
 
@@ -187,28 +211,29 @@ local function render(this, node)
     if node then
         -- Insert lines explaining available keys (if enabled)
         if CONFIG.ui.node_view.show_keybindings then
-            table.insert(lines, {
-                C.hl("Press ", HL.COMMENT),
-                C.hl("<Enter>", HL.KEYBINDING),
-                C.hl(" to open a link in another window", HL.COMMENT),
-            })
-            table.insert(lines, {
-                C.hl("Press ", HL.COMMENT),
-                C.hl("<Tab>", HL.KEYBINDING),
-                C.hl(" to expand/collapse a link preview", HL.COMMENT),
-            })
-            table.insert(lines, {
-                C.hl("Press ", HL.COMMENT),
-                C.hl("<S-Tab>", HL.KEYBINDING),
-                C.hl(" to expand/collapse all link previews", HL.COMMENT),
-            })
+            -- Get our bindings to display in help, in
+            -- a defined and consistent order
+            local bindings = vim.tbl_values(KEYBINDINGS)
+            table.sort(bindings, function(a, b) return a.order < b.order end)
+
+            for _, binding in ipairs(bindings) do
+                table.insert(lines, {
+                    C.hl("Press ", HL.COMMENT),
+                    C.hl(binding.key, HL.KEYBINDING),
+                    C.hl(" to " .. binding.desc, HL.COMMENT),
+                })
+            end
+
             -- Insert a blank line as a divider
             table.insert(lines, "")
         end
 
         -- Insert a full line that contains the node's title
         table.insert(lines, {
-            C.hl("Node: ", HL.NORMAL),
+            C.hl(
+                string.format("%sNode: ", details.fixed and "Fixed " or ""),
+                HL.NORMAL
+            ),
             C.hl(node.title, HL.NODE_TITLE),
         })
 
@@ -341,8 +366,8 @@ local function render(this, node)
                     -- Insert line containing node's title and line location
                     table.insert(backlink_lines, {
                         line,
-                        C.action("<Tab>", do_expand),
-                        C.action("<Enter>", do_open),
+                        C.action(KEYBINDINGS.EXPAND.key, do_expand),
+                        C.action(KEYBINDINGS.OPEN_LINK.key, do_open),
                     })
 
                     -- If we have toggled for this location, show the preview
@@ -364,7 +389,19 @@ local function render(this, node)
 
         -- Add some global actions: keybindings that can be used anywhere
         table.insert(lines, {
-            C.action("<S-Tab>", do_expand_all, { global = true }),
+            C.action(
+                KEYBINDINGS.EXPAND_ALL.key,
+                do_expand_all,
+                { global = true }
+            ),
+            C.action(
+                KEYBINDINGS.REFRESH_BUFFER.key,
+                function()
+                    highlighter.clear_cache()
+                    EMITTER:emit(EVENTS.REFRESH, { force = true })
+                end,
+                { global = true }
+            ),
         })
     end
 
@@ -405,7 +442,7 @@ function M:new(opts)
             local id = instance.__id or last_id
             last_id = id
             if id then
-                return render(instance, id)
+                return render(instance, id, { fixed = opts.id ~= nil })
             else
                 return {}
             end
@@ -422,6 +459,16 @@ function M:new(opts)
         components = { cached_render },
     }, opts))
     instance.__window = window
+
+    -- For this kind of buffer, always force normal mode.
+    -- NOTE: This exists because fixed node buffers seem
+    --       to start in insert mode.
+    vim.api.nvim_create_autocmd("BufEnter", {
+        buffer = window:bufnr(),
+        callback = function()
+            vim.cmd.stopinsert()
+        end,
+    })
 
     vim.api.nvim_create_autocmd("BufReadCmd", {
         buffer = window:bufnr(),

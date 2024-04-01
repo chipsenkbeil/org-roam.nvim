@@ -130,4 +130,9 @@ function M.highlight_ranges_as_org(buffer, ranges, opts)
     end
 end
 
+---Clears the cache of text to highlights.
+function M.clear_cache()
+    CACHE = {}
+end
+
 return M
