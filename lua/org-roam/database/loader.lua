@@ -252,7 +252,8 @@ function M:load_file(opts)
         ---@type org-roam.core.Database, OrgFiles
         local db, files = results[1], results[2]
 
-        return files:load_file(opts.path):next(function(file)
+        -- This both loads the file and adds it to our file path if not there already
+        return files:add_to_paths(opts.path):next(function(file)
             -- Determine if the file already exists through nodes in the db
             local has_file = #db:find_by_index(schema.FILE, file.filename) > 0
 

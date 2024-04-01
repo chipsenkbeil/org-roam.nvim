@@ -232,13 +232,8 @@ function M.__capture(opts, cb)
                 end
 
                 -- Reload the file that was written due to a refile
-                --
-                -- NOTE: Due to limitation with `OrgFiles`, we must reload everything
-                --       for it to process completely and enable us to navigate the
-                --       file by id. If this gets changed in the future, we can
-                --       switch to `load_file` instead of `load` using the destination
-                --       file's filename.
-                db:load(function(err)
+                local filename = capture_opts.destination_file.filename
+                db:load_file({ path = filename }, function(err)
                     if err then
                         notify.error(err)
                         cb(nil)
@@ -246,7 +241,7 @@ function M.__capture(opts, cb)
                     end
 
                     cb(id)
-                end, { force = true })
+                end)
             end,
         })
 
