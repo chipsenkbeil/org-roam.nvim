@@ -153,7 +153,7 @@ function M:from_org_file(file)
 
             -- Figure out the node that contains the link
             ---@type org-roam.core.file.Node|nil
-            local node = node_tree:find_last_data({
+            local node = node_tree:find_smallest_data({
                 roam_range.start.offset,
                 roam_range.end_.offset,
                 match = "contains",

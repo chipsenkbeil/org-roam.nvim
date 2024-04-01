@@ -120,7 +120,7 @@ function M.link_under_cursor()
     local cache = get_buffer_cache(bufnr)
     local tree = cache and cache.link_tree
     if tree then
-        return tree:find_last_data({ offset, match = "contains" })
+        return tree:find_smallest_data({ offset, match = "contains" })
     end
 end
 
@@ -143,7 +143,7 @@ function M.node_under_cursor(cb)
 
         -- Find id of deepest node containing the offset
         if tree then
-            return tree:find_last_data({ offset, match = "contains" })
+            return tree:find_smallest_data({ offset, match = "contains" })
         end
     end
 
