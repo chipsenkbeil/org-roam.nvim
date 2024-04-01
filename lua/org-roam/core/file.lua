@@ -97,7 +97,7 @@ function M:from_org_file(file)
             ),
             file = file.filename,
             mtime = file.metadata.mtime,
-            title = file:get_directive_property("title"),
+            title = file:get_directive("title"),
             aliases = utils.parse_property_value(file:get_property("roam_aliases") or ""),
             tags = file:get_filetags(),
             level = 0,
