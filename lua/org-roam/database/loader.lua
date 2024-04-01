@@ -85,21 +85,6 @@ local function find_distinct(left, right)
 end
 
 ---@param db org-roam.core.Database
----@param file OrgFile|nil
----@return integer inserted_node_cnt
-local function insert_new_file_into_database(db, file)
-    if not file then return 0 end
-    local roam_file = File:from_org_file(file)
-    local cnt = 0
-    for id, node in pairs(roam_file.nodes) do
-        db:insert(node, { id = id })
-        db:link(id, vim.tbl_keys(node.linked))
-        cnt = cnt + 1
-    end
-    return cnt
-end
-
----@param db org-roam.core.Database
 ---@param filename string
 ---@return integer removed_node_cnt
 local function remove_file_from_database(db, filename)
@@ -169,6 +154,32 @@ local function modify_file_in_database(db, file, opts)
         end
     end
 
+    return cnt
+end
+
+---@param db org-roam.core.Database
+---@param file OrgFile|nil
+---@return integer inserted_node_cnt
+local function insert_new_file_into_database(db, file)
+    if not file then return 0 end
+
+    -- NOTE: We have this in place because of the nature of asynchronous
+    --       operations where at the time of scheduling the insertion
+    --       there was no file but now there is a file
+    local has_file = not vim.tbl_isempty(
+        db:find_by_index(schema.File, file.filename)
+    )
+    if has_file then
+        return modify_file_in_database(db, file)
+    end
+
+    local roam_file = File:from_org_file(file)
+    local cnt = 0
+    for id, node in pairs(roam_file.nodes) do
+        db:insert(node, { id = id })
+        db:link(id, vim.tbl_keys(node.linked))
+        cnt = cnt + 1
+    end
     return cnt
 end
 
@@ -255,7 +266,8 @@ function M:load_file(opts)
         -- This both loads the file and adds it to our file path if not there already
         return files:add_to_paths(opts.path):next(function(file)
             -- Determine if the file already exists through nodes in the db
-            local has_file = #db:find_by_index(schema.FILE, file.filename) > 0
+            local ids = db:find_by_index(schema.FILE, file.filename)
+            local has_file = not vim.tbl_isempty(ids)
 
             if has_file then
                 modify_file_in_database(db, file, { force = opts.force })
