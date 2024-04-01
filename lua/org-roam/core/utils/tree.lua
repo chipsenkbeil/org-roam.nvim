@@ -88,6 +88,12 @@ function M:range()
     return { self._start, self._end }
 end
 
+---Returns the size of the range by taking end - start.
+---@return integer
+function M:range_size()
+    return self._end - self._start
+end
+
 ---Returns depth of node in the tree with 1 being the root node.
 ---@return integer
 function M:depth()
@@ -306,6 +312,36 @@ end
 ---@return any|nil
 function M:find_last_data(opts)
     local node = self:find_last(opts)
+    if node then
+        return node.data
+    end
+end
+
+---Finds the node with the smallest interval that matches the provided options.
+---
+---See `find_all` for more details.
+---@param opts? org-roam.core.utils.tree.FindOpts
+---@return org-roam.core.utils.IntervalTree|nil
+function M:find_smallest(opts)
+    local nodes = self:find_all(opts)
+
+    ---@type org-roam.core.utils.IntervalTree|nil
+    local smallest
+    for _, node in ipairs(nodes) do
+        if not smallest or smallest:range_size() > node:range_size() then
+            smallest = node
+        end
+    end
+
+    return smallest
+end
+
+---Finds the node with the smallest interval that matches the provided options
+---and returns its data.
+---@param opts? org-roam.core.utils.tree.FindOpts
+---@return any|nil
+function M:find_smallest_data(opts)
+    local node = self:find_smallest(opts)
     if node then
         return node.data
     end
