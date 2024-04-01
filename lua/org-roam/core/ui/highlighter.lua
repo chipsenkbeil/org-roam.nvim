@@ -28,6 +28,7 @@ function M.get_extmarks_for_ranges_as_org(buffer, ranges, opts)
     -- Populate the scratch buffer
     local name = vim.fn.tempname() .. ".org"
     vim.api.nvim_buf_set_name(scratch_buffer, name)
+    vim.api.nvim_buf_set_option(scratch_buffer, "filetype", "org")
 
     for _, range in ipairs(ranges) do
         local start = range[1]
