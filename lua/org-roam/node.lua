@@ -232,6 +232,7 @@ function M.__capture(opts, cb)
                 end
 
                 -- Reload the file that was written due to a refile
+                --
                 -- NOTE: Due to limitation with `OrgFiles`, we must reload everything
                 --       for it to process completely and enable us to navigate the
                 --       file by id. If this gets changed in the future, we can

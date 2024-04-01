@@ -31,6 +31,60 @@ local EVENTS = {
     TEXT_CHANGE = "select:text_change",
 }
 
+local HIGHLIGHTS = {
+    ---Highlight group for unselected text
+    NORMAL = "Normal",
+    ---Highlight group for selected text
+    SELECTED = "PmenuSel",
+    ---Highlight group whose foreground color is used for matches
+    MATCHED_FG = "WarningMsg",
+    ---Highlight group for unselected, matched text
+    MATCHED = "@org-roam.core.ui.select.matched",
+    ---Highlight group for selected, matched text
+    SELECTED_MATCHED = "@org-roam.core.ui.select.selected-matched",
+}
+
+---Initializes highlights globally for the select ui.
+local init_highlights = (function()
+    local initialized = false
+    return function()
+        if initialized then
+            return
+        end
+
+        local function define_colors()
+            -- Define custom highlight group for matching
+            local normal_hl = vim.api.nvim_get_hl(0, { name = HIGHLIGHTS.NORMAL })
+            local selected_hl = vim.api.nvim_get_hl(0, { name = HIGHLIGHTS.SELECTED })
+            local fg = vim.api.nvim_get_hl(0, { name = HIGHLIGHTS.MATCHED_FG }).fg
+            vim.api.nvim_set_hl(
+                0,
+                HIGHLIGHTS.MATCHED,
+                vim.tbl_extend("keep", { fg = string.format("#%x", fg) }, normal_hl)
+            )
+            vim.api.nvim_set_hl(
+                0,
+                HIGHLIGHTS.SELECTED_MATCHED,
+                vim.tbl_extend("keep", { fg = string.format("#%x", fg) }, selected_hl)
+            )
+        end
+
+        -- Listen for changes in color scheme and re-apply our highlights
+        local group = vim.api.nvim_create_augroup("org-roam.core.ui.select", {})
+        vim.api.nvim_create_autocmd("ColorScheme", {
+            group = group,
+            pattern = "*",
+            callback = function()
+                define_colors()
+            end,
+        })
+
+        -- Define our colors once and mark initialized
+        define_colors()
+        initialized = true
+    end
+end)()
+
 ---@class (exact) org-roam.core.ui.select.View
 ---@field filtered_items {[1]:integer, [2]:string}[] #list of tuples representing indexes of items and labels to display
 ---@field start integer #position within filtered items where items will be collected to show (up to max)
@@ -53,6 +107,7 @@ local EVENTS = {
 ---@field bindings org-roam.core.ui.select.Bindings #bindings associated with the window
 ---@field format fun(item:any):string #converts item into displayed text
 ---@field filter fun(item:any, input:string):boolean #filters items based on some input
+---@field highlight fun(item:any, input:string):{[1]:integer, [2]:integer}[] #returns ranges (start/end col) to highlight matches (one-indexed, inclusive)
 ---@field rank fun(item:any, input:string):number #ranks items based on some input, higher number means shown earlier
 
 ---@class (exact) org-roam.core.ui.select.Bindings
@@ -78,6 +133,7 @@ M.__index = M
 ---@field bindings? {down?:string|string[], up?:string|string[], select?:string|string[], select_missing?:string|string[]}
 ---@field format? fun(item:any):string
 ---@field filter? fun(item:any, input:string):boolean
+---@field highlight? fun(item:any, input:string):{[1]:integer, [2]:integer}[]
 ---@field rank? fun(item:any, text:string):number
 
 ---Creates a new org-roam select dialog.
@@ -132,6 +188,18 @@ function M:new(opts)
             local text = string.lower(format(item))
             input = string.lower(input)
             return string.find(text, input, 1, true)
+        end,
+        highlight = opts.highlight or function(item, input)
+            local text = string.lower(format(item))
+            input = string.lower(input)
+
+            -- Get inclusive start/end (one-indexed)
+            local start, end_ = string.find(text, input, 1, true)
+            if start and end_ then
+                return { { start, end_ } }
+            else
+                return {}
+            end
         end,
         rank = opts.rank,
     }
@@ -204,6 +272,8 @@ end
 ---Opens the selection dialog.
 function M:open()
     if not self.__state.window then
+        init_highlights()
+
         local window = Window:new({
             name = "org-roam-select",
             open = Window.calc_open.bottom(self.__view.max_rows + 1),
@@ -612,6 +682,7 @@ function M:__render_component()
     -- Refresh the filtered items
     self:__update_filtered_items()
 
+    local input = self:__get_input()
     local start = self.__view.start
     local end_ = math.min(
         self.__view.start + self.__view.max_rows - 1,
@@ -621,9 +692,11 @@ function M:__render_component()
     -- Loop through filtered items, beginning at the start position
     -- and continuing through max rows
     for i = start, end_ do
+        local selected = i == self.__view.selected
         local item = self.__view.filtered_items[i]
         local text = self.__params.format(item[2])
-        local highlight = "Normal"
+        local highlight = HIGHLIGHTS.NORMAL
+        local matched_highlight = HIGHLIGHTS.MATCHED
 
         -- Pad our text to fill the length of the window such that
         -- highlighting smoothly covers the entire line
@@ -633,12 +706,41 @@ function M:__render_component()
         end
 
         -- For our selected item, adjust the highlight
-        if i == self.__view.selected then
-            highlight = "PmenuSel"
+        if selected then
+            highlight = HIGHLIGHTS.SELECTED
+            matched_highlight = HIGHLIGHTS.SELECTED_MATCHED
+        end
+
+        local raw_item = self.__params.items[item[1]]
+        local matches = self.__params.highlight(raw_item, input)
+        table.sort(matches, function(a, b) return a[1] < b[1] end)
+
+        -- Build up our line segments (start, end, highlight) (one-indexed, end-inclusive)
+        ---@type {[1]:integer, [2]:integer, [3]:string}
+        local segments = {}
+        for _, match in ipairs(matches) do
+            local last_segment = segments[#segments] or { 0, 0, "" }
+            local mstart, mend = match[1], match[2]
+
+            -- If there is a gap between the last segment and our match,
+            -- we need to add in a segment first leading up to our match
+            if last_segment[1] + 1 < mstart then
+                table.insert(segments, { last_segment[1] + 1, mstart - 1, highlight })
+            end
+
+            table.insert(segments, { mstart, mend, matched_highlight })
+        end
+
+        -- Last segment is anything remaining
+        local last_segment = segments[#segments] or { 0, 0, "" }
+        if last_segment[2] < string.len(text) then
+            table.insert(segments, { last_segment[2] + 1, string.len(text), highlight })
         end
 
         -- Build our line as a single segment with highlight
-        table.insert(lines, { C.hl(text, highlight) })
+        table.insert(lines, vim.tbl_map(function(segment)
+            return C.hl(string.sub(text, segment[1], segment[2]), segment[3])
+        end, segments))
     end
 
     return lines
