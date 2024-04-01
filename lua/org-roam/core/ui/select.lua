@@ -175,6 +175,18 @@ function M:new(opts)
     local bindings = clean_bindings(opts.bindings or {})
 
     local format = opts.format or function(item) return tostring(item) end
+    local match = opts.match or function(item, input)
+        local text = string.lower(format(item))
+        input = string.lower(input)
+
+        -- Get inclusive start/end (one-indexed)
+        local start, end_ = string.find(text, input, 1, true)
+        if start and end_ then
+            return { { start, end_ } }
+        else
+            return {}
+        end
+    end
     instance.__params = {
         items = opts.items or {},
         init_input = opts.init_input or "",
@@ -182,18 +194,7 @@ function M:new(opts)
         allow_select_missing = allow_select_missing,
         bindings = vim.tbl_deep_extend("keep", bindings, default_bindings),
         format = format,
-        match = opts.match or function(item, input)
-            local text = string.lower(format(item))
-            input = string.lower(input)
-
-            -- Get inclusive start/end (one-indexed)
-            local start, end_ = string.find(text, input, 1, true)
-            if start and end_ then
-                return { { start, end_ } }
-            else
-                return {}
-            end
-        end,
+        match = match,
         rank = opts.rank,
     }
 
