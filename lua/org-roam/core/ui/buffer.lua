@@ -336,9 +336,10 @@ function M:__apply_lines(ui_lines, force)
         local line_idx = start + #lines
 
         ---@param segments org-roam.core.ui.LineSegment[]
-        ---@return string
+        ---@return string|nil
         local function process_segments(segments)
             local text = ""
+            local has_text = false
             for _, seg in ipairs(segments) do
                 if seg.type == "action" then
                     table.insert(keybindings, {
@@ -347,8 +348,10 @@ function M:__apply_lines(ui_lines, force)
                         line = seg.global and -1 or line_idx,
                     })
                 elseif seg.type == "text" then
+                    has_text = true
                     text = text .. seg.text
                 elseif seg.type == "hl" then
+                    has_text = true
                     -- col start/end are zero-indexed and
                     -- col end is exclusive
                     local cstart = string.len(text)
@@ -361,10 +364,16 @@ function M:__apply_lines(ui_lines, force)
                         cend = cend,
                     })
                 elseif seg.type == "group" then
-                    text = text .. process_segments(seg.segments)
+                    local group_text = process_segments(seg.segments)
+                    if group_text then
+                        has_text = true
+                        text = text .. group_text
+                    end
                 end
             end
-            return text
+            if has_text then
+                return text
+            end
         end
 
         if type(line) == "string" then
@@ -391,7 +400,9 @@ function M:__apply_lines(ui_lines, force)
             table.insert(lines, line.text)
         elseif type(line) == "table" and not vim.tbl_isempty(line) then
             local text = process_segments(line)
-            table.insert(lines, text)
+            if text then
+                table.insert(lines, text)
+            end
         end
     end
 

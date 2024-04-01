@@ -86,6 +86,15 @@ local config = setmetatable({
             ---      is undesired, disable highlight previews.
             ---@type boolean
             highlight_previews = true,
+
+            ---If true, will include a section covering available keybindings.
+            ---@type boolean
+            show_keybindings = true,
+
+            ---If true, shows a single link (backlink/citation/unlinked reference)
+            ---per node instead of all links.
+            ---@type boolean
+            unique = false,
         },
     },
 }, { __call = replace })

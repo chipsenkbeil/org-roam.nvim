@@ -110,12 +110,12 @@ function M:load(cb, opts)
 end
 
 ---@param opts {path:string, force?:boolean}
----@param cb fun(err:string|nil, results:{file:OrgFile, nodes:org-roam.core.file.Node[]}|nil)
+---@param cb fun(err:string|nil, file:OrgFile|nil, nodes:org-roam.core.file.Node[]|nil)
 function M:load_file(opts, cb)
     self:__get_loader()
         :load_file({ path = opts.path })
         :next(function(results)
-            vim.schedule(function() cb(nil, results) end)
+            vim.schedule(function() cb(nil, results.file, results.nodes) end)
             return results
         end)
         :catch(function(err)
