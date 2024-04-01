@@ -129,7 +129,8 @@ function M:new(opts)
         bindings = vim.tbl_deep_extend("keep", bindings, default_bindings),
         format = format,
         filter = opts.filter or function(item, input)
-            local text = format(item)
+            local text = string.lower(format(item))
+            input = string.lower(input)
             return string.find(text, input, 1, true)
         end,
         rank = opts.rank,
