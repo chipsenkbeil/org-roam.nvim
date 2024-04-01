@@ -235,10 +235,11 @@ local function render(this, node)
                         local col = loc.column
 
                         -- Get the expanded state of the first link to use for everything
-                        ---@type boolean
-                        is_expanded = is_expanded
-                            or tbl_utils.get(state.expanded, backlink_node.id, row, col)
-                            or false
+                        if is_expanded == nil then
+                            is_expanded =
+                                tbl_utils.get(state.expanded, backlink_node.id, row, col)
+                                or false
+                        end
 
                         if not state.expanded[backlink_node.id] then
                             state.expanded[backlink_node.id] = {}
