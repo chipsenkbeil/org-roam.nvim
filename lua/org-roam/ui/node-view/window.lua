@@ -21,10 +21,12 @@ local EVENTS = {
 ---Mapping of kind -> highlight group.
 local HL = {
     NODE_TITLE    = "Title",
+    COMMENT       = "Comment",
+    KEYBINDING    = "WarningMsg",
     SECTION_LABEL = "Title",
     SECTION_COUNT = "Normal",
     LINK_TITLE    = "Title",
-    LINK_LOCATION = "Identifier",
+    LINK_LOCATION = "WarningMsg",
     NORMAL        = "Normal",
     PREVIEW_LINE  = "PMenu",
 }
@@ -106,8 +108,11 @@ local function load_lines_at_cursor(path, cursor)
             return {}
         end
 
-        -- Load the text and split it by line
+        -- Load the text and split it by line, removing
+        -- any starting or ending blank links
         local text = file:get_node_text(node)
+        text = string.gsub(text, "^%s*\n", "")
+        text = string.gsub(text, "\n%s*$", "")
         return vim.split(text, "\n", { plain = true })
     end
 
@@ -118,21 +123,21 @@ local function load_lines_at_cursor(path, cursor)
     -- Kick off a reload of lines
     require("org-roam.database"):load_file({
         path = path
-    }, function(err, results)
+    }, function(err, file)
         if err then
             notify.error(err)
             return
         end
 
         -- Calculate a digest and see if its different
-        ---@cast results -nil
-        local sha256 = vim.fn.sha256(results.file.content)
+        ---@cast file -nil
+        local sha256 = vim.fn.sha256(file.content)
         local is_new = not CACHE[key] or CACHE[key].sha256 ~= sha256
 
         -- Update our cache
         CACHE[key] = {
             sha256 = sha256,
-            lines = file_to_lines(results.file),
+            lines = file_to_lines(file),
         }
 
         -- If our file has changed, re-render
@@ -180,28 +185,96 @@ local function render(this, node)
     end
 
     if node then
+        -- Insert lines explaining available keys (if enabled)
+        if CONFIG.ui.node_view.show_keybindings then
+            table.insert(lines, {
+                C.hl("Press ", HL.COMMENT),
+                C.hl("<Enter>", HL.KEYBINDING),
+                C.hl(" to open a link in another window", HL.COMMENT),
+            })
+            table.insert(lines, {
+                C.hl("Press ", HL.COMMENT),
+                C.hl("<Tab>", HL.KEYBINDING),
+                C.hl(" to expand/collapse a link preview", HL.COMMENT),
+            })
+            table.insert(lines, {
+                C.hl("Press ", HL.COMMENT),
+                C.hl("<S-Tab>", HL.KEYBINDING),
+                C.hl(" to expand/collapse all link previews", HL.COMMENT),
+            })
+            -- Insert a blank line as a divider
+            table.insert(lines, "")
+        end
+
         -- Insert a full line that contains the node's title
-        table.insert(lines, { C.hl(node.title, HL.NODE_TITLE) })
+        table.insert(lines, {
+            C.hl("Node: ", HL.NORMAL),
+            C.hl(node.title, HL.NODE_TITLE),
+        })
 
         -- Insert a blank line as a divider
         table.insert(lines, "")
 
-        -- Insert a multi-highlighted line for backlinks
-        local backlinks = db:get_backlinks(node.id)
-        table.insert(lines, {
-            C.hl("Backlinks", HL.SECTION_LABEL),
-            C.hl(" (" .. vim.tbl_count(backlinks) .. ")", HL.SECTION_COUNT),
-        })
+        -- Ensure our rendering of backlinks is a consistent order
+        local backlink_ids = vim.tbl_keys(db:get_backlinks(node.id))
+        table.sort(backlink_ids)
 
-        for backlink_id, _ in pairs(backlinks) do
+        local function do_expand_all()
+            if not state.expanded then
+                state.expanded = {}
+            end
+            local is_expanded
+            for _, backlink_id in pairs(backlink_ids) do
+                local backlink_node = db:get_sync(backlink_id)
+
+                if backlink_node then
+                    local locs = backlink_node.linked[node.id]
+                    for _, loc in ipairs(locs or {}) do
+                        -- Zero-indexed row/column
+                        local row = loc.row
+                        local col = loc.column
+
+                        -- Get the expanded state of the first link to use for everything
+                        ---@type boolean
+                        is_expanded = is_expanded
+                            or tbl_utils.get(state.expanded, backlink_node.id, row, col)
+                            or false
+
+                        if not state.expanded[backlink_node.id] then
+                            state.expanded[backlink_node.id] = {}
+                        end
+
+                        if not state.expanded[backlink_node.id][row] then
+                            state.expanded[backlink_node.id][row] = {}
+                        end
+
+                        state.expanded[backlink_node.id][row][col] = not is_expanded
+                    end
+                end
+            end
+            EMITTER:emit(EVENTS.REFRESH)
+        end
+
+        local backlink_lines = {}
+        local backlink_links_cnt = 0
+        for _, backlink_id in ipairs(backlink_ids) do
             local backlink_node = db:get_sync(backlink_id)
 
             if backlink_node then
                 local locs = backlink_node.linked[node.id]
-                for _, loc in ipairs(locs or {}) do
+                for i, loc in ipairs(locs or {}) do
+                    -- Check if we are only showing one link
+                    -- per node as per configuration
+                    if i > 1 and CONFIG.ui.node_view.unique then
+                        break
+                    end
+
                     -- One-indexed row/column
                     local row = loc.row + 1
                     local col = loc.column + 1
+
+                    -- Update the total links we have
+                    backlink_links_cnt = backlink_links_cnt + 1
 
                     ---@type boolean
                     local is_expanded = tbl_utils.get(
@@ -265,22 +338,33 @@ local function render(this, node)
                     )
 
                     -- Insert line containing node's title and line location
-                    table.insert(lines, {
+                    table.insert(backlink_lines, {
                         line,
                         C.action("<Tab>", do_expand),
                         C.action("<Enter>", do_open),
                     })
 
-
                     -- If we have toggled for this location, show the preview
                     if is_expanded then
-                        vim.list_extend(lines, load_lines_at_cursor(
+                        vim.list_extend(backlink_lines, load_lines_at_cursor(
                             backlink_node.file, { row, col - 1 }
                         ))
                     end
                 end
             end
         end
+
+        -- Add backlinks section
+        table.insert(lines, {
+            C.hl("Backlinks", HL.SECTION_LABEL),
+            C.hl(" (" .. backlink_links_cnt .. ")", HL.SECTION_COUNT),
+        })
+        vim.list_extend(lines, backlink_lines)
+
+        -- Add some global actions: keybindings that can be used anywhere
+        table.insert(lines, {
+            C.action("<S-Tab>", do_expand_all, { global = true }),
+        })
     end
 
     return lines
