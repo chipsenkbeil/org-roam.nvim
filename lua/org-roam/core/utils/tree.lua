@@ -347,4 +347,44 @@ function M:intersects(start, end_)
     return true
 end
 
+---Converts tree into string.
+---
+---Options:
+---
+---* `map`: map data to string
+---* `max`: max characters to show for data
+---@param opts? {max?:integer, map?:fun(data:any):string}
+---@return string
+function M:to_string(opts)
+    opts = opts or {}
+    local map = opts.map or function(data)
+        return string.gsub(vim.inspect(data), "\n", " ")
+    end
+
+    local data = map(self.data)
+    local max = opts.max
+
+    local s = string.format(
+        "[%s,%s] \"%s\"",
+        self._start,
+        self._end,
+        max and string.sub(data, 1, max) or data
+    )
+    if self._depth > 1 then
+        s = string.rep(" ", (self._depth - 2) * 2)
+            .. "┗━ "
+            .. s
+    end
+
+    if self.left then
+        s = s .. "\n" .. self.left:to_string(opts)
+    end
+
+    if self.right then
+        s = s .. "\n" .. self.right:to_string(opts)
+    end
+
+    return s
+end
+
 return M
