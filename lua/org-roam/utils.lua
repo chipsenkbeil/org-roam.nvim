@@ -152,6 +152,23 @@ function M.node_under_cursor(cb)
     end)
 end
 
+---Converts a title into a slug that is acceptable in filenames.
+---@param title string
+---@return string
+function M.title_to_slug(title)
+    -- For conversion, we do the following steps:
+    --
+    -- 1. Convert anything not alphanumeric into an underscore
+    -- 2. Remove consecutive underscores in favor of just one
+    -- 3. Remove underscore at beginning
+    -- 4. Remove underscore at end
+    title = string.gsub(title, "%W", "_")
+    title = string.gsub(title, "__", "_")
+    title = string.gsub(title, "^_", "_")
+    title = string.gsub(title, "_$", "_")
+    return title
+end
+
 ---@private
 M.__cache = CACHE
 

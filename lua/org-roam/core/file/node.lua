@@ -101,16 +101,7 @@ function M:new(opts)
     instance.range = opts.range
     instance.file = opts.file
     instance.mtime = opts.mtime
-    instance.title = opts.title or (function()
-        local filename = vim.fs.basename(opts.file)
-
-        -- Remove .org extension if it exists
-        if vim.endswith(filename, ".org") then
-            filename = string.sub(filename, 1, string.len(filename) - 4)
-        end
-
-        return filename
-    end)()
+    instance.title = opts.title or vim.fn.fnamemodify(opts.file, ":t:r")
     instance.aliases = opts.aliases or {}
     instance.tags = opts.tags or {}
     instance.level = opts.level or 0

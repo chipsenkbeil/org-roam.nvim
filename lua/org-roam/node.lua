@@ -9,6 +9,29 @@ local db = require("org-roam.database")
 local io = require("org-roam.core.utils.io")
 local notify = require("org-roam.core.ui.notify")
 local select_node = require("org-roam.ui.select-node")
+local utils = require("org-roam.utils")
+
+---General-purpose expansions tied to org roam.
+local EXPANSIONS = {
+    ["%r"] = function()
+        return CONFIG.directory
+    end,
+    ["%R"] = function()
+        return vim.fs.normalize(vim.fn.resolve(CONFIG.directory))
+    end,
+}
+
+---@param content string
+---@param expansions? {[string]:fun():string}
+---@return string
+local function fill_expansions(content, expansions)
+    for expansion, compiler in pairs(expansions or EXPANSIONS) do
+        if string.match(content, vim.pesc(expansion)) then
+            content = string.gsub(content, vim.pesc(expansion), vim.pesc(compiler()))
+        end
+    end
+    return content
+end
 
 ---@class org-roam.NodeApi
 local M = {}
@@ -123,27 +146,6 @@ function M.__capture(opts, cb)
     local Capture = require("orgmode.capture")
     local Templates = require("orgmode.capture.templates")
 
-    local EXPANSIONS = {
-        ["%r"] = function()
-            return CONFIG.directory
-        end,
-        ["%R"] = function()
-            return vim.fs.normalize(vim.fn.resolve(CONFIG.directory))
-        end,
-        ["%[title]"] = function()
-            return opts.title
-        end,
-    }
-
-    local function fill_expansions(content)
-        for expansion, compiler in pairs(EXPANSIONS) do
-            if string.match(content, vim.pesc(expansion)) then
-                content = string.gsub(content, vim.pesc(expansion), vim.pesc(compiler()))
-            end
-        end
-        return content
-    end
-
     -- Build our templates such that they include titles and org-ids
     ---@type OrgCaptureTemplates
     local templates = Templates:new(CONFIG.templates)
@@ -194,13 +196,36 @@ function M.__capture(opts, cb)
         local capture = Capture:new({
             files = files,
             templates = templates,
-            on_close = function(_, opts)
+            on_pre_refile = function(_, capture_opts)
+                local title = capture_opts.source_file:get_directive("title")
+                    or opts.title
+                    or vim.fn.fnamemodify(capture_opts.source_file.filename, ":t:r")
+                local slug = utils.title_to_slug(title)
+
+                local expansions = {
+                    ["%[title]"] = function()
+                        return title
+                    end,
+                    ["%[slug]"] = function()
+                        return slug
+                    end,
+                }
+
+                local target = capture_opts.template.target
+                if target then
+                    capture_opts.template.target = fill_expansions(
+                        target,
+                        expansions
+                    )
+                end
+            end,
+            on_post_refile = function(_, capture_opts)
                 -- Look for the id of the newly-captured ram node
-                local id = opts.source_file:get_property("ID")
+                local id = capture_opts.source_file:get_property("ID")
 
                 -- If we don't find a file-level node, look for headline nodes
                 if not id then
-                    for _, headline in ipairs(opts.source_file:get_headlines()) do
+                    for _, headline in ipairs(capture_opts.source_file:get_headlines()) do
                         id = headline:get_property("ID", false)
                         if id then break end
                     end
@@ -219,7 +244,6 @@ function M.__capture(opts, cb)
                         return
                     end
 
-                    -- If we don't schedule here, we get stack overflow!
                     cb(id)
                 end, { force = true })
             end,

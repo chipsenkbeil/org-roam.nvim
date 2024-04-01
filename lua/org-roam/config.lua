@@ -4,7 +4,7 @@
 -- Contains global config logic used by the plugin.
 -------------------------------------------------------------------------------
 
-local path_utils = require("org-roam.core.utils.path")
+local path = require("org-roam.core.utils.path")
 
 ---Overwrites configuration options with those specified.
 ---@param tbl org-roam.Config
@@ -71,7 +71,7 @@ local config = setmetatable({
         d = {
             description = "default",
             template = "* %?",
-            target = "%r" .. path_utils.separator() .. "%<%Y-%m-%d>-%[title].org",
+            target = "%r" .. path.separator() .. "%<%Y%m%d%H%M%S>-%[slug].org",
         },
     },
 
