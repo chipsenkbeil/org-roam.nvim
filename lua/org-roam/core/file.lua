@@ -60,7 +60,7 @@ end
 
 ---Returns nodes as a list.
 ---@return org-roam.core.file.Node[]
-function M:get_nodes_list()
+function M:get_node_list()
     return vim.tbl_values(self.nodes)
 end
 
@@ -98,6 +98,9 @@ function M:from_org_file(file)
     -- Build up our file-level node
     local id = file:get_property("id")
     if id then
+        local tags = file:get_filetags()
+        table.sort(tags)
+
         table.insert(nodes, Node:new({
             id = id,
             range = Range:new(
@@ -108,7 +111,7 @@ function M:from_org_file(file)
             mtime = file.metadata.mtime,
             title = file:get_directive("title"),
             aliases = utils.parse_property_value(file:get_property("roam_aliases") or ""),
-            tags = file:get_filetags(),
+            tags = tags,
             level = 0,
             linked = {},
         }))
