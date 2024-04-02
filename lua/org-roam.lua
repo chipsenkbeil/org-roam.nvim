@@ -24,12 +24,14 @@ function M.setup(config)
     profiler:start()
 
     -- Load the database asynchronously
-    require("org-roam.database"):load(function(err)
-        log.info(profiler:stop():print_as_string())
-        if err then
+    require("org-roam.database"):load()
+        :next(function()
+            log.info(profiler:stop():print_as_string())
+            return nil
+        end)
+        :catch(function(err)
             require("org-roam.core.ui.notify").error(err)
-        end
-    end)
+        end)
 end
 
 return M

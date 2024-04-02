@@ -6,13 +6,11 @@
 
 local CONFIG = require("org-roam.config")
 
-local async = require("org-roam.core.utils.async")
 local Emitter = require("org-roam.core.utils.emitter")
 local join_path = require("org-roam.core.utils.path").join
 local Loader = require("org-roam.database.loader")
+local Promise = require("orgmode.utils.promise")
 local schema = require("org-roam.database.schema")
-
-local notify = require("org-roam.core.ui.notify")
 
 local EVENTS = {
     LOADED = "loaded",
@@ -25,7 +23,6 @@ local DATABASE_PATH = join_path(BASE_PATH, "db")
 ---@class org-roam.Database: org-roam.core.Database
 ---@field private __cache {modified:table<string, integer>}
 ---@field private __emitter org-roam.core.utils.Emitter
----@field private __loaded boolean|"loading"
 ---@field private __loader org-roam.database.Loader
 local M = {}
 
@@ -36,7 +33,6 @@ function M:new()
     setmetatable(instance, M)
     instance.__cache = {}
     instance.__emitter = Emitter:new()
-    instance.__loaded = false
     instance.__loader = nil
     return instance
 end
@@ -73,76 +69,44 @@ function M:path()
     return DATABASE_PATH
 end
 
----Returns true if the database has been loaded and is available.
----@return boolean
-function M:is_loaded()
-    return self.__loaded == true
-end
-
 ---Loads the database from disk and re-parses files.
 ---Callback receives a database reference and collection of files.
----@param cb fun(err:string|nil, database:org-roam.core.Database|nil, files:OrgFiles|nil)
 ---@param opts? {force?:boolean}
-function M:load(cb, opts)
+---@return OrgPromise<{database:org-roam.core.Database, files:OrgFiles}>
+function M:load(opts)
     opts = opts or {}
 
-    -- Register our callback to get called once when loaded
-    self.__emitter:once(EVENTS.LOADED, vim.schedule_wrap(cb))
-
-    -- Avoid loading while already loading
-    if self.__loaded == "loading" then return end
-
-    -- Mark as loading so we don't repeat ourselves
-    self.__loaded = "loading"
-
-    self:__get_loader()
+    ---@diagnostic disable-next-line:missing-return-value
+    return self:__get_loader()
         :load({ force = opts.force })
         :next(function(results)
-            self.__loaded = true
             self.__emitter:emit(EVENTS.LOADED, nil, results.database, results.files)
             return results
-        end)
-        :catch(function(err)
-            self.__loaded = false
-            self.__emitter:emit(EVENTS.LOADED, vim.inspect(err))
-            return err
         end)
 end
 
 ---@param opts {path:string, force?:boolean}
----@param cb fun(err:string|nil, file:OrgFile|nil, nodes:org-roam.core.file.Node[]|nil)
-function M:load_file(opts, cb)
-    self:__get_loader()
-        :load_file({ path = opts.path })
-        :next(function(results)
-            vim.schedule(function() cb(nil, results.file, results.nodes) end)
-            return results
-        end)
-        :catch(function(err)
-            vim.schedule(function() cb(vim.inspect(err)) end)
-            return err
-        end)
+---@return OrgPromise<{file:OrgFile, nodes:org-roam.core.file.Node[]}>
+function M:load_file(opts)
+    return self:__get_loader():load_file({ path = opts.path })
 end
 
 ---Saves the database to disk.
----@param cb fun(err:string|nil)
-function M:save(cb)
-    self:load(function(err, db)
-        if err then
-            notify.error(err)
-            cb(err)
-            return
-        end
+---@return OrgPromise<nil>
+function M:save()
+    ---@diagnostic disable-next-line:missing-return-value
+    return self:load():next(function(results)
+        local db = results.database
 
-        ---@cast db -nil
-        db:write_to_disk(DATABASE_PATH, function(err)
-            if err then
-                notify.error(err)
-                cb(err)
-                return
-            end
+        return Promise.new(function(resolve, reject)
+            db:write_to_disk(DATABASE_PATH, function(err)
+                if err then
+                    reject(err)
+                    return
+                end
 
-            cb(nil)
+                resolve(nil)
+            end)
         end)
     end)
 end
@@ -163,11 +127,11 @@ end
 
 ---Retrieves a node from the database by its id.
 ---@param id org-roam.core.database.Id
----@param cb fun(node:org-roam.core.file.Node|nil)
-function M:get(id, cb)
-    self:__get_loader():database():next(function(db)
-        cb(db:get(id))
-        return db
+---@return OrgPromise<org-roam.core.file.Node|nil>
+function M:get(id)
+    ---@diagnostic disable-next-line:missing-return-value
+    return self:__get_loader():database():next(function(db)
+        return db:get(id)
     end)
 end
 
@@ -175,17 +139,17 @@ end
 ---@param id org-roam.core.database.Id
 ---@return org-roam.core.file.Node|nil
 function M:get_sync(id)
-    return async.wrap(self.get)(self, id)
+    return self:get(id):wait()
 end
 
 ---Retrieves nodes with the specified alias.
 ---@param alias string
----@param cb fun(nodes:org-roam.core.file.Node[])
-function M:find_nodes_by_alias(alias, cb)
-    self:__get_loader():database():next(function(db)
+---@return OrgPromise<org-roam.core.file.Node[]>
+function M:find_nodes_by_alias(alias)
+    ---@diagnostic disable-next-line:missing-return-value
+    return self:__get_loader():database():next(function(db)
         local ids = db:find_by_index(schema.ALIAS, alias)
-        cb(db:get_many(ids))
-        return db
+        return db:get_many(ids)
     end)
 end
 
@@ -193,17 +157,17 @@ end
 ---@param alias string
 ---@return org-roam.core.file.Node[]
 function M:find_nodes_by_alias_sync(alias)
-    return async.wrap(self.find_nodes_by_alias_sync)(self, alias)
+    return self:find_nodes_by_alias(alias):wait()
 end
 
 ---Retrieves nodes from the specified file.
 ---@param file string
----@param cb fun(nodes:org-roam.core.file.Node[])
-function M:find_nodes_by_file(file, cb)
-    self:__get_loader():database():next(function(db)
+---@return OrgPromise<org-roam.core.file.Node[]>
+function M:find_nodes_by_file(file)
+    ---@diagnostic disable-next-line:missing-return-value
+    return self:__get_loader():database():next(function(db)
         local ids = db:find_by_index(schema.FILE, file)
-        cb(db:get_many(ids))
-        return db
+        return vim.tbl_values(db:get_many(ids))
     end)
 end
 
@@ -211,17 +175,17 @@ end
 ---@param file string
 ---@return org-roam.core.file.Node[]
 function M:find_nodes_by_file_sync(file)
-    return async.wrap(self.find_nodes_by_file_sync)(self, file)
+    return self:find_nodes_by_file(file):wait()
 end
 
 ---Retrieves nodes with the specified tag.
 ---@param tag string
----@param cb fun(nodes:org-roam.core.file.Node[])
-function M:find_nodes_by_tag(tag, cb)
-    self:__get_loader():database():next(function(db)
+---@return OrgPromise<org-roam.core.file.Node[]>
+function M:find_nodes_by_tag(tag)
+    ---@diagnostic disable-next-line:missing-return-value
+    return self:__get_loader():database():next(function(db)
         local ids = db:find_by_index(schema.TAG, tag)
-        cb(db:get_many(ids))
-        return db
+        return vim.tbl_values(db:get_many(ids))
     end)
 end
 
@@ -229,7 +193,7 @@ end
 ---@param tag string
 ---@return org-roam.core.file.Node[]
 function M:find_nodes_by_tag_sync(tag)
-    return async.wrap(self.find_nodes_by_tag_sync)(self, tag)
+    return self:find_nodes_by_tag(tag):wait()
 end
 
 local INSTANCE = M:new()

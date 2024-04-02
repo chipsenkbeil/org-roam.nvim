@@ -60,12 +60,12 @@ local function define_autocmds(config)
                 local is_roam_file = vim.startswith(path, config.directory)
 
                 if is_roam_file then
-                    require("org-roam.database"):load_file({ path = path }, function(err)
-                        if err then
+                    require("org-roam.database")
+                        :load_file({ path = path })
+                        :catch(function(err)
                             require("org-roam.core.ui.notify").error(err)
-                            return
-                        end
-                    end)
+                            return err
+                        end)
                 end
             end,
         })
@@ -74,11 +74,12 @@ end
 
 local function define_commands()
     vim.api.nvim_create_user_command("OrgRoamUpdate", function(_)
-        require("org-roam.database"):load(function(err)
-            if err then
+        require("org-roam.database")
+            :load()
+            :catch(function(err)
                 require("org-roam.core.ui.notify").error(err)
-            end
-        end)
+                return err
+            end)
     end, { desc = "Wipes the database" })
 end
 
