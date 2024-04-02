@@ -77,6 +77,18 @@ local config = setmetatable({
 
     ---@class org-roam.config.UserInterface
     ui = {
+        ---@class org-roam.config.ui.Mouse
+        mouse = {
+            ---If true, highlights links when mousing over them.
+            ---This will enable `vim.opt.mouseoverevent` if disabled!
+            ---@type boolean
+            highlight_links = true,
+
+            ---If true, clicking on links will open them.
+            ---@type boolean
+            click_open_links = true,
+        },
+
         ---@class org-roam.config.ui.NodeView
         node_view = {
             ---If true, previews will be highlighted as org syntax when expanded.

@@ -154,6 +154,32 @@ local function define_keybindings()
     )
 end
 
+local function define_mouse_features()
+    -- Force-enable mouse movement if highlighting links
+    if not vim.opt.mousemoveevent:get() and CONFIG.ui.mouse.highlight_links then
+        vim.opt.mousemoveevent = true
+    end
+
+    -- Only works if vim.opt.mousemoveevent is true
+    if CONFIG.ui.mouse.highlight_links then
+        vim.keymap.set("n", "<MouseMove>", function()
+            require("org-roam.mouse").highlight_link("WarningMsg")
+        end)
+    end
+
+    -- This will work even without mousemoveevent, but we
+    -- retrict it for now to require that to be enabled
+    --
+    -- NOTE: The cursor moves BEFORE this mapping is fired,
+    --       which is exactly what we want to be able to
+    --       open at point!
+    if CONFIG.ui.mouse.click_open_links then
+        vim.keymap.set("n", "<LeftRelease>", function()
+            require("orgmode").org_mappings:open_at_point()
+        end)
+    end
+end
+
 local function modify_orgmode_plugin()
     -- Provide a wrapper around `open_at_point` from orgmode mappings so we can
     -- attempt to jump to an id referenced by our database first, and then fall
@@ -202,5 +228,6 @@ return function(config)
     define_autocmds(config)
     define_commands()
     define_keybindings()
+    define_mouse_features()
     modify_orgmode_plugin()
 end
