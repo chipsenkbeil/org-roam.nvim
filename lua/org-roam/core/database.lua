@@ -176,8 +176,9 @@ end
 ---generated.
 ---
 ---If `overwrite` is true and an id is provided that exists, the database will
----remove the old node before inserting the new one, otherwise if `overwrite`
----is false then an error will be thrown if the node already exists.
+---remove the old node before inserting the new one and restoring links,
+---otherwise if `overwrite` is false then an error will be thrown if the node
+---already exists.
 ---@param data org-roam.core.database.Data
 ---@param opts? {id?:org-roam.core.database.Id, overwrite?:boolean}
 ---@return org-roam.core.database.Id id #the id of the inserted node
@@ -194,7 +195,11 @@ function M:insert(data, opts)
     end
 
     -- If overwriting, ensure the node is removed first
+    ---@type org-roam.core.database.Id[], org-roam.core.database.Id[]
+    local link_ids, backlink_ids = {}, {}
     if opts.overwrite then
+        link_ids = vim.tbl_keys(self:get_links(id))
+        backlink_ids = vim.tbl_keys(self:get_backlinks(id))
         self:remove(id)
     end
 
@@ -214,6 +219,14 @@ function M:insert(data, opts)
     -- from a link performed prior to being inserted
     if not self.__inbound[id] then
         self.__inbound[id] = {}
+    end
+
+    -- Restore any links out of this node if they existed
+    self:link(id, link_ids)
+
+    -- Restore any links into this node if they existed
+    for _, backlink_id in ipairs(backlink_ids) do
+        self:link(backlink_id, id)
     end
 
     -- Do any pending indexing of the node
