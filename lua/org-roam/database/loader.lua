@@ -256,18 +256,17 @@ end
 ---@param opts {path:string, force?:boolean}
 ---@return OrgPromise<{file:OrgFile, nodes:org-roam.core.file.Node[]}>
 function M:load_file(opts)
-    -- NOTE: We schedule-wrap the next call because underneath there's
-    --       a reference to vimL function `vim.fn.bufnr()`, which fails
-    --       in a Lua loop callback.
     return Promise.all({
         self:database(),
         self:files({ skip = true }),
-    }):next(vim.schedule_wrap(function(results)
+    }):next(function(results)
         ---@type org-roam.core.Database, OrgFiles
         local db, files = results[1], results[2]
+        print("IN FAST LOOP", vim.in_fast_event())
 
         -- This both loads the file and adds it to our file path if not there already
         return files:add_to_paths(opts.path):next(function(file)
+            print("add to paths")
             -- Determine if the file already exists through nodes in the db
             local ids = db:find_by_index(schema.FILE, file.filename)
             local has_file = not vim.tbl_isempty(ids)
@@ -283,7 +282,7 @@ function M:load_file(opts)
                 nodes = db:find_by_index(schema.FILE, file.filename),
             }
         end)
-    end))
+    end)
 end
 
 ---Loads database (or retrieves from cache) asynchronously.
