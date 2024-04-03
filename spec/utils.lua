@@ -1,7 +1,13 @@
-local join_path = require("org-roam.core.utils.path").join
 local OrgFile = require("orgmode.files.file")
 local OrgFiles = require("orgmode.files")
+local io = require("org-roam.core.utils.io")
+local path = require("org-roam.core.utils.path")
 local unpack = require("org-roam.core.utils.table").unpack
+
+local ORG_FILES_DIR = (function()
+    local str = debug.getinfo(2, "S").source:sub(2)
+    return path.join(vim.fs.dirname(str:match("(.*/)")), "files")
+end)()
 
 local M = {}
 
@@ -68,9 +74,51 @@ function M.org_files(...)
     end
 
     return OrgFiles
-        :new({ paths = join_path(root_dir, "**", "*.org") })
+        :new({ paths = path.join(root_dir, "**", "*.org") })
         :load()
         :wait()
+end
+
+---Creates a new temporary directory, copies the org files
+---from `files/` into it, and returns the path.
+---@return string
+function M.make_temp_org_files_directory()
+    local root_dir = vim.fn.tempname() .. "_test_org_dir"
+    assert(vim.fn.mkdir(root_dir, "p") == 1, "failed to create org directory")
+
+    for entry in io.walk(ORG_FILES_DIR, { depth = math.huge }) do
+        ---@cast entry org-roam.core.utils.io.WalkEntry
+        if entry.type == "file" then
+            local err, data = io.read_file_sync(entry.path)
+            assert(not err, err)
+
+            ---@cast data -nil
+            err = io.write_file_sync(path.join(root_dir, entry.name), data)
+            assert(not err, err)
+        end
+    end
+
+    return root_dir
+end
+
+---@param ... string
+---@return string
+function M.join_path(...)
+    return path.join(...)
+end
+
+---@param path string
+---@param ... string|string[]
+function M.append_to(path, ...)
+    local lines = vim.tbl_flatten({ ... })
+    local content = table.concat(lines, "\n")
+
+    local err, data = io.read_file_sync(path)
+    assert(not err, err)
+
+    ---@cast data -nil
+    err = io.write_file_sync(path, data .. content)
+    assert(not err, err)
 end
 
 return M

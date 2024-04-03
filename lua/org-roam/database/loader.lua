@@ -256,10 +256,13 @@ end
 ---@param opts {path:string, force?:boolean}
 ---@return OrgPromise<{file:OrgFile, nodes:org-roam.core.file.Node[]}>
 function M:load_file(opts)
+    -- NOTE: We schedule-wrap the next call because underneath there's
+    --       a reference to vimL function `vim.fn.bufnr()`, which fails
+    --       in a Lua loop callback.
     return Promise.all({
         self:database(),
         self:files({ skip = true }),
-    }):next(function(results)
+    }):next(vim.schedule_wrap(function(results)
         ---@type org-roam.core.Database, OrgFiles
         local db, files = results[1], results[2]
 
@@ -280,7 +283,7 @@ function M:load_file(opts)
                 nodes = db:find_by_index(schema.FILE, file.filename),
             }
         end)
-    end)
+    end))
 end
 
 ---Loads database (or retrieves from cache) asynchronously.

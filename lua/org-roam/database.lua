@@ -18,7 +18,7 @@ local schema = require("org-roam.database.schema")
 local M = {}
 
 ---Creates a new, unloaded instance of the database.
----@param opts? {path?:string}
+---@param opts? {db_path?:string, directory?:string}
 ---@return org-roam.Database
 function M:new(opts)
     opts = opts or {}
@@ -26,8 +26,8 @@ function M:new(opts)
     setmetatable(instance, M)
     instance.__cache = {}
     instance.__loader = nil
-    instance.__database_path = opts.path or CONFIG.database.path
-    instance.__directory = CONFIG.directory
+    instance.__database_path = opts.db_path or CONFIG.database.path
+    instance.__directory = opts.directory or CONFIG.directory
     return instance
 end
 
@@ -64,6 +64,12 @@ end
 ---@return string
 function M:path()
     return self.__database_path
+end
+
+---Returns the path to the files directory.
+---@return string
+function M:files_path()
+    return self.__directory
 end
 
 ---Loads the database from disk and re-parses files.
