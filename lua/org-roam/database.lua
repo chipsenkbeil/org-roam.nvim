@@ -102,11 +102,15 @@ function M:save()
         return Promise.new(function(resolve, reject)
             db:write_to_disk(self.__database_path, function(err)
                 if err then
-                    reject(err)
+                    vim.schedule(function()
+                        reject(err)
+                    end)
                     return
                 end
 
-                resolve(nil)
+                vim.schedule(function()
+                    resolve(nil)
+                end)
             end)
         end)
     end)
