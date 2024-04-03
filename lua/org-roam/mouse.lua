@@ -4,13 +4,6 @@
 -- Contains functionality tied to mouse usage.
 -------------------------------------------------------------------------------
 
-local CONFIG = require("org-roam.config")
-local db = require("org-roam.database")
-local io = require("org-roam.core.utils.io")
-local notify = require("org-roam.core.ui.notify")
-local select_node = require("org-roam.ui.select-node")
-local utils = require("org-roam.utils")
-
 ---@class org-roam.MouseApi
 local M = {}
 

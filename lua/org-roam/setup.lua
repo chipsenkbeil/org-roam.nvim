@@ -160,21 +160,17 @@ local function define_mouse_features()
         vim.opt.mousemoveevent = true
     end
 
-    -- Only works if vim.opt.mousemoveevent is true
     if CONFIG.ui.mouse.highlight_links then
         vim.keymap.set("n", "<MouseMove>", function()
             require("org-roam.mouse").highlight_link("WarningMsg")
         end)
     end
 
-    -- This will work even without mousemoveevent, but we
-    -- retrict it for now to require that to be enabled
-    --
-    -- NOTE: The cursor moves BEFORE this mapping is fired,
-    --       which is exactly what we want to be able to
-    --       open at point!
     if CONFIG.ui.mouse.click_open_links then
         vim.keymap.set("n", "<LeftRelease>", function()
+            -- NOTE: The cursor moves BEFORE this mapping is fired,
+            --       which is exactly what we want to be able to
+            --       open at point!
             require("orgmode").org_mappings:open_at_point()
         end)
     end
