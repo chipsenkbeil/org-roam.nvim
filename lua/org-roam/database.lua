@@ -6,15 +6,9 @@
 
 local CONFIG = require("org-roam.config")
 
-local Emitter = require("org-roam.core.utils.emitter")
 local Loader = require("org-roam.database.loader")
 local Promise = require("orgmode.utils.promise")
 local schema = require("org-roam.database.schema")
-
-local EVENTS = {
-    LOADED = "loaded",
-    SAVED = "saved",
-}
 
 ---@class org-roam.Database: org-roam.core.Database
 ---@field private __cache {modified:table<string, integer>}
@@ -33,7 +27,7 @@ function M:new(opts)
     instance.__cache = {}
     instance.__loader = nil
     instance.__path = opts.path or CONFIG.database.path
-    instance.__files_directory = CONFIG.database.path
+    instance.__files_directory = CONFIG.directory
     return instance
 end
 
