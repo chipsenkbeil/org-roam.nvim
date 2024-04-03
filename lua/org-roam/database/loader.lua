@@ -167,7 +167,7 @@ local function insert_new_file_into_database(db, file)
     --       operations where at the time of scheduling the insertion
     --       there was no file but now there is a file
     local has_file = not vim.tbl_isempty(
-        db:find_by_index(schema.File, file.filename)
+        db:find_by_index(schema.FILE, file.filename)
     )
     if has_file then
         return modify_file_in_database(db, file)
