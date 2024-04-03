@@ -48,7 +48,7 @@ local function define_autocmds(config)
 
     -- If configured to update on save, listen for buffer writing
     -- and trigger reload if an org-roam buffer
-    if config.update_on_save then
+    if config.database.update_on_save then
         vim.api.nvim_create_autocmd({ "BufWritePost", "FileWritePost" }, {
             group = group,
             pattern = "*.org",
@@ -72,7 +72,8 @@ local function define_autocmds(config)
     end
 end
 
-local function define_commands()
+---@param config org-roam.Config
+local function define_commands(config)
     vim.api.nvim_create_user_command("OrgRoamUpdate", function(_)
         require("org-roam.database")
             :load()
@@ -83,9 +84,10 @@ local function define_commands()
     end, { desc = "Wipes the database" })
 end
 
-local function define_keybindings()
+---@param config org-roam.Config
+local function define_keybindings(config)
     -- User can remove all bindings by setting this to nil
-    local bindings = CONFIG.bindings or {}
+    local bindings = config.bindings or {}
 
     ---@param lhs string|nil
     ---@param desc string
@@ -154,20 +156,21 @@ local function define_keybindings()
     )
 end
 
-local function define_mouse_features()
+---@param config org-roam.Config
+local function define_mouse_features(config)
     -- Force-enable mouse movement if highlighting links
-    if not vim.opt.mousemoveevent:get() and CONFIG.ui.mouse.highlight_links then
+    if not vim.opt.mousemoveevent:get() and config.ui.mouse.highlight_links then
         vim.opt.mousemoveevent = true
     end
 
-    if CONFIG.ui.mouse.highlight_links then
+    if config.ui.mouse.highlight_links then
         vim.keymap.set("n", "<MouseMove>", function()
-            local hl_group = CONFIG.ui.mouse.highlight_links_group
+            local hl_group = config.ui.mouse.highlight_links_group
             require("org-roam.mouse").highlight_link(hl_group)
         end)
     end
 
-    if CONFIG.ui.mouse.click_open_links then
+    if config.ui.mouse.click_open_links then
         vim.keymap.set("n", "<LeftRelease>", function()
             -- NOTE: The cursor moves BEFORE this mapping is fired,
             --       which is exactly what we want to be able to
@@ -177,7 +180,8 @@ local function define_mouse_features()
     end
 end
 
-local function modify_orgmode_plugin()
+---@param config org-roam.Config
+local function modify_orgmode_plugin(config)
     -- Provide a wrapper around `open_at_point` from orgmode mappings so we can
     -- attempt to jump to an id referenced by our database first, and then fall
     -- back to orgmode's id handling second.
@@ -223,8 +227,8 @@ end
 return function(config)
     config = merge_config(config)
     define_autocmds(config)
-    define_commands()
-    define_keybindings()
-    define_mouse_features()
-    modify_orgmode_plugin()
+    define_commands(config)
+    define_keybindings(config)
+    define_mouse_features(config)
+    modify_orgmode_plugin(config)
 end

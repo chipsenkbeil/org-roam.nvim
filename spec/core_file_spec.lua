@@ -1,6 +1,5 @@
 describe("org-roam.core.file", function()
     local File = require("org-roam.core.file")
-    local OrgFile = require("orgmode.files.file")
     local utils = require("spec.utils")
 
     it("parse blank orgfile", function()

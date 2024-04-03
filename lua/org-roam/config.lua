@@ -6,6 +6,10 @@
 
 local path = require("org-roam.core.utils.path")
 
+---Base path for our plugin.
+---@type string
+local BASE_PATH = path.join(vim.fn.stdpath("data"), "org-roam.nvim")
+
 ---Overwrites configuration options with those specified.
 ---@param tbl org-roam.Config
 ---@param opts org-roam.Config
@@ -33,10 +37,6 @@ local config = setmetatable({
     ---@type string
     directory = "",
 
-    ---If true, updates database whenever a write occurs.
-    ---@type boolean
-    update_on_save = true,
-
     ---Bindings associated with org-roam functionality.
     ---@class org-roam.config.Bindings
     bindings = {
@@ -63,6 +63,18 @@ local config = setmetatable({
 
         ---Toggles a fixed org-roam node-view buffer for a selected node.
         toggle_roam_buffer_fixed = "<C-c>nb",
+    },
+
+    ---Settings associated with org-roam's database.
+    ---@class org-roam.config.Database
+    database = {
+        ---Path where the database will be stored & loaded.
+        ---@type string
+        path = path.join(BASE_PATH, "db"),
+
+        ---If true, updates database whenever a write occurs.
+        ---@type boolean
+        update_on_save = true,
     },
 
     ---@class org-roam.config.Templates

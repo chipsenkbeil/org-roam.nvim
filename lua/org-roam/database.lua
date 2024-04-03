@@ -17,23 +17,24 @@ local EVENTS = {
     SAVED = "saved",
 }
 
-local BASE_PATH = join_path(vim.fn.stdpath("data"), "org-roam.nvim")
-local DATABASE_PATH = join_path(BASE_PATH, "db")
-
 ---@class org-roam.Database: org-roam.core.Database
 ---@field private __cache {modified:table<string, integer>}
 ---@field private __emitter org-roam.core.utils.Emitter
 ---@field private __loader org-roam.database.Loader
+---@field private __path string
 local M = {}
 
 ---Creates a new, unloaded instance of the database.
+---@param opts? {path?:string}
 ---@return org-roam.Database
-function M:new()
+function M:new(opts)
+    opts = opts or {}
     local instance = {}
     setmetatable(instance, M)
     instance.__cache = {}
     instance.__emitter = Emitter:new()
     instance.__loader = nil
+    instance.__path = opts.path or CONFIG.database.path
     return instance
 end
 
@@ -45,7 +46,7 @@ function M:__index(key)
     local loader = rawget(self, "__loader")
 
     -- Check the fields of the table, then the metatable
-    -- of the tabe which includes methods defined below,
+    -- of the table which includes methods defined below,
     -- and finally fall back to the underlying database
     return rawget(self, key)
         or rawget(getmetatable(self) or {}, key)
@@ -57,7 +58,7 @@ end
 function M:__get_loader()
     local loader = self.__loader
     if not loader then
-        loader = Loader:new({ database = DATABASE_PATH, files = CONFIG.directory })
+        loader = Loader:new({ database = self.__path, files = CONFIG.directory })
         self.__loader = loader
     end
     return loader
@@ -66,7 +67,7 @@ end
 ---Returns the path to the database on disk.
 ---@return string
 function M:path()
-    return DATABASE_PATH
+    return self.__path
 end
 
 ---Loads the database from disk and re-parses files.
@@ -99,7 +100,7 @@ function M:save()
         local db = results.database
 
         return Promise.new(function(resolve, reject)
-            db:write_to_disk(DATABASE_PATH, function(err)
+            db:write_to_disk(self.__path, function(err)
                 if err then
                     reject(err)
                     return
