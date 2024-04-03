@@ -260,20 +260,8 @@ function M:load_file(opts)
         ---@type org-roam.core.Database, OrgFiles
         local db, files = results[1], results[2]
 
-        -- TODO: There is an inconsistency w/ how nvim-orgmode evaluates
-        --       paths.
-        --
-        --       When using OrgFiles:load(), all paths are resolved.
-        --       When using OrgFiles:add_to_paths(), the file is normalized.
-        --       When using OrgFiles:load_file(), nothing is done.
-        --
-        --       So, in order to maintain consistency, we resolve the path
-        --       in this situation to ensure that stored file paths are
-        --       the same when indexing and looking up later.
-        local path = vim.fn.resolve(opts.path)
-
         -- This both loads the file and adds it to our file path if not there already
-        return files:add_to_paths(path):next(function(file)
+        return files:add_to_paths(opts.path):next(function(file)
             -- Determine if the file already exists through nodes in the db
             local ids = db:find_by_index(schema.FILE, file.filename)
             local has_file = not vim.tbl_isempty(ids)
