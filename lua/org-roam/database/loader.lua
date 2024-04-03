@@ -262,11 +262,9 @@ function M:load_file(opts)
     }):next(function(results)
         ---@type org-roam.core.Database, OrgFiles
         local db, files = results[1], results[2]
-        print("IN FAST LOOP", vim.in_fast_event())
 
         -- This both loads the file and adds it to our file path if not there already
         return files:add_to_paths(opts.path):next(function(file)
-            print("add to paths")
             -- Determine if the file already exists through nodes in the db
             local ids = db:find_by_index(schema.FILE, file.filename)
             local has_file = not vim.tbl_isempty(ids)
@@ -295,7 +293,9 @@ function M:database()
                 local db = Database:new()
                 schema:update(db)
                 self.__db = db
-                return resolve(db)
+                return vim.schedule(function()
+                    resolve(db)
+                end)
             end
 
             Database:load_from_disk(self.path.database, function(err, db)
@@ -306,7 +306,9 @@ function M:database()
                 ---@cast db -nil
                 schema:update(db)
                 self.__db = db
-                return resolve(db)
+                return vim.schedule(function()
+                    resolve(db)
+                end)
             end)
         end)
     end)
