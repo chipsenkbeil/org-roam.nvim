@@ -13,8 +13,8 @@ local schema = require("org-roam.database.schema")
 ---@class org-roam.Database: org-roam.core.Database
 ---@field private __cache {modified:table<string, integer>}
 ---@field private __loader org-roam.database.Loader
----@field private __path string
----@field private __files_directory string
+---@field private __database_path string
+---@field private __directory string
 local M = {}
 
 ---Creates a new, unloaded instance of the database.
@@ -26,8 +26,8 @@ function M:new(opts)
     setmetatable(instance, M)
     instance.__cache = {}
     instance.__loader = nil
-    instance.__path = opts.path or CONFIG.database.path
-    instance.__files_directory = CONFIG.directory
+    instance.__database_path = opts.path or CONFIG.database.path
+    instance.__directory = CONFIG.directory
     return instance
 end
 
@@ -52,8 +52,8 @@ function M:__get_loader()
     local loader = self.__loader
     if not loader then
         loader = Loader:new({
-            database = self.__path,
-            files = self.__files_directory,
+            database = self.__database_path,
+            files = self.__directory,
         })
         self.__loader = loader
     end
@@ -63,7 +63,7 @@ end
 ---Returns the path to the database on disk.
 ---@return string
 function M:path()
-    return self.__path
+    return self.__database_path
 end
 
 ---Loads the database from disk and re-parses files.
@@ -94,7 +94,7 @@ function M:save()
         local db = results.database
 
         return Promise.new(function(resolve, reject)
-            db:write_to_disk(self.__path, function(err)
+            db:write_to_disk(self.__database_path, function(err)
                 if err then
                     reject(err)
                     return
