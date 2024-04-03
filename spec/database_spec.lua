@@ -18,7 +18,7 @@ describe("org-roam.database", function()
         three_path = utils.join_path(db:files_path(), "three.org")
     end)
 
-    it("should support loading all nodes from a directory", function()
+    it("should support loading new files from a directory", function()
         -- Trigger initial loading of all files
         db:load():wait()
 
@@ -49,7 +49,7 @@ describe("org-roam.database", function()
         assert.are.same({ ["2"] = 1, ["3"] = 1 }, db:get_links("1"))
     end)
 
-    it("should support loading a single file", function()
+    it("should support loading a new single file", function()
         -- Load a singular file
         db:load_file({ path = one_path }):wait()
 
@@ -58,5 +58,56 @@ describe("org-roam.database", function()
 
         assert.are.same({ "1" }, ids)
         assert.are.same({ ["2"] = 1 }, db:get_links("1"))
+    end)
+
+    it("should support loading a modified single file", function()
+        -- Load a singular file
+        db:load_file({ path = one_path }):wait()
+
+        -- Verify the initial state of the file
+        assert.are.same({ ["2"] = 1 }, db:get_links("1"))
+
+        -- Add a second link to a file
+        utils.append_to(one_path, "[[id:3]]")
+
+        -- Trigger a reload of the single file
+        db:load_file({ path = one_path }):wait()
+
+        -- Verify the new state of the file
+        assert.are.same({ ["2"] = 1, ["3"] = 1 }, db:get_links("1"))
+    end)
+
+    it("should support loading a modified file when loading the directory containing it", function()
+        -- Load a singular file
+        db:load_file({ path = one_path }):wait()
+
+        -- Verify the initial state of the file
+        assert.are.same({ ["2"] = 1 }, db:get_links("1"))
+
+        -- Add a second link to a file
+        utils.append_to(one_path, "[[id:3]]")
+
+        -- Trigger a reload of all files again
+        db:load():wait()
+
+        -- Verify the new state of the file
+        assert.are.same({ ["2"] = 1, ["3"] = 1 }, db:get_links("1"))
+    end)
+
+    it("should support loading a single modified file after loading the directory containing it", function()
+        -- Trigger initial loading of all files
+        db:load():wait()
+
+        -- Verify the initial state of the file
+        assert.are.same({ ["2"] = 1 }, db:get_links("1"))
+
+        -- Add a second link to a file
+        utils.append_to(one_path, "[[id:3]]")
+
+        -- Trigger a reload of the single file
+        db:load_file({ path = one_path }):wait()
+
+        -- Verify the new state of the file
+        assert.are.same({ ["2"] = 1, ["3"] = 1 }, db:get_links("1"))
     end)
 end)
