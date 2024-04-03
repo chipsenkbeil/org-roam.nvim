@@ -162,7 +162,8 @@ local function define_mouse_features()
 
     if CONFIG.ui.mouse.highlight_links then
         vim.keymap.set("n", "<MouseMove>", function()
-            require("org-roam.mouse").highlight_link("WarningMsg")
+            local hl_group = CONFIG.ui.mouse.highlight_links_group
+            require("org-roam.mouse").highlight_link(hl_group)
         end)
     end
 
