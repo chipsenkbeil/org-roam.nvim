@@ -7,7 +7,6 @@
 local CONFIG = require("org-roam.config")
 
 local Emitter = require("org-roam.core.utils.emitter")
-local join_path = require("org-roam.core.utils.path").join
 local Loader = require("org-roam.database.loader")
 local Promise = require("orgmode.utils.promise")
 local schema = require("org-roam.database.schema")
@@ -19,9 +18,9 @@ local EVENTS = {
 
 ---@class org-roam.Database: org-roam.core.Database
 ---@field private __cache {modified:table<string, integer>}
----@field private __emitter org-roam.core.utils.Emitter
 ---@field private __loader org-roam.database.Loader
 ---@field private __path string
+---@field private __files_directory string
 local M = {}
 
 ---Creates a new, unloaded instance of the database.
@@ -32,9 +31,9 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
     instance.__cache = {}
-    instance.__emitter = Emitter:new()
     instance.__loader = nil
     instance.__path = opts.path or CONFIG.database.path
+    instance.__files_directory = CONFIG.database.path
     return instance
 end
 
@@ -58,7 +57,10 @@ end
 function M:__get_loader()
     local loader = self.__loader
     if not loader then
-        loader = Loader:new({ database = self.__path, files = CONFIG.directory })
+        loader = Loader:new({
+            database = self.__path,
+            files = self.__files_directory,
+        })
         self.__loader = loader
     end
     return loader
@@ -76,20 +78,18 @@ end
 ---@return OrgPromise<{database:org-roam.core.Database, files:OrgFiles}>
 function M:load(opts)
     opts = opts or {}
-
-    ---@diagnostic disable-next-line:missing-return-value
-    return self:__get_loader()
-        :load({ force = opts.force })
-        :next(function(results)
-            self.__emitter:emit(EVENTS.LOADED, nil, results.database, results.files)
-            return results
-        end)
+    return self:__get_loader():load({
+        force = opts.force,
+    })
 end
 
 ---@param opts {path:string, force?:boolean}
 ---@return OrgPromise<{file:OrgFile, nodes:org-roam.core.file.Node[]}>
 function M:load_file(opts)
-    return self:__get_loader():load_file({ path = opts.path })
+    return self:__get_loader():load_file({
+        path = opts.path,
+        force = opts.force,
+    })
 end
 
 ---Saves the database to disk.

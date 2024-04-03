@@ -13,7 +13,7 @@
 
 ** Installation
 
-   This plugin depends on [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode/orgmode]] @ [[https://github.com/nvim-orgmode/orgmode/commit/dafe43304589086378ecfd5409d138e991ddd034][commit dafe433]].
+   This plugin depends on [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode/orgmode]] @ [[https://github.com/nvim-orgmode/orgmode/commit/e9b847d3c2d97a44c1088290958186ebde0fdf57][commit e9b847d]].
 
 *** lazy.nvim
 
@@ -23,7 +23,7 @@
       dependencies = { 
         { 
           "nvim-orgmode/orgmode", 
-          commit = "dafe43304589086378ecfd5409d138e991ddd034",
+          commit = "e9b847d3c2d97a44c1088290958186ebde0fdf57",
         },
       },
       config = function()
@@ -42,7 +42,7 @@
       requires = { 
         { 
           "nvim-orgmode/orgmode",
-          commit = "dafe43304589086378ecfd5409d138e991ddd034",
+          commit = "e9b847d3c2d97a44c1088290958186ebde0fdf57",
         },
       },
       config = function()
