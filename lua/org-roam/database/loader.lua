@@ -213,31 +213,28 @@ function M:load(opts)
 
         -- For each deleted file, remove from database
         for _, filename in ipairs(filenames.left) do
-            local p = Promise.new(function(resolve)
+            table.insert(promises.remove, Promise.new(function(resolve)
                 vim.schedule(function()
                     resolve(remove_file_from_database(db, filename))
                 end)
-            end)
-            table.insert(promises.remove, p)
+            end))
         end
 
         -- For each new file, insert into database
         for _, filename in ipairs(filenames.right) do
-            local p = files:load_file(filename):next(function(file)
+            table.insert(promises.insert, files:load_file(filename):next(function(file)
                 return insert_new_file_into_database(db, file)
-            end)
-            table.insert(promises.insert, p)
+            end))
         end
 
         -- For each modified file, check the modified time (any node will do)
         -- to see if we need to refresh nodes for a file
         for _, filename in ipairs(filenames.both) do
-            local p = files:load_file(filename):next(function(file)
+            table.insert(promises.modify, files:load_file(filename):next(function(file)
                 return modify_file_in_database(db, file, {
                     force = force,
                 })
-            end)
-            table.insert(promises.modify, p)
+            end))
         end
 
         return Promise.all(promises.remove)

@@ -9,6 +9,7 @@ local ORG_FILES_DIR = (function()
     return path.join(vim.fs.dirname(str:match("(.*/)")), "files")
 end)()
 
+---@class spec.utils
 local M = {}
 
 ---Takes string, splits into lines, and removes common indentation.
