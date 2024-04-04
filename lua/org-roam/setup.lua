@@ -6,6 +6,7 @@
 
 local CONFIG = require("org-roam.config")
 local EVENTS = require("org-roam.events")
+local AUGROUP = vim.api.nvim_create_augroup("org-roam.nvim", {})
 
 ---@param config org-roam.Config
 ---@return org-roam.Config
@@ -25,12 +26,10 @@ end
 
 ---@param config org-roam.Config
 local function define_autocmds(config)
-    local group = vim.api.nvim_create_augroup("org-roam.nvim", {})
-
     -- Watch as cursor moves around so we can support node changes
     local last_node = nil
     vim.api.nvim_create_autocmd("CursorMoved", {
-        group = group,
+        group = AUGROUP,
         pattern = "*.org",
         callback = function()
             local utils = require("org-roam.utils")
@@ -50,7 +49,7 @@ local function define_autocmds(config)
     -- and trigger reload if an org-roam buffer
     if config.database.update_on_save then
         vim.api.nvim_create_autocmd({ "BufWritePost", "FileWritePost" }, {
-            group = group,
+            group = AUGROUP,
             pattern = "*.org",
             callback = function()
                 -- TODO: If the directory format changes to blob in the
@@ -75,7 +74,7 @@ local function define_commands(config)
         require("org-roam.database")
             :load()
             :catch(require("org-roam.core.ui.notify").error)
-    end, { desc = "Wipes the database" })
+    end, { desc = "Updates the database" })
 end
 
 ---@param config org-roam.Config
@@ -157,21 +156,33 @@ local function define_mouse_features(config)
         vim.opt.mousemoveevent = true
     end
 
-    if config.ui.mouse.highlight_links then
-        vim.keymap.set("n", "<MouseMove>", function()
-            local hl_group = config.ui.mouse.highlight_links_group
-            require("org-roam.mouse").highlight_link(hl_group)
-        end)
-    end
+    -- Register on org filetype to set the mouse keybindings locally to
+    -- those buffers to avoid conflicts with other plugins that add mouse
+    -- keybindings in specialized ways
+    vim.api.nvim_create_autocmd("FileType", {
+        group = AUGROUP,
+        pattern = "org",
+        callback = function(opts)
+            ---@type integer
+            local buf = opts.buf
 
-    if config.ui.mouse.click_open_links then
-        vim.keymap.set("n", "<LeftRelease>", function()
-            -- NOTE: The cursor moves BEFORE this mapping is fired,
-            --       which is exactly what we want to be able to
-            --       open at point!
-            require("orgmode").org_mappings:open_at_point()
-        end)
-    end
+            if config.ui.mouse.highlight_links then
+                vim.keymap.set("n", "<MouseMove>", function()
+                    local hl_group = config.ui.mouse.highlight_links_group
+                    require("org-roam.mouse").highlight_link(hl_group)
+                end, { buffer = buf, silent = true })
+            end
+
+            if config.ui.mouse.click_open_links then
+                vim.keymap.set("n", "<LeftRelease>", function()
+                    -- NOTE: The cursor moves BEFORE this mapping is fired,
+                    --       which is exactly what we want to be able to
+                    --       open at point!
+                    require("orgmode").org_mappings:open_at_point()
+                end, { buffer = buf, silent = true })
+            end
+        end,
+    })
 end
 
 ---@param config org-roam.Config
