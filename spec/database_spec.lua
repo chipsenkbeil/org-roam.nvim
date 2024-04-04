@@ -39,8 +39,13 @@ describe("org-roam.database", function()
         -- Trigger initial loading of all files
         db:load():wait()
 
-        -- Verify the initial state of a file (both links and backlinks)
+        -- Verify the initial state of the database
         assert.are.same({ ["2"] = 1 }, db:get_links("1"))
+        assert.are.same({ ["3"] = 1 }, db:get_links("2"))
+        assert.are.same({ ["1"] = 1 }, db:get_links("3"))
+        assert.are.same({ ["3"] = 1 }, db:get_backlinks("1"))
+        assert.are.same({ ["1"] = 1 }, db:get_backlinks("2"))
+        assert.are.same({ ["2"] = 1 }, db:get_backlinks("3"))
 
         -- Add a second link to a file
         utils.append_to(one_path, "[[id:3]]")
@@ -48,8 +53,11 @@ describe("org-roam.database", function()
         -- Trigger a reload of all files again
         db:load():wait()
 
-        -- Verify the new state of the file (both links and backlinks)
+        -- Verify the new state of the database (both links and backlinks)
         assert.are.same({ ["2"] = 1, ["3"] = 1 }, db:get_links("1"))
+        assert.are.same({ ["3"] = 1 }, db:get_links("2"))
+        assert.are.same({ ["1"] = 1 }, db:get_links("3"))
+        assert.are.same({ ["3"] = 1 }, db:get_backlinks("1"))
         assert.are.same({ ["1"] = 1 }, db:get_backlinks("2"))
         assert.are.same({ ["1"] = 1, ["2"] = 1 }, db:get_backlinks("3"))
     end)
@@ -62,14 +70,18 @@ describe("org-roam.database", function()
         table.sort(ids)
 
         assert.are.same({ "1" }, ids)
+
+        -- Verify the new state of the database (both links and backlinks)
         assert.are.same({ ["2"] = 1 }, db:get_links("1"))
+        assert.are.same({}, db:get_backlinks("1"))
     end)
 
     it("should support loading a modified single file", function()
         -- Load a singular file
         db:load_file({ path = one_path }):wait()
 
-        -- Verify the initial state of the file
+        -- Verify the initial state of the database
+        assert.are.same({ "1" }, db:ids())
         assert.are.same({ ["2"] = 1 }, db:get_links("1"))
 
         -- Add a second link to a file
@@ -78,16 +90,18 @@ describe("org-roam.database", function()
         -- Trigger a reload of the single file
         db:load_file({ path = one_path }):wait()
 
-        -- Verify the new state of the file
+        -- Verify the new state of the database (both links and backlinks)
         assert.are.same({ ["2"] = 1, ["3"] = 1 }, db:get_links("1"))
+        assert.are.same({}, db:get_backlinks("1"))
     end)
 
     it("should support loading a modified file when loading the directory containing it", function()
         -- Load a singular file
         db:load_file({ path = one_path }):wait()
 
-        -- Verify the initial state of the file
+        -- Verify the initial state of the database
         assert.are.same({ ["2"] = 1 }, db:get_links("1"))
+        assert.are.same({}, db:get_backlinks("1"))
 
         -- Add a second link to a file
         utils.append_to(one_path, "[[id:3]]")
@@ -95,16 +109,26 @@ describe("org-roam.database", function()
         -- Trigger a reload of all files again
         db:load():wait()
 
-        -- Verify the new state of the file
+        -- Verify the new state of the database (both links and backlinks)
         assert.are.same({ ["2"] = 1, ["3"] = 1 }, db:get_links("1"))
+        assert.are.same({ ["3"] = 1 }, db:get_links("2"))
+        assert.are.same({ ["1"] = 1 }, db:get_links("3"))
+        assert.are.same({ ["3"] = 1 }, db:get_backlinks("1"))
+        assert.are.same({ ["1"] = 1 }, db:get_backlinks("2"))
+        assert.are.same({ ["1"] = 1, ["2"] = 1 }, db:get_backlinks("3"))
     end)
 
     it("should support loading a single modified file after loading the directory containing it", function()
         -- Trigger initial loading of all files
         db:load():wait()
 
-        -- Verify the initial state of the file
+        -- Verify the initial state of the database
         assert.are.same({ ["2"] = 1 }, db:get_links("1"))
+        assert.are.same({ ["3"] = 1 }, db:get_links("2"))
+        assert.are.same({ ["1"] = 1 }, db:get_links("3"))
+        assert.are.same({ ["3"] = 1 }, db:get_backlinks("1"))
+        assert.are.same({ ["1"] = 1 }, db:get_backlinks("2"))
+        assert.are.same({ ["2"] = 1 }, db:get_backlinks("3"))
 
         -- Add a second link to a file
         utils.append_to(one_path, "[[id:3]]")
@@ -112,8 +136,13 @@ describe("org-roam.database", function()
         -- Trigger a reload of the single file
         db:load_file({ path = one_path }):wait()
 
-        -- Verify the new state of the file
+        -- Verify the new state of the database (both links and backlinks)
         assert.are.same({ ["2"] = 1, ["3"] = 1 }, db:get_links("1"))
+        assert.are.same({ ["3"] = 1 }, db:get_links("2"))
+        assert.are.same({ ["1"] = 1 }, db:get_links("3"))
+        assert.are.same({ ["3"] = 1 }, db:get_backlinks("1"))
+        assert.are.same({ ["1"] = 1 }, db:get_backlinks("2"))
+        assert.are.same({ ["1"] = 1, ["2"] = 1 }, db:get_backlinks("3"))
     end)
 
     it("should support retrieving links by file", function()
