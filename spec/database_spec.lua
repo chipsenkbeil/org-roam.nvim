@@ -145,6 +145,22 @@ describe("org-roam.database", function()
         assert.are.same({ ["1"] = 1, ["2"] = 1 }, db:get_backlinks("3"))
     end)
 
+    it("should support retrieving nodes by alias", function()
+        -- Trigger initial loading of all files
+        db:load():wait()
+
+        ---@param alias string
+        ---@return org-roam.core.database.Id[]
+        local function retrieve_ids(alias)
+            local nodes = db:find_nodes_by_alias_sync(alias)
+            return vim.tbl_map(function(node) return node.id end, nodes)
+        end
+
+        assert.are.same({ "1" }, retrieve_ids("one"))
+        assert.are.same({ "2" }, retrieve_ids("two"))
+        assert.are.same({ "3" }, retrieve_ids("three"))
+    end)
+
     it("should support retrieving nodes by file", function()
         -- Trigger initial loading of all files
         db:load():wait()
@@ -177,14 +193,14 @@ describe("org-roam.database", function()
         assert.are.same({ "3" }, retrieve_ids("three"))
     end)
 
-    it("should support retrieving nodes by alias", function()
+    it("should support retrieving nodes by title", function()
         -- Trigger initial loading of all files
         db:load():wait()
 
-        ---@param alias string
+        ---@param title string
         ---@return org-roam.core.database.Id[]
-        local function retrieve_ids(alias)
-            local nodes = db:find_nodes_by_alias_sync(alias)
+        local function retrieve_ids(title)
+            local nodes = db:find_nodes_by_title_sync(title)
             return vim.tbl_map(function(node) return node.id end, nodes)
         end
 

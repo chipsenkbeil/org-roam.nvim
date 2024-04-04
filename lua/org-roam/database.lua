@@ -206,6 +206,24 @@ function M:find_nodes_by_tag_sync(tag)
     return self:find_nodes_by_tag(tag):wait()
 end
 
+---Retrieves nodes with the specified title.
+---@param title string
+---@return OrgPromise<org-roam.core.file.Node[]>
+function M:find_nodes_by_title(title)
+    ---@diagnostic disable-next-line:missing-return-value
+    return self:__get_loader():database():next(function(db)
+        local ids = db:find_by_index(schema.TITLE, title)
+        return vim.tbl_values(db:get_many(ids))
+    end)
+end
+
+---Retrieves nodes with the specified title.
+---@param title string
+---@return org-roam.core.file.Node[]
+function M:find_nodes_by_title_sync(title)
+    return self:find_nodes_by_title(title):wait()
+end
+
 ---Retrieves ids of nodes linked from a file.
 ---
 ---By default, these are ids immediately linked within the file, but if `max_depth`
