@@ -8,6 +8,8 @@ local CONFIG = require("org-roam.config")
 local EVENTS = require("org-roam.events")
 local AUGROUP = vim.api.nvim_create_augroup("org-roam.nvim", {})
 
+local log = require("org-roam.core.log")
+
 ---@param config org-roam.Config
 ---@return org-roam.Config
 local function merge_config(config)
@@ -37,6 +39,10 @@ local function define_autocmds(config)
                 -- If the node has changed (event getting cleared),
                 -- we want to emit the event
                 if last_node ~= node then
+                    if node then
+                        log.fmt_debug("New node under cursor: %s", node.id)
+                    end
+
                     EVENTS:emit(EVENTS.KIND.CURSOR_NODE_CHANGED, node)
                 end
 
@@ -59,6 +65,7 @@ local function define_autocmds(config)
                 local is_roam_file = vim.startswith(path, config.directory)
 
                 if is_roam_file then
+                    log.fmt_debug("Updating on save: %s", path)
                     require("org-roam.database")
                         :load_file({ path = path })
                         :catch(require("org-roam.core.ui.notify").error)
@@ -70,9 +77,12 @@ end
 
 ---@param config org-roam.Config
 local function define_commands(config)
-    vim.api.nvim_create_user_command("OrgRoamUpdate", function(_)
+    vim.api.nvim_create_user_command("OrgRoamUpdate", function(opts)
+        local force = opts.bang or false
+
+        log.fmt_debug("Updating database (force = %s)", force)
         require("org-roam.database")
-            :load()
+            :load({ force = force })
             :catch(require("org-roam.core.ui.notify").error)
     end, { desc = "Updates the database" })
 end
@@ -195,15 +205,15 @@ local function modify_orgmode_plugin(config)
     -- files list and not org-roam's files list; so, we need to manually intercept!
     ---@diagnostic disable-next-line:duplicate-set-field
     require("orgmode").org_mappings.open_at_point = function(self)
-        local link = require("orgmode.org.hyperlinks.link").at_pos(
-            vim.fn.getline("."),
-            vim.fn.col(".") or 0
-        )
+        local row, col = vim.fn.getline("."), vim.fn.col(".") or 0
+        local link = require("orgmode.org.hyperlinks.link").at_pos(row, col)
         local id = link and link.url:get_id()
         local node = id and require("org-roam.database"):get_sync(id)
 
         -- If we found a node, open the file at the start of the node
         if node then
+            log.fmt_debug("Detected node %s under mouse click at (%d,%d)",
+                node.id, row, col)
             local winnr = vim.api.nvim_get_current_win()
             vim.cmd.edit(node.file)
 
