@@ -154,7 +154,7 @@ function M:find_nodes_by_alias(alias)
     ---@diagnostic disable-next-line:missing-return-value
     return self:__get_loader():database():next(function(db)
         local ids = db:find_by_index(schema.ALIAS, alias)
-        return db:get_many(ids)
+        return vim.tbl_values(db:get_many(ids))
     end)
 end
 

@@ -1,5 +1,7 @@
 :PROPERTIES:
 :ID: 1
+:ROAM_ALIASES: one
 :END:
+#+FILETAGS: :one:
 
 [[id:2]]

@@ -145,6 +145,54 @@ describe("org-roam.database", function()
         assert.are.same({ ["1"] = 1, ["2"] = 1 }, db:get_backlinks("3"))
     end)
 
+    it("should support retrieving nodes by file", function()
+        -- Trigger initial loading of all files
+        db:load():wait()
+
+        ---@param file string
+        ---@return org-roam.core.database.Id[]
+        local function retrieve_ids(file)
+            local nodes = db:find_nodes_by_file_sync(file)
+            return vim.tbl_map(function(node) return node.id end, nodes)
+        end
+
+        assert.are.same({ "1" }, retrieve_ids(one_path))
+        assert.are.same({ "2" }, retrieve_ids(two_path))
+        assert.are.same({ "3" }, retrieve_ids(three_path))
+    end)
+
+    it("should support retrieving nodes by tag", function()
+        -- Trigger initial loading of all files
+        db:load():wait()
+
+        ---@param tag string
+        ---@return org-roam.core.database.Id[]
+        local function retrieve_ids(tag)
+            local nodes = db:find_nodes_by_tag_sync(tag)
+            return vim.tbl_map(function(node) return node.id end, nodes)
+        end
+
+        assert.are.same({ "1" }, retrieve_ids("one"))
+        assert.are.same({ "2" }, retrieve_ids("two"))
+        assert.are.same({ "3" }, retrieve_ids("three"))
+    end)
+
+    it("should support retrieving nodes by alias", function()
+        -- Trigger initial loading of all files
+        db:load():wait()
+
+        ---@param alias string
+        ---@return org-roam.core.database.Id[]
+        local function retrieve_ids(alias)
+            local nodes = db:find_nodes_by_alias_sync(alias)
+            return vim.tbl_map(function(node) return node.id end, nodes)
+        end
+
+        assert.are.same({ "1" }, retrieve_ids("one"))
+        assert.are.same({ "2" }, retrieve_ids("two"))
+        assert.are.same({ "3" }, retrieve_ids("three"))
+    end)
+
     it("should support retrieving links by file", function()
         -- Trigger initial loading of all files
         db:load():wait()
