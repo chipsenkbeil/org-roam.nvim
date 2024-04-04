@@ -84,7 +84,7 @@ local function define_commands(config)
         require("org-roam.database")
             :load({ force = force })
             :catch(require("org-roam.core.ui.notify").error)
-    end, { desc = "Updates the database" })
+    end, { bang = true, desc = "Updates the database" })
 end
 
 ---@param config org-roam.Config
