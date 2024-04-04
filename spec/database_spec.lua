@@ -30,13 +30,16 @@ describe("org-roam.database", function()
         assert.are.same({ ["2"] = 1 }, db:get_links("1"))
         assert.are.same({ ["3"] = 1 }, db:get_links("2"))
         assert.are.same({ ["1"] = 1 }, db:get_links("3"))
+        assert.are.same({ ["3"] = 1 }, db:get_backlinks("1"))
+        assert.are.same({ ["1"] = 1 }, db:get_backlinks("2"))
+        assert.are.same({ ["2"] = 1 }, db:get_backlinks("3"))
     end)
 
     it("should support loading modified files from a directory", function()
         -- Trigger initial loading of all files
         db:load():wait()
 
-        -- Verify the initial state of the file
+        -- Verify the initial state of a file (both links and backlinks)
         assert.are.same({ ["2"] = 1 }, db:get_links("1"))
 
         -- Add a second link to a file
@@ -45,8 +48,10 @@ describe("org-roam.database", function()
         -- Trigger a reload of all files again
         db:load():wait()
 
-        -- Verify the new state of the file
+        -- Verify the new state of the file (both links and backlinks)
         assert.are.same({ ["2"] = 1, ["3"] = 1 }, db:get_links("1"))
+        assert.are.same({ ["1"] = 1 }, db:get_backlinks("2"))
+        assert.are.same({ ["1"] = 1, ["2"] = 1 }, db:get_backlinks("3"))
     end)
 
     it("should support loading a new single file", function()
@@ -109,5 +114,31 @@ describe("org-roam.database", function()
 
         -- Verify the new state of the file
         assert.are.same({ ["2"] = 1, ["3"] = 1 }, db:get_links("1"))
+    end)
+
+    it("should support retrieving links by file", function()
+        -- Trigger initial loading of all files
+        db:load():wait()
+
+        -- By default, this is only immediate links
+        assert.are.same({ ["3"] = 1 }, db:get_file_links_sync(two_path))
+
+        -- If we specify a depth, more links are included
+        assert.are.same({ ["3"] = 1, ["1"] = 2 }, db:get_file_links_sync(two_path, {
+            max_depth = 2,
+        }))
+    end)
+
+    it("should support retrieving backlinks by file", function()
+        -- Trigger initial loading of all files
+        db:load():wait()
+
+        -- By default, this is only immediate links
+        assert.are.same({ ["1"] = 1 }, db:get_file_backlinks_sync(two_path))
+
+        -- If we specify a depth, more links are included
+        assert.are.same({ ["1"] = 1, ["3"] = 2 }, db:get_file_backlinks_sync(two_path, {
+            max_depth = 2,
+        }))
     end)
 end)

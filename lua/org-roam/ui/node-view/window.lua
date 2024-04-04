@@ -173,10 +173,7 @@ local function load_lines_at_cursor(path, cursor)
 
             return results
         end)
-        :catch(function(err)
-            notify.error(err)
-            return err
-        end)
+        :catch(function(err) notify.error(err) end)
 
     ---@param line string
     return vim.tbl_map(function(line)

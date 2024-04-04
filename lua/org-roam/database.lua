@@ -169,9 +169,14 @@ end
 ---@param file string
 ---@return OrgPromise<org-roam.core.file.Node[]>
 function M:find_nodes_by_file(file)
+    -- NOTE: File paths are indexed after being resolved. We need to do the
+    --       same here to ensure that symlinks are properly resolved so we can
+    --       find them within our index!
+    local path = vim.fn.resolve(file)
+
     ---@diagnostic disable-next-line:missing-return-value
     return self:__get_loader():database():next(function(db)
-        local ids = db:find_by_index(schema.FILE, file)
+        local ids = db:find_by_index(schema.FILE, path)
         return vim.tbl_values(db:get_many(ids))
     end)
 end
@@ -199,6 +204,100 @@ end
 ---@return org-roam.core.file.Node[]
 function M:find_nodes_by_tag_sync(tag)
     return self:find_nodes_by_tag(tag):wait()
+end
+
+---Retrieves ids of nodes linked from a file.
+---
+---By default, these are ids immediately linked within the file, but if `max_depth`
+---is specified, then indirect links are included. The values of the returned
+---table are the distance from the file with 1 being immediately connected.
+---@param file string
+---@param opts? {max_depth?:integer}
+---@return OrgPromise<table<string, integer>>
+function M:get_file_links(file, opts)
+    return Promise.all({
+        self:__get_loader():database(),
+        self:find_nodes_by_file(file),
+    }):next(function(results)
+        ---@type org-roam.core.Database, org-roam.core.file.Node[]
+        local db, nodes = results[1], results[2]
+        local all_links = {}
+
+        -- For each node, retrieve its links, and check for each link
+        -- if we do not have it collected or if we do, but the distance
+        -- is further away than this link's distance
+        for _, node in ipairs(nodes) do
+            local links = db:get_links(node.id, opts)
+            for id, distance in pairs(links) do
+                if not all_links[id] or all_links[id] > distance then
+                    all_links[id] = distance
+                end
+            end
+        end
+
+        return all_links
+    end)
+end
+
+---Retrieves ids of nodes linked from a file.
+---
+---By default, these are ids immediately linked within the file, but if `max_depth`
+---is specified, then indirect links are included. The values of the returned
+---table are the distance from the file with 1 being immediately connected.
+---@param file string
+---@param opts? {max_depth?:integer}
+---@return table<string, integer>
+function M:get_file_links_sync(file, opts)
+    ---@diagnostic disable-next-line:param-type-mismatch
+    return self:get_file_links(file, opts):wait()
+end
+
+---Retrieves ids of nodes linking to a file.
+---
+---By default, these are ids immediately linking to a node within the file, but
+---if `max_depth` is specified, then indirect links are included. The values of
+---the returned table are the distance from the file with 1 being immediately
+---connected.
+---@param file string
+---@param opts? {max_depth?:integer}
+---@return OrgPromise<table<string, integer>>
+function M:get_file_backlinks(file, opts)
+    return Promise.all({
+        self:__get_loader():database(),
+        self:find_nodes_by_file(file),
+    }):next(function(results)
+        ---@type org-roam.core.Database, org-roam.core.file.Node[]
+        local db, nodes = results[1], results[2]
+        local all_links = {}
+
+        -- For each node, retrieve its backlinks, and check for each link
+        -- if we do not have it collected or if we do, but the distance
+        -- is further away than this link's distance
+        for _, node in ipairs(nodes) do
+            local links = db:get_backlinks(node.id, opts)
+            for id, distance in pairs(links) do
+                if not all_links[id] or all_links[id] > distance then
+                    all_links[id] = distance
+                end
+            end
+        end
+
+        return all_links
+    end)
+end
+
+---Retrieves ids of nodes linking to a file.
+---
+---By default, these are ids immediately linking to a node within the file, but
+---if `max_depth` is specified, then indirect links are included. The values of
+---the returned table are the distance from the file with 1 being immediately
+---connected.
+---@param file string
+---@param opts? {max_depth?:integer}
+---@return OrgPromise<table<string, integer>>
+function M:get_file_backlinks_sync(file, opts)
+    ---@diagnostic disable-next-line:param-type-mismatch
+    return self:get_file_backlinks(file, opts):wait()
 end
 
 local INSTANCE = M:new()

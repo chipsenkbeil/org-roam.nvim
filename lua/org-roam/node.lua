@@ -237,10 +237,7 @@ function M.__capture(opts, cb)
                 cb(id)
                 return ...
             end)
-            :catch(function(...)
-                cb(nil)
-                return ...
-            end)
+            :catch(function(_) cb(nil) end)
     end
 
     db:files():next(function(files)
