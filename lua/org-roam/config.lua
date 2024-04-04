@@ -82,8 +82,8 @@ local config = setmetatable({
     templates = {
         d = {
             description = "default",
-            template = "* %?",
-            target = "%r" .. path.separator() .. "%<%Y%m%d%H%M%S>-%[slug].org",
+            template = "%?",
+            target = "%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org",
         },
     },
 

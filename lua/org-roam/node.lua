@@ -8,6 +8,7 @@ local CONFIG = require("org-roam.config")
 local db = require("org-roam.database")
 local io = require("org-roam.core.utils.io")
 local notify = require("org-roam.core.ui.notify")
+local path_utils = require("org-roam.core.utils.path")
 local select_node = require("org-roam.ui.select-node")
 local utils = require("org-roam.utils")
 
@@ -202,6 +203,9 @@ function M.__capture(opts, cb)
         local expansions = {
             ["%[title]"] = function()
                 return title
+            end,
+            ["%[sep]"] = function()
+                return path_utils.separator()
             end,
             ["%[slug]"] = function()
                 return slug
