@@ -160,12 +160,6 @@ local function define_keybindings(config)
     )
 
     assign(
-        bindings.print_node,
-        "Print org-roam node under cursor",
-        require("org-roam.ui.print-node")
-    )
-
-    assign(
         bindings.toggle_roam_buffer,
         "Opens org-roam buffer for node under cursor",
         require("org-roam.ui.node-view")

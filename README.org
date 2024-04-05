@@ -59,16 +59,15 @@
 
 ** Bindings
 
-   | Name                     | Keybinding | Description                                                             |
-   |--------------------------+------------+-------------------------------------------------------------------------|
-   | capture                  | =<C-c>nc=  | Opens org-roam capture window.                                          |
-   | complete_at_point        | =<M-/>=    | Completes the node under cursor.                                        |
-   | find_node                | =<C-c>nf=  | Finds node and moves to it, creating it if it does not exist.           |
-   | insert_node              | =<C-c>ni=  | Inserts node at cursor position, creating it if it does not exist.      |
-   | print_node               | =<C-c>np=  | Prints the node under cursor.                                           |
-   | quickfix_backlinks       | =<C-c>nq=  | Opens the quickfix menu for backlinks to the current node under cursor. |
-   | toggle_roam_buffer       | =<C-c>nl=  | Toggles the org-roam node-view buffer for the node under cursor.        |
-   | toggle_roam_buffer_fixed | =<C-c>nb=  | Toggles a fixed org-roam node-view buffer for a selected node.          |
+   | Name                     | Keybinding   | Description                                                             |
+   |--------------------------+--------------+-------------------------------------------------------------------------|
+   | capture                  | =<Leader>nc= | Opens org-roam capture window.                                          |
+   | complete_at_point        | =<Leader>/=  | Completes the node under cursor.                                        |
+   | find_node                | =<Leader>nf= | Finds node and moves to it, creating it if it does not exist.           |
+   | insert_node              | =<Leader>ni= | Inserts node at cursor position, creating it if it does not exist.      |
+   | quickfix_backlinks       | =<Leader>nq= | Opens the quickfix menu for backlinks to the current node under cursor. |
+   | toggle_roam_buffer       | =<Leader>nl= | Toggles the org-roam node-view buffer for the node under cursor.        |
+   | toggle_roam_buffer_fixed | =<Leader>nb= | Toggles a fixed org-roam node-view buffer for a selected node.          |
 
    Bindings can be changed during configuration by overwriting them within the =bindings= table:
 
@@ -89,6 +88,41 @@
      bindings = false,
    })
    #+end_src
+
+**** Coming from Emacs
+
+     Want to have bindings similar to Emacs's [[https://www.orgroam.com/][Org Roam]]?
+     Here is a recommended setup you can use to leverage =C-c=
+
+     #+begin_src lua
+     require("org-roam"):setup({
+       -- ...
+       bindings = {
+         capture                  = "<C-c>nc",
+         complete_at_point        = "<M-/>",
+         find_node                = "<C-c>nf",
+         insert_node              = "<C-c>ni",
+         quickfix_backlinks       = "<C-c>nq",
+         toggle_roam_buffer       = "<C-c>nl",
+         toggle_roam_buffer_fixed = "<C-c>nb",
+       },
+     })
+     #+end_src
+
+     Keep in mind that [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]] maps =C-c= to
+     closing a capture window, so you'll want to rebind it:
+
+     #+begin_src lua
+     -- Override `org_capture_finalize` mapping to make org-roam mappings work in capture window
+     require("orgmode").setup({
+       mappings = {
+         capture = {
+           -- Behave like Emacs' orgmode capture
+           org_capture_finalize = "<C-c><C-c>",
+         }
+       }
+     })
+     #+end_src
 
 ** Org Roam Buffer
 
