@@ -41,28 +41,25 @@ local config = setmetatable({
     ---@class org-roam.config.Bindings
     bindings = {
         ---Opens org-roam capture window.
-        capture = "<C-c>nc",
+        capture = "<Leader>nc",
 
         ---Completes the node under cursor.
-        complete_at_point = "<M-/>",
+        complete_at_point = "<Leader>/",
 
         ---Finds node and moves to it.
-        find_node = "<C-c>nf",
+        find_node = "<Leader>nf",
 
         ---Inserts node at cursor position.
-        insert_node = "<C-c>ni",
-
-        ---Prints the node under cursor.
-        print_node = "<C-c>np",
+        insert_node = "<Leader>ni",
 
         ---Opens the quickfix menu for backlinks to the current node under cursor.
-        quickfix_backlinks = "<C-c>nq",
+        quickfix_backlinks = "<Leader>nq",
 
         ---Toggles the org-roam node-view buffer for the node under cursor.
-        toggle_roam_buffer = "<C-c>nl",
+        toggle_roam_buffer = "<Leader>nl",
 
         ---Toggles a fixed org-roam node-view buffer for a selected node.
-        toggle_roam_buffer_fixed = "<C-c>nb",
+        toggle_roam_buffer_fixed = "<Leader>nb",
     },
 
     ---Settings associated with org-roam's database.
