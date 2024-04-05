@@ -73,18 +73,61 @@ local function define_autocmds(config)
             end,
         })
     end
+
+    -- If configured to persist to disk, look for when neovim is exiting
+    -- and save an updated version of the database
+    if config.database.persist then
+        vim.api.nvim_create_autocmd("VimLeavePre", {
+            group = AUGROUP,
+            pattern = "*",
+            callback = function()
+                require("org-roam.database")
+                    :save()
+                    :catch(require("org-roam.core.ui.notify").error)
+            end,
+        })
+    end
 end
 
 ---@param config org-roam.Config
 local function define_commands(config)
+    local notify = require("org-roam.core.ui.notify")
+    local Profiler = require("org-roam.core.utils.profiler")
+
+    vim.api.nvim_create_user_command("OrgRoamSave", function(opts)
+        log.fmt_debug("Saving database")
+
+        -- Start profiling so we can report the time taken
+        local profiler = Profiler:new()
+        profiler:start()
+
+        require("org-roam.database")
+            :save()
+            :next(function(...)
+                local tt = profiler:stop():time_taken_as_string()
+                notify.info("Saved database [took " .. tt .. "]")
+                return ...
+            end)
+            :catch(notify.error)
+    end, { bang = true, desc = "Saves the org-roam database" })
+
     vim.api.nvim_create_user_command("OrgRoamUpdate", function(opts)
         local force = opts.bang or false
+
+        -- Start profiling so we can report the time taken
+        local profiler = Profiler:new()
+        profiler:start()
 
         log.fmt_debug("Updating database (force = %s)", force)
         require("org-roam.database")
             :load({ force = force })
-            :catch(require("org-roam.core.ui.notify").error)
-    end, { bang = true, desc = "Updates the database" })
+            :next(function(...)
+                local tt = profiler:stop():time_taken_as_string()
+                notify.info("Updated database [took " .. tt .. "]")
+                return ...
+            end)
+            :catch(notify.error)
+    end, { bang = true, desc = "Updates the org-roam database" })
 end
 
 ---@param config org-roam.Config
@@ -171,7 +214,7 @@ local function define_mouse_features(config)
     -- keybindings in specialized ways
     vim.api.nvim_create_autocmd("FileType", {
         group = AUGROUP,
-        pattern = "org",
+        pattern = { "org", "org-roam-*" },
         callback = function(opts)
             ---@type integer
             local buf = opts.buf

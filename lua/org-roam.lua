@@ -17,21 +17,22 @@ local M = {}
 function M.setup(config)
     require("org-roam.setup")(config)
 
-    local log = require("org-roam.core.log")
-    local Profiler = require("org-roam.core.utils.profiler")
-
-    local profiler = Profiler:new({ label = "org-roam.setup.load-database" })
-    profiler:start()
+    local CONFIG  = require("org-roam.config")
+    local db      = require("org-roam.database")
+    local Promise = require("orgmode.utils.promise")
 
     -- Load the database asynchronously
-    require("org-roam.database"):load()
-        :next(function()
-            log.info(profiler:stop():print_as_string())
-            return nil
-        end)
-        :catch(function(err)
-            require("org-roam.core.ui.notify").error(err)
-        end)
+    db:load():next(function()
+        -- If we are persisting to disk, do so now as the database may
+        -- have changed post-load
+        if CONFIG.database.persist then
+            return db:save()
+        else
+            return Promise.resolve(nil)
+        end
+    end):catch(function(err)
+        require("org-roam.core.ui.notify").error(err)
+    end)
 end
 
 return M
