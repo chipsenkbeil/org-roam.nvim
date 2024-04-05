@@ -144,36 +144,36 @@ local function load_lines_at_cursor(path, cursor)
     local lines = (CACHE[key] or {}).lines or {}
 
     -- Kick off a reload of lines
-    require("org-roam.database"):load_file({
-        path = path
-    }, function(err, file)
-        if err then
-            notify.error(err)
-            return
-        end
+    require("org-roam.database")
+        :load_file({ path = path })
+        :next(function(results)
+            local file = results.file
 
-        -- Calculate a digest and see if its different
-        ---@cast file -nil
-        local sha256 = vim.fn.sha256(file.content)
-        local is_new = not CACHE[key] or CACHE[key].sha256 ~= sha256
+            -- Calculate a digest and see if its different
+            ---@cast file -nil
+            local sha256 = vim.fn.sha256(file.content)
+            local is_new = not CACHE[key] or CACHE[key].sha256 ~= sha256
 
-        -- Update our cache
-        CACHE[key] = {
-            sha256 = sha256,
-            lines = file_to_lines(file),
-        }
+            -- Update our cache
+            CACHE[key] = {
+                sha256 = sha256,
+                lines = file_to_lines(file),
+            }
 
-        -- If our file has changed, re-render
-        if is_new then
-            -- NOTE: Introduce a delay before the refresh as this can
-            --       trigger refreshing while the buffer is rendering,
-            --       which would result in the refresh being discarded
-            --       and the update not actually taking place.
-            vim.defer_fn(function()
-                EMITTER:emit(EVENTS.REFRESH)
-            end, 100)
-        end
-    end)
+            -- If our file has changed, re-render
+            if is_new then
+                -- NOTE: Introduce a delay before the refresh as this can
+                --       trigger refreshing while the buffer is rendering,
+                --       which would result in the refresh being discarded
+                --       and the update not actually taking place.
+                vim.defer_fn(function()
+                    EMITTER:emit(EVENTS.REFRESH)
+                end, 100)
+            end
+
+            return results
+        end)
+        :catch(function(err) notify.error(err) end)
 
     ---@param line string
     return vim.tbl_map(function(line)

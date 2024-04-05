@@ -1,24 +1,7 @@
 :PROPERTIES:
 :ID: 1
-:ROAM_ALIASES: 1 neo "the one"
+:ROAM_ALIASES: one
 :END:
-#+filetags: :a:b:c:
-This is an org file that also serves as an org-roam node.
+#+FILETAGS: :one:
 
-- [[id:2]]
-- [[id:3]]
-- [[id:4]]
-
-* node two :d:e:f:
-  :PROPERTIES:
-  :ID: 2
-  :END:
-
-  This is a paragraph that links to [[id:1]] and [[id:3]].
-
-** node three :g:h:i:
-  :PROPERTIES:
-  :ID: 3
-  :END:
-
-   This is a paragraph that links to just [[id:2]].
+[[id:2]]

@@ -30,6 +30,21 @@ function M.get_extmarks_for_ranges_as_org(buffer, ranges, opts)
     vim.api.nvim_buf_set_name(scratch_buffer, name)
     vim.api.nvim_buf_set_option(scratch_buffer, "filetype", "org")
 
+    -- Create a temporary floating window to hold the scratch buffer.
+    --
+    -- NOTE: We do this instead of relying on `nvim_buf_call()` creating
+    --       a new autocmd window because the window's height is locked
+    --       to 5 rows, which means that any lines after the 5th will
+    --       not have extmarks applied in view.
+    local win = vim.api.nvim_open_win(scratch_buffer, false, {
+        relative = "editor",
+        row = 0,
+        col = 0,
+        width = vim.opt.columns:get(),
+        height = vim.opt.lines:get(),
+    })
+    assert(win ~= 0, "failed to create scratch window")
+
     for _, range in ipairs(ranges) do
         local start = range[1]
         local end_ = range[2]
@@ -96,6 +111,9 @@ function M.get_extmarks_for_ranges_as_org(buffer, ranges, opts)
 
         table.insert(all_extmarks, extmarks)
     end
+
+    -- Close the scratch window
+    vim.api.nvim_win_close(win, true)
 
     -- Delete the scratch buffer now that we're done with it
     vim.api.nvim_buf_delete(scratch_buffer, { force = true })

@@ -9,6 +9,7 @@ local M = {
     ALIAS = "alias",
     FILE = "file",
     TAG = "tag",
+    TITLE = "title",
 }
 
 ---Updates a schema (series of indexes) for the specified database.
@@ -29,6 +30,7 @@ function M:update(db)
         [self.ALIAS] = field("aliases"),
         [self.FILE] = field("file"),
         [self.TAG] = field("tags"),
+        [self.TITLE] = field("title"),
     }) do
         if not db:has_index(name) then
             db:new_index(name, indexer)

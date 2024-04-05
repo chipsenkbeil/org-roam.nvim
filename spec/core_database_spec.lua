@@ -136,11 +136,21 @@ describe("org-roam.core.database", function()
         end)
     end)
 
-    it("should remove an existing node if inserting with an id that exists and overwrite is true", function()
+    it("should replace an existing node if inserting with an id that exists and overwrite is true", function()
         local db = Database:new()
-        local id = db:insert("test")
-        assert.are.equal(id, db:insert("test2", { id = id, overwrite = true }))
-        assert.are.equal("test2", db:get(id))
+        local id1 = db:insert("test")
+        local id2 = db:insert("test-other")
+
+        -- Perform links in both ways
+        db:link(id1, id2)
+        db:link(id2, id1)
+
+        assert.are.equal(id1, db:insert("test2", { id = id1, overwrite = true }))
+        assert.are.equal("test2", db:get(id1))
+
+        -- Verify links in both ways are restored
+        assert.are.same({ [id2] = 1 }, db:get_links(id1))
+        assert.are.same({ [id1] = 1 }, db:get_links(id2))
     end)
 
     it("should support removing unlinked nodes", function()
