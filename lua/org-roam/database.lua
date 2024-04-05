@@ -7,11 +7,13 @@
 local CONFIG = require("org-roam.config")
 
 local Loader = require("org-roam.database.loader")
+local log = require("org-roam.core.log")
+local Profiler = require("org-roam.core.utils.profiler")
 local Promise = require("orgmode.utils.promise")
 local schema = require("org-roam.database.schema")
 
 ---@class org-roam.Database: org-roam.core.Database
----@field private __cache {modified:table<string, integer>}
+---@field private __last_save integer
 ---@field private __loader org-roam.database.Loader
 ---@field private __database_path string
 ---@field private __directory string
@@ -24,7 +26,7 @@ function M:new(opts)
     opts = opts or {}
     local instance = {}
     setmetatable(instance, M)
-    instance.__cache = {}
+    instance.__last_save = -1
     instance.__loader = nil
     instance.__database_path = opts.db_path or CONFIG.database.path
     instance.__directory = opts.directory or CONFIG.directory
@@ -78,38 +80,85 @@ end
 ---@return OrgPromise<{database:org-roam.core.Database, files:OrgFiles}>
 function M:load(opts)
     opts = opts or {}
+    log.fmt_debug("loading all files into database (force=%s)",
+        opts.force or false)
+
+    local profiler = Profiler:new({ label = "org-roam-load" })
+    local rec_id = profiler:start()
+
     return self:__get_loader():load({
         force = opts.force,
-    })
+    }):next(function(...)
+        profiler:stop(rec_id)
+        log.fmt_debug("loading all files into database took %s",
+            profiler:time_taken_as_string({ recording = rec_id }))
+
+        return ...
+    end)
 end
 
 ---@param opts {path:string, force?:boolean}
 ---@return OrgPromise<{file:OrgFile, nodes:org-roam.core.file.Node[]}>
 function M:load_file(opts)
+    log.fmt_debug("loading %s into database (force=%s)",
+        opts.path, opts.force or false)
+
+    local profiler = Profiler:new({ label = "org-roam-load-file" })
+    local rec_id = profiler:start()
+
     return self:__get_loader():load_file({
         path = opts.path,
         force = opts.force,
-    })
+    }):next(function(...)
+        profiler:stop(rec_id)
+        log.fmt_debug("loading %s into database took %s",
+            opts.path,
+            profiler:time_taken_as_string({ recording = rec_id }))
+
+        return ...
+    end)
 end
 
 ---Saves the database to disk.
+---@param opts? {force?:boolean}
 ---@return OrgPromise<nil>
-function M:save()
-    ---@diagnostic disable-next-line:missing-return-value
-    return self:load():next(function(results)
-        local db = results.database
+function M:save(opts)
+    opts = opts or {}
+    log.fmt_debug("saving database (force=%s)", opts.force or false)
 
-        return Promise.new(function(resolve, reject)
-            db:write_to_disk(self.__database_path, function(err)
-                if err then
+    local profiler = Profiler:new({ label = "org-roam-save-database" })
+    local rec_id = profiler:start()
+
+    return self:__get_loader():database():next(function(db)
+        -- If our last save was recent enough, do not actually save
+        if self.__last_save >= db:changed_tick() then
+            profiler:stop(rec_id)
+            log.fmt_debug("saving database took %s (nothing to save)",
+                profiler:time_taken_as_string({ recording = rec_id }))
+            return Promise.resolve(nil)
+        end
+
+        -- Refresh our data to make sure it is fresh
+        return self:load():next(function()
+            return Promise.new(function(resolve, reject)
+                db:write_to_disk(self.__database_path, function(err)
+                    if err then
+                        -- NOTE: Scheduling to avoid potential textlock issue
+                        vim.schedule(function()
+                            reject(err)
+                        end)
+                        return
+                    end
+
+                    -- NOTE: Scheduling to avoid potential textlock issue
                     vim.schedule(function()
-                        reject(err)
-                    end)
-                    return
-                end
+                        profiler:stop(rec_id)
+                        log.fmt_debug("saving database took %s",
+                            profiler:time_taken_as_string({ recording = rec_id }))
 
-                vim.schedule(function()
-                    resolve(nil)
+                        self.__last_save = db:changed_tick()
+                        resolve(nil)
+                    end)
                 end)
             end)
         end)

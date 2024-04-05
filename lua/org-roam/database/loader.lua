@@ -230,7 +230,7 @@ function M:load(opts)
         -- For each new file, insert into database
         for _, filename in ipairs(filenames.right) do
             -- Retrieve the changedtick of the file since we do not store that
-            -- in our node, and check if the reloaded file has an updatd tick
+            -- in our node, and check if the reloaded file has an updated tick
             --
             -- If it does, then that means it was refreshed from tick instead
             -- of mtime, so we need to force a modification since mtime will
@@ -250,7 +250,7 @@ function M:load(opts)
         -- to see if we need to refresh nodes for a file
         for _, filename in ipairs(filenames.both) do
             -- Retrieve the changedtick of the file since we do not store that
-            -- in our node, and check if the reloaded file has an updatd tick
+            -- in our node, and check if the reloaded file has an updated tick
             --
             -- If it does, then that means it was refreshed from tick instead
             -- of mtime, so we need to force a modification since mtime will
@@ -290,7 +290,7 @@ function M:load_file(opts)
         local db, files = results[1], results[2]
 
         -- Retrieve the changedtick of the file since we do not store that
-        -- in our node, and check if the reloaded file has an updatd tick
+        -- in our node, and check if the reloaded file has an updated tick
         --
         -- If it does, then that means it was refreshed from tick instead
         -- of mtime, so we need to force a modification since mtime will
@@ -334,6 +334,9 @@ function M:database()
                 local db = Database:new()
                 schema:update(db)
                 self.__db = db
+
+                -- NOTE: Scheduling to avoid textlock issues in promise
+                --       resolution
                 return vim.schedule(function()
                     resolve(db)
                 end)
@@ -341,12 +344,19 @@ function M:database()
 
             Database:load_from_disk(self.path.database, function(err, db)
                 if err then
-                    return reject(err)
+                    -- NOTE: Scheduling to avoid textlock issues in promise
+                    --       resolution
+                    return vim.schedule(function()
+                        reject(err)
+                    end)
                 end
 
                 ---@cast db -nil
                 schema:update(db)
                 self.__db = db
+
+                -- NOTE: Scheduling to avoid textlock issues in promise
+                --       resolution
                 return vim.schedule(function()
                     resolve(db)
                 end)

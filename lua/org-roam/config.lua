@@ -68,9 +68,16 @@ local config = setmetatable({
     ---Settings associated with org-roam's database.
     ---@class org-roam.config.Database
     database = {
-        ---Path where the database will be stored & loaded.
+        ---Path where the database will be stored & loaded when
+        ---persisting to disk.
         ---@type string
         path = path.join(BASE_PATH, "db"),
+
+        ---If true, the database will be written to disk to save on
+        ---future loading times; otherwise, whenever neovim boots the
+        ---entire database will need to be rebuilt.
+        ---@type boolean
+        persist = true,
 
         ---If true, updates database whenever a write occurs.
         ---@type boolean

@@ -36,6 +36,7 @@ local tbl_utils = require("org-roam.core.utils.table")
 ---@alias org-roam.core.database.Indexer fun(data:org-roam.core.database.Data):(org-roam.core.database.IndexKeys|nil)
 
 ---@class org-roam.core.Database
+---@field private __changed_tick integer #total number of changes made to the database (non-persistent)
 ---@field private __nodes table<org-roam.core.database.Id, org-roam.core.database.Data>
 ---@field private __outbound table<org-roam.core.database.Id, org-roam.core.database.IdMap> mapping of node -> node by id
 ---@field private __inbound table<org-roam.core.database.Id, org-roam.core.database.IdMap> mapping of node <- node by id
@@ -49,6 +50,7 @@ M.__index = M
 function M:new()
     local instance = {}
     setmetatable(instance, M)
+    instance.__changed_tick = 0
     instance.__nodes = {}
     instance.__outbound = {}
     instance.__inbound = {}
@@ -56,6 +58,20 @@ function M:new()
     instance.__indexes = {}
 
     return instance
+end
+
+---Retrieves the tick representing how many changes have been made to the
+---database since neovim started. Note that this does not persist to disk,
+---meaning that it starts from 0 whenever neovim starts.
+---@return integer
+function M:changed_tick()
+    return self.__changed_tick
+end
+
+---@private
+---Increments changed tick within database.
+function M:__update_tick()
+    self.__changed_tick = self.__changed_tick + 1
 end
 
 ---Synchronously loads database from disk.
@@ -234,6 +250,9 @@ function M:insert(data, opts)
         nodes = { id }
     })
 
+    -- Increment the changed tick counter
+    self:__update_tick()
+
     return id
 end
 
@@ -257,6 +276,9 @@ function M:remove(id)
 
     local node = self.__nodes[id]
     self.__nodes[id] = nil
+
+    -- Increment the changed tick counter
+    self:__update_tick()
 
     return node
 end
@@ -313,6 +335,9 @@ end
 function M:new_index(name, indexer)
     -- Add the indexer to our internal tracker
     self.__indexers[name] = indexer
+
+    -- Increment the changed tick counter
+    self:__update_tick()
 
     return self
 end
@@ -433,6 +458,9 @@ function M:reindex(opts)
         end
     end
 
+    -- Increment the changed tick counter
+    self:__update_tick()
+
     return self
 end
 
@@ -528,6 +556,9 @@ function M:link(id, ...)
 
     -- Update the pointer
     self.__outbound[id] = outbound
+
+    -- Increment the changed tick counter
+    self:__update_tick()
 end
 
 ---Removes outbound edges from node `id`.
@@ -570,6 +601,9 @@ function M:unlink(id, ...)
 
     -- Update the pointer
     self.__outbound[id] = outbound
+
+    -- Increment the changed tick counter
+    self:__update_tick()
 
     return ids
 end
