@@ -6,6 +6,9 @@
 
 local CONFIG = require("org-roam.config")
 local EVENTS = require("org-roam.events")
+local AUGROUP = vim.api.nvim_create_augroup("org-roam.nvim", {})
+
+local log = require("org-roam.core.log")
 
 ---@param config org-roam.Config
 ---@return org-roam.Config
@@ -25,12 +28,10 @@ end
 
 ---@param config org-roam.Config
 local function define_autocmds(config)
-    local group = vim.api.nvim_create_augroup("org-roam.nvim", {})
-
     -- Watch as cursor moves around so we can support node changes
     local last_node = nil
     vim.api.nvim_create_autocmd("CursorMoved", {
-        group = group,
+        group = AUGROUP,
         pattern = "*.org",
         callback = function()
             local utils = require("org-roam.utils")
@@ -38,6 +39,10 @@ local function define_autocmds(config)
                 -- If the node has changed (event getting cleared),
                 -- we want to emit the event
                 if last_node ~= node then
+                    if node then
+                        log.fmt_debug("New node under cursor: %s", node.id)
+                    end
+
                     EVENTS:emit(EVENTS.KIND.CURSOR_NODE_CHANGED, node)
                 end
 
@@ -48,9 +53,9 @@ local function define_autocmds(config)
 
     -- If configured to update on save, listen for buffer writing
     -- and trigger reload if an org-roam buffer
-    if config.update_on_save then
+    if config.database.update_on_save then
         vim.api.nvim_create_autocmd({ "BufWritePost", "FileWritePost" }, {
-            group = group,
+            group = AUGROUP,
             pattern = "*.org",
             callback = function()
                 -- TODO: If the directory format changes to blob in the
@@ -60,31 +65,32 @@ local function define_autocmds(config)
                 local is_roam_file = vim.startswith(path, config.directory)
 
                 if is_roam_file then
-                    require("org-roam.database"):load(function(err)
-                        if err then
-                            require("org-roam.core.ui.notify").error(err)
-                            return
-                        end
-                    end, { force = true })
+                    log.fmt_debug("Updating on save: %s", path)
+                    require("org-roam.database")
+                        :load_file({ path = path })
+                        :catch(require("org-roam.core.ui.notify").error)
                 end
             end,
         })
     end
 end
 
-local function define_commands()
-    vim.api.nvim_create_user_command("OrgRoamUpdate", function(_)
-        require("org-roam.database"):load(function(err)
-            if err then
-                require("org-roam.core.ui.notify").error(err)
-            end
-        end)
-    end, { desc = "Wipes the database" })
+---@param config org-roam.Config
+local function define_commands(config)
+    vim.api.nvim_create_user_command("OrgRoamUpdate", function(opts)
+        local force = opts.bang or false
+
+        log.fmt_debug("Updating database (force = %s)", force)
+        require("org-roam.database")
+            :load({ force = force })
+            :catch(require("org-roam.core.ui.notify").error)
+    end, { bang = true, desc = "Updates the database" })
 end
 
-local function define_keybindings()
+---@param config org-roam.Config
+local function define_keybindings(config)
     -- User can remove all bindings by setting this to nil
-    local bindings = CONFIG.bindings or {}
+    local bindings = config.bindings or {}
 
     ---@param lhs string|nil
     ---@param desc string
@@ -153,7 +159,44 @@ local function define_keybindings()
     )
 end
 
-local function modify_orgmode_plugin()
+---@param config org-roam.Config
+local function define_mouse_features(config)
+    -- Force-enable mouse movement if highlighting links
+    if not vim.opt.mousemoveevent:get() and config.ui.mouse.highlight_links then
+        vim.opt.mousemoveevent = true
+    end
+
+    -- Register on org filetype to set the mouse keybindings locally to
+    -- those buffers to avoid conflicts with other plugins that add mouse
+    -- keybindings in specialized ways
+    vim.api.nvim_create_autocmd("FileType", {
+        group = AUGROUP,
+        pattern = "org",
+        callback = function(opts)
+            ---@type integer
+            local buf = opts.buf
+
+            if config.ui.mouse.highlight_links then
+                vim.keymap.set("n", "<MouseMove>", function()
+                    local hl_group = config.ui.mouse.highlight_links_group
+                    require("org-roam.mouse").highlight_link(hl_group)
+                end, { buffer = buf, silent = true })
+            end
+
+            if config.ui.mouse.click_open_links then
+                vim.keymap.set("n", "<LeftRelease>", function()
+                    -- NOTE: The cursor moves BEFORE this mapping is fired,
+                    --       which is exactly what we want to be able to
+                    --       open at point!
+                    require("orgmode").org_mappings:open_at_point()
+                end, { buffer = buf, silent = true })
+            end
+        end,
+    })
+end
+
+---@param config org-roam.Config
+local function modify_orgmode_plugin(config)
     -- Provide a wrapper around `open_at_point` from orgmode mappings so we can
     -- attempt to jump to an id referenced by our database first, and then fall
     -- back to orgmode's id handling second.
@@ -162,15 +205,15 @@ local function modify_orgmode_plugin()
     -- files list and not org-roam's files list; so, we need to manually intercept!
     ---@diagnostic disable-next-line:duplicate-set-field
     require("orgmode").org_mappings.open_at_point = function(self)
-        local link = require("orgmode.org.hyperlinks.link").at_pos(
-            vim.fn.getline("."),
-            vim.fn.col(".") or 0
-        )
+        local row, col = vim.fn.getline("."), vim.fn.col(".") or 0
+        local link = require("orgmode.org.hyperlinks.link").at_pos(row, col)
         local id = link and link.url:get_id()
         local node = id and require("org-roam.database"):get_sync(id)
 
         -- If we found a node, open the file at the start of the node
         if node then
+            log.fmt_debug("Detected node %s under mouse click at (%d,%d)",
+                node.id, row, col)
             local winnr = vim.api.nvim_get_current_win()
             vim.cmd.edit(node.file)
 
@@ -199,7 +242,8 @@ end
 return function(config)
     config = merge_config(config)
     define_autocmds(config)
-    define_commands()
-    define_keybindings()
-    modify_orgmode_plugin()
+    define_commands(config)
+    define_keybindings(config)
+    define_mouse_features(config)
+    modify_orgmode_plugin(config)
 end

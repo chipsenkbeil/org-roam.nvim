@@ -60,7 +60,7 @@ end
 
 ---Returns nodes as a list.
 ---@return org-roam.core.file.Node[]
-function M:get_nodes_list()
+function M:get_node_list()
     return vim.tbl_values(self.nodes)
 end
 
@@ -81,14 +81,26 @@ local function make_node_tree(nodes)
     end, nodes))
 end
 
+---@type {files:table<string, org-roam.core.File>, hashes:table<string, string>}
+local CACHE = setmetatable({ files = {}, hashes = {} }, { __mode = "k" })
+
 ---@param file OrgFile
 ---@return org-roam.core.File
 function M:from_org_file(file)
     local nodes = {}
 
+    -- Check if we have a cached value for this file specifically
+    local key = vim.fn.sha256(file.content)
+    if CACHE.files[key] and CACHE.hashes[file.filename] == key then
+        return CACHE.files[key]
+    end
+
     -- Build up our file-level node
     local id = file:get_property("id")
     if id then
+        local tags = file:get_filetags()
+        table.sort(tags)
+
         table.insert(nodes, Node:new({
             id = id,
             range = Range:new(
@@ -99,7 +111,7 @@ function M:from_org_file(file)
             mtime = file.metadata.mtime,
             title = file:get_directive("title"),
             aliases = utils.parse_property_value(file:get_property("roam_aliases") or ""),
-            tags = file:get_filetags(),
+            tags = tags,
             level = 0,
             linked = {},
         }))
@@ -173,11 +185,23 @@ function M:from_org_file(file)
         end
     end
 
-    return M:new({
+    local roam_file = M:new({
         filename = file.filename,
         links = links,
         nodes = nodes,
     })
+
+    -- Clear old file instance from cache
+    local old_key = CACHE.hashes[file.filename]
+    if old_key and CACHE.files[old_key] then
+        CACHE.files[old_key] = nil
+    end
+
+    -- Update cache with new file instance
+    CACHE.hashes[file.filename] = key
+    CACHE.files[key] = roam_file
+
+    return roam_file
 end
 
 return M

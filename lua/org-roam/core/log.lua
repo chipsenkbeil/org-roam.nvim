@@ -43,6 +43,10 @@ local default_config = {
     ---@type boolean
     use_quickfix = false,
 
+    ---Should only include path after `lua` directory.
+    ---@type boolean
+    use_short_src_path = true,
+
     -- Any messages above this level will be logged.
     ---@type org-roam.core.log.Level
     level = p_debug and "debug" or "info",
@@ -152,6 +156,13 @@ local function make_internal_logger(config)
         local msg = message_maker(...)
         local info = debug.getinfo(obj.config.info_level or 2, "Sl")
         local src_path = info.source:sub(2)
+        if obj.config.use_short_src_path then
+            local _, end_ = string.find(src_path, "lua")
+            if end_ then
+                -- Start after the / or \ of the lua directory
+                src_path = string.sub(src_path, end_ + 2)
+            end
+        end
         local src_line = info.currentline
         -- Output to console
         if obj.config.use_console then

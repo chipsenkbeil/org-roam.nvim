@@ -6,6 +6,10 @@
 
 local path = require("org-roam.core.utils.path")
 
+---Base path for our plugin.
+---@type string
+local BASE_PATH = path.join(vim.fn.stdpath("data"), "org-roam.nvim")
+
 ---Overwrites configuration options with those specified.
 ---@param tbl org-roam.Config
 ---@param opts org-roam.Config
@@ -32,10 +36,6 @@ local config = setmetatable({
     ---Path to the directory containing org files for use with org-roam.
     ---@type string
     directory = "",
-
-    ---If true, updates database whenever a write occurs.
-    ---@type boolean
-    update_on_save = true,
 
     ---Bindings associated with org-roam functionality.
     ---@class org-roam.config.Bindings
@@ -65,18 +65,46 @@ local config = setmetatable({
         toggle_roam_buffer_fixed = "<C-c>nb",
     },
 
+    ---Settings associated with org-roam's database.
+    ---@class org-roam.config.Database
+    database = {
+        ---Path where the database will be stored & loaded.
+        ---@type string
+        path = path.join(BASE_PATH, "db"),
+
+        ---If true, updates database whenever a write occurs.
+        ---@type boolean
+        update_on_save = true,
+    },
+
     ---@class org-roam.config.Templates
     ---@field [string] table
     templates = {
         d = {
             description = "default",
-            template = "* %?",
-            target = "%r" .. path.separator() .. "%<%Y%m%d%H%M%S>-%[slug].org",
+            template = "%?",
+            target = "%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org",
         },
     },
 
     ---@class org-roam.config.UserInterface
     ui = {
+        ---@class org-roam.config.ui.Mouse
+        mouse = {
+            ---If true, clicking on links will open them.
+            ---@type boolean
+            click_open_links = true,
+
+            ---If true, highlights links when mousing over them.
+            ---This will enable `vim.opt.mouseoverevent` if disabled!
+            ---@type boolean
+            highlight_links = true,
+
+            ---Highlight group to apply when highlighting links.
+            ---@type string
+            highlight_links_group = "WarningMsg",
+        },
+
         ---@class org-roam.config.ui.NodeView
         node_view = {
             ---If true, previews will be highlighted as org syntax when expanded.

@@ -8,6 +8,7 @@ local Database  = require("org-roam.core.database")
 local File      = require("org-roam.core.file")
 local io        = require("org-roam.core.utils.io")
 local join_path = require("org-roam.core.utils.path").join
+local log       = require("org-roam.core.log")
 local OrgFiles  = require("orgmode.files")
 local Promise   = require("orgmode.utils.promise")
 local schema    = require("org-roam.database.schema")
@@ -85,21 +86,6 @@ local function find_distinct(left, right)
 end
 
 ---@param db org-roam.core.Database
----@param file OrgFile|nil
----@return integer inserted_node_cnt
-local function insert_new_file_into_database(db, file)
-    if not file then return 0 end
-    local roam_file = File:from_org_file(file)
-    local cnt = 0
-    for id, node in pairs(roam_file.nodes) do
-        db:insert(node, { id = id })
-        db:link(id, vim.tbl_keys(node.linked))
-        cnt = cnt + 1
-    end
-    return cnt
-end
-
----@param db org-roam.core.Database
 ---@param filename string
 ---@return integer removed_node_cnt
 local function remove_file_from_database(db, filename)
@@ -112,22 +98,25 @@ local function remove_file_from_database(db, filename)
 end
 
 ---@param db org-roam.core.Database
----@param file OrgFile|nil
+---@param file OrgFile
 ---@param opts? {force?:boolean}
 ---@return integer modified_node_cnt
 local function modify_file_in_database(db, file, opts)
     opts = opts or {}
-    if not file then return 0 end
 
     local ids = db:find_by_index(schema.FILE, file.filename)
-    if #ids == 0 then return 0 end
+    if #ids == 0 then
+        log.fmt_debug("modify file (%s) in database canceled (no node)", file.filename)
+        return 0
+    end
 
     ---@type integer
     local mtime = db:get(ids[1]).mtime
 
     -- Skip if not forcing and the file hasn't changed since
     -- the last time we inserted/modified nodes
-    if not opts.force and file.metadata.mtime <= mtime then
+    if not opts.force and file.metadata.mtime == mtime then
+        log.fmt_debug("modify file (%s) in database canceled (no change)", file.filename)
         return 0
     end
 
@@ -172,6 +161,34 @@ local function modify_file_in_database(db, file, opts)
     return cnt
 end
 
+---@param db org-roam.core.Database
+---@param file OrgFile
+---@param opts? {force?:boolean}
+---@return integer inserted_node_cnt
+local function insert_new_file_into_database(db, file, opts)
+    -- NOTE: We have this in place because of the nature of asynchronous
+    --       operations where at the time of scheduling the insertion
+    --       there was no file but now there is a file.
+    --
+    --       I'm not sure if this is needed. We may never encounter
+    --       this situation, but I'm leaving it in for now.
+    local has_file = not vim.tbl_isempty(
+        db:find_by_index(schema.FILE, file.filename)
+    )
+    if has_file then
+        return modify_file_in_database(db, file, opts)
+    end
+
+    local roam_file = File:from_org_file(file)
+    local cnt = 0
+    for id, node in pairs(roam_file.nodes) do
+        db:insert(node, { id = id })
+        db:link(id, vim.tbl_keys(node.linked))
+        cnt = cnt + 1
+    end
+    return cnt
+end
+
 ---Loads all files into the database. If files have not been modified
 ---from current database record, they will be ignored.
 ---
@@ -202,31 +219,51 @@ function M:load(opts)
 
         -- For each deleted file, remove from database
         for _, filename in ipairs(filenames.left) do
-            local p = Promise.new(function(resolve)
+            table.insert(promises.remove, Promise.new(function(resolve)
                 vim.schedule(function()
+                    log.fmt_debug("removing from database: %s", filename)
                     resolve(remove_file_from_database(db, filename))
                 end)
-            end)
-            table.insert(promises.remove, p)
+            end))
         end
 
         -- For each new file, insert into database
         for _, filename in ipairs(filenames.right) do
-            local p = files:load_file(filename):next(function(file)
-                return insert_new_file_into_database(db, file)
-            end)
-            table.insert(promises.insert, p)
+            -- Retrieve the changedtick of the file since we do not store that
+            -- in our node, and check if the reloaded file has an updatd tick
+            --
+            -- If it does, then that means it was refreshed from tick instead
+            -- of mtime, so we need to force a modification since mtime will
+            -- appear to have not changed
+            local maybe_file = files.all_files[filename]
+            local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
+
+            table.insert(promises.insert, files:load_file(filename):next(function(file)
+                log.fmt_debug("inserting into database: %s", file.filename)
+                return insert_new_file_into_database(db, file, {
+                    force = force or file.metadata.changedtick ~= changedtick,
+                })
+            end))
         end
 
         -- For each modified file, check the modified time (any node will do)
         -- to see if we need to refresh nodes for a file
         for _, filename in ipairs(filenames.both) do
-            local p = files:load_file(filename):next(function(file)
+            -- Retrieve the changedtick of the file since we do not store that
+            -- in our node, and check if the reloaded file has an updatd tick
+            --
+            -- If it does, then that means it was refreshed from tick instead
+            -- of mtime, so we need to force a modification since mtime will
+            -- appear to have not changed
+            local maybe_file = files.all_files[filename]
+            local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
+
+            table.insert(promises.modify, files:load_file(filename):next(function(file)
+                log.fmt_debug("modifying in database: %s", file.filename)
                 return modify_file_in_database(db, file, {
-                    force = force,
+                    force = force or file.metadata.changedtick ~= changedtick,
                 })
-            end)
-            table.insert(promises.modify, p)
+            end))
         end
 
         return Promise.all(promises.remove)
@@ -252,15 +289,31 @@ function M:load_file(opts)
         ---@type org-roam.core.Database, OrgFiles
         local db, files = results[1], results[2]
 
+        -- Retrieve the changedtick of the file since we do not store that
+        -- in our node, and check if the reloaded file has an updatd tick
+        --
+        -- If it does, then that means it was refreshed from tick instead
+        -- of mtime, so we need to force a modification since mtime will
+        -- appear to have not changed
+        local maybe_file = files.all_files[opts.path]
+        local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
+
         -- This both loads the file and adds it to our file path if not there already
         return files:add_to_paths(opts.path):next(function(file)
             -- Determine if the file already exists through nodes in the db
-            local has_file = #db:find_by_index(schema.FILE, file.filename) > 0
+            local ids = db:find_by_index(schema.FILE, file.filename)
+            local has_file = not vim.tbl_isempty(ids)
 
             if has_file then
-                modify_file_in_database(db, file, { force = opts.force })
+                log.fmt_debug("modifying in database: %s", file.filename)
+                modify_file_in_database(db, file, {
+                    force = opts.force or file.metadata.changedtick ~= changedtick,
+                })
             else
-                insert_new_file_into_database(db, file)
+                log.fmt_debug("inserting into database: %s", file.filename)
+                insert_new_file_into_database(db, file, {
+                    force = opts.force or file.metadata.changedtick ~= changedtick,
+                })
             end
 
             return {
@@ -281,7 +334,9 @@ function M:database()
                 local db = Database:new()
                 schema:update(db)
                 self.__db = db
-                return resolve(db)
+                return vim.schedule(function()
+                    resolve(db)
+                end)
             end
 
             Database:load_from_disk(self.path.database, function(err, db)
@@ -292,7 +347,9 @@ function M:database()
                 ---@cast db -nil
                 schema:update(db)
                 self.__db = db
-                return resolve(db)
+                return vim.schedule(function()
+                    resolve(db)
+                end)
             end)
         end)
     end)

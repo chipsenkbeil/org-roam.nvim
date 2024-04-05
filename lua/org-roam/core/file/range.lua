@@ -72,13 +72,13 @@ end
 function M:from_org_file_and_range(file, range)
     local start = {
         row = range.start_line - 1,
-        column = range.start_col,
+        column = range.start_col - 1,
         offset = range.start_col - 1,
     }
 
     local end_ = {
         row = range.end_line - 1,
-        column = range.end_col,
+        column = range.end_col - 1,
         offset = range.end_col - 1,
     }
 

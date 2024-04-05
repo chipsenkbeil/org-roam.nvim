@@ -8,6 +8,7 @@ local CONFIG = require("org-roam.config")
 local db = require("org-roam.database")
 local io = require("org-roam.core.utils.io")
 local notify = require("org-roam.core.ui.notify")
+local path_utils = require("org-roam.core.utils.path")
 local select_node = require("org-roam.ui.select-node")
 local utils = require("org-roam.utils")
 
@@ -192,57 +193,63 @@ function M.__capture(opts, cb)
         end)
     end
 
+    ---@param capture_opts OrgProcessCaptureOpts
+    local function on_pre_refile(_, capture_opts)
+        local title = capture_opts.source_file:get_directive("title")
+            or opts.title
+            or vim.fn.fnamemodify(capture_opts.source_file.filename, ":t:r")
+        local slug = utils.title_to_slug(title)
+
+        local expansions = {
+            ["%[title]"] = function()
+                return title
+            end,
+            ["%[sep]"] = function()
+                return path_utils.separator()
+            end,
+            ["%[slug]"] = function()
+                return slug
+            end,
+        }
+
+        local target = capture_opts.template.target
+        if target then
+            capture_opts.template.target = fill_expansions(
+                target,
+                expansions
+            )
+        end
+    end
+
+    ---@param capture_opts OrgProcessCaptureOpts
+    local function on_post_refile(_, capture_opts)
+        -- Look for the id of the newly-captured ram node
+        local id = capture_opts.source_file:get_property("ID")
+
+        -- If we don't find a file-level node, look for headline nodes
+        if not id then
+            for _, headline in ipairs(capture_opts.source_file:get_headlines()) do
+                id = headline:get_property("ID", false)
+                if id then break end
+            end
+        end
+
+        -- Reload the file that was written due to a refile
+        local filename = capture_opts.destination_file.filename
+        db:load_file({ path = filename })
+            :next(function(...)
+                cb(id)
+                return ...
+            end)
+            :catch(function(_) cb(nil) end)
+    end
+
     db:files():next(function(files)
         local capture = Capture:new({
             files = files,
             templates = templates,
-            on_pre_refile = function(_, capture_opts)
-                local title = capture_opts.source_file:get_directive("title")
-                    or opts.title
-                    or vim.fn.fnamemodify(capture_opts.source_file.filename, ":t:r")
-                local slug = utils.title_to_slug(title)
-
-                local expansions = {
-                    ["%[title]"] = function()
-                        return title
-                    end,
-                    ["%[slug]"] = function()
-                        return slug
-                    end,
-                }
-
-                local target = capture_opts.template.target
-                if target then
-                    capture_opts.template.target = fill_expansions(
-                        target,
-                        expansions
-                    )
-                end
-            end,
-            on_post_refile = function(_, capture_opts)
-                -- Look for the id of the newly-captured ram node
-                local id = capture_opts.source_file:get_property("ID")
-
-                -- If we don't find a file-level node, look for headline nodes
-                if not id then
-                    for _, headline in ipairs(capture_opts.source_file:get_headlines()) do
-                        id = headline:get_property("ID", false)
-                        if id then break end
-                    end
-                end
-
-                -- Reload the file that was written due to a refile
-                local filename = capture_opts.destination_file.filename
-                db:load_file({ path = filename }, function(err)
-                    if err then
-                        notify.error(err)
-                        cb(nil)
-                        return
-                    end
-
-                    cb(id)
-                end)
-            end,
+            on_pre_refile = on_pre_refile,
+            on_post_refile = on_post_refile,
         })
 
         return capture:prompt()
