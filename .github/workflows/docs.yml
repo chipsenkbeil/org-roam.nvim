@@ -2,9 +2,10 @@ name: docs
 on:
   push:
     banches:
-      - main
+      - "main"
     paths:
-      - DOCS.org
+      - "DOCS.org"
+      - ".github/workflows/docs.yml"
 jobs:
   build-docs:
     runs-on: ubuntu-latest
