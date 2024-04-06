@@ -1,0 +1,143 @@
+* Getting Started
+
+  Port of [[https://www.orgroam.com/][Org-roam]] to neovim using [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]].
+
+** Installation
+
+   This plugin depends on [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode/orgmode]] @ [[https://github.com/nvim-orgmode/orgmode/commit/db9a4ede6c589f6bd88d52bdd358c83317ed3410][commit db9a4ed]].
+
+*** lazy.nvim
+
+    #+begin_src lua
+    {
+      "chipsenkbeil/org-roam.nvim",
+      dependencies = { 
+        { 
+          "nvim-orgmode/orgmode", 
+          commit = "db9a4ede6c589f6bd88d52bdd358c83317ed3410",
+        },
+      },
+      config = function()
+        require("org-roam").setup({
+          directory = "~/orgfiles",
+        })
+      end
+    }
+    #+end_src
+
+*** packer.nvim
+
+    #+begin_src lua
+    use {
+      "chipsenkbeil/org-roam.nvim",
+      requires = { 
+        { 
+          "nvim-orgmode/orgmode",
+          commit = "db9a4ede6c589f6bd88d52bdd358c83317ed3410",
+        },
+      },
+      config = function()
+        require("org-roam"):setup({
+          directory = "~/orgfiles",
+        })
+      end
+    }
+    #+end_src
+
+* Settings
+
+  TODO
+
+* Bindings
+
+  | Name                     | Keybinding   | Description                                                             |
+  |--------------------------+--------------+-------------------------------------------------------------------------|
+  | capture                  | =<Leader>nc= | Opens org-roam capture window.                                          |
+  | complete_at_point        | =<Leader>n/= | Completes the node under cursor.                                        |
+  | find_node                | =<Leader>nf= | Finds node and moves to it, creating it if it does not exist.           |
+  | insert_node              | =<Leader>ni= | Inserts node at cursor position, creating it if it does not exist.      |
+  | quickfix_backlinks       | =<Leader>nq= | Opens the quickfix menu for backlinks to the current node under cursor. |
+  | toggle_roam_buffer       | =<Leader>nl= | Toggles the org-roam node-view buffer for the node under cursor.        |
+  | toggle_roam_buffer_fixed | =<Leader>nb= | Toggles a fixed org-roam node-view buffer for a selected node.          |
+
+  Bindings can be changed during configuration by overwriting them within the =bindings= table:
+
+  #+begin_src lua
+  require("org-roam"):setup({
+    -- ...
+    bindings = {
+      capture = "<LocalLeader>nc",
+    },
+  })
+  #+end_src
+
+  To disable all bindings, set the =bindings= field to =false=:
+
+  #+begin_src lua
+  require("org-roam"):setup({
+    -- ...
+    bindings = false,
+  })
+  #+end_src
+
+** Coming from Emacs
+
+   Want to have bindings similar to Emacs's [[https://www.orgroam.com/][Org Roam]]?
+   Here is a recommended setup you can use to leverage =C-c=
+
+   #+begin_src lua
+   require("org-roam"):setup({
+     -- ...
+     bindings = {
+       capture                  = "<C-c>nc",
+       complete_at_point        = "<M-/>",
+       find_node                = "<C-c>nf",
+       insert_node              = "<C-c>ni",
+       quickfix_backlinks       = "<C-c>nq",
+       toggle_roam_buffer       = "<C-c>nl",
+       toggle_roam_buffer_fixed = "<C-c>nb",
+     },
+   })
+   #+end_src
+
+   Keep in mind that [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]] maps =C-c= to
+   closing a capture window, so you'll want to rebind it:
+
+   #+begin_src lua
+   -- Override `org_capture_finalize` mapping to make org-roam mappings work in capture window
+   require("orgmode").setup({
+     mappings = {
+       capture = {
+         -- Behave like Emacs' orgmode capture
+         org_capture_finalize = "<C-c><C-c>",
+       }
+     }
+   })
+   #+end_src
+
+* User Interface
+
+** Org Roam Buffer
+
+   When within the org-roam buffer, you can navigate around like normal with a
+   couple of specific bindings available:
+
+   - Press =<Enter>= on a link to navigate to it in another window.
+   - Press =<Tab>= to expand or collapse a preview of the content of a
+     backlink, reference link, or unlinked reference.
+
+* API
+
+  TODO
+
+* Changelog
+
+  TODO
+
+* Credits
+
+  - [[https://github.com/kristijanhusak][Kristijan Husak]] for creating [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]] (the backbone of functionality in neovim that we leverage)
+  - [[https://github.com/jethrokuan][Jethro Kuan]] for creating [[https://github.com/org-roam/org-roam][Org Roam (Emacs)]] (the original implementation whose design we copied)
+  - [[https://github.com/minad][Daniel Mendler]] for creating [[https://github.com/minad/vertico][vertico.el]] (inspiration for ourg selection dialog)
+  - [[https://github.com/s1n7ax][Srinesh Nisala]] for creating [[https://github.com/s1n7ax/nvim-window-picker][nvim-window-picker]] (integrated directly for our window selection)
+  - [[https://github.com/kdheepak][Dheepak Krishnamurthy]] for creating [[https://github.com/kdheepak/panvimdoc][panvimdoc]] (used to create our vimdoc)

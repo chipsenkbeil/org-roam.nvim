@@ -1,6 +1,6 @@
 * org-roam.nvim
 
-  Port of org-roam to neovim using orgmode.
+  Port of [[https://www.orgroam.com/][Org-roam]] to neovim using [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]].
 
 ** Table of Contents
 
@@ -89,40 +89,40 @@
    })
    #+end_src
 
-**** Coming from Emacs
+*** Coming from Emacs
 
-     Want to have bindings similar to Emacs's [[https://www.orgroam.com/][Org Roam]]?
-     Here is a recommended setup you can use to leverage =C-c=
+    Want to have bindings similar to Emacs's [[https://www.orgroam.com/][Org Roam]]?
+    Here is a recommended setup you can use to leverage =C-c=
 
-     #+begin_src lua
-     require("org-roam"):setup({
-       -- ...
-       bindings = {
-         capture                  = "<C-c>nc",
-         complete_at_point        = "<M-/>",
-         find_node                = "<C-c>nf",
-         insert_node              = "<C-c>ni",
-         quickfix_backlinks       = "<C-c>nq",
-         toggle_roam_buffer       = "<C-c>nl",
-         toggle_roam_buffer_fixed = "<C-c>nb",
-       },
-     })
-     #+end_src
+    #+begin_src lua
+    require("org-roam"):setup({
+      -- ...
+      bindings = {
+        capture                  = "<C-c>nc",
+        complete_at_point        = "<M-/>",
+        find_node                = "<C-c>nf",
+        insert_node              = "<C-c>ni",
+        quickfix_backlinks       = "<C-c>nq",
+        toggle_roam_buffer       = "<C-c>nl",
+        toggle_roam_buffer_fixed = "<C-c>nb",
+      },
+    })
+    #+end_src
 
-     Keep in mind that [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]] maps =C-c= to
-     closing a capture window, so you'll want to rebind it:
+    Keep in mind that [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]] maps =C-c= to
+    closing a capture window, so you'll want to rebind it:
 
-     #+begin_src lua
-     -- Override `org_capture_finalize` mapping to make org-roam mappings work in capture window
-     require("orgmode").setup({
-       mappings = {
-         capture = {
-           -- Behave like Emacs' orgmode capture
-           org_capture_finalize = "<C-c><C-c>",
-         }
-       }
-     })
-     #+end_src
+    #+begin_src lua
+    -- Override `org_capture_finalize` mapping to make org-roam mappings work in capture window
+    require("orgmode").setup({
+      mappings = {
+        capture = {
+          -- Behave like Emacs' orgmode capture
+          org_capture_finalize = "<C-c><C-c>",
+        }
+      }
+    })
+    #+end_src
 
 ** Org Roam Buffer
 
