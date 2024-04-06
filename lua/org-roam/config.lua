@@ -44,7 +44,7 @@ local config = setmetatable({
         capture = "<Leader>nc",
 
         ---Completes the node under cursor.
-        complete_at_point = "<Leader>/",
+        complete_at_point = "<Leader>n/",
 
         ---Finds node and moves to it.
         find_node = "<Leader>nf",
