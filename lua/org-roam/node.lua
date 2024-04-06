@@ -142,10 +142,6 @@ local function build_templates(opts)
     opts = opts or {}
     local Templates = require("orgmode.capture.templates")
 
-    -- Grab the title, which if it does not exist and we detect
-    -- that we need it, we will prompt for it
-    local title = opts.title
-
     -- Build our templates such that they include titles and org-ids
     ---@type OrgCaptureTemplates
     local templates = Templates:new(CONFIG.templates)
@@ -155,26 +151,18 @@ local function build_templates(opts)
             template.target = fill_expansions(template.target)
         end
 
-        -- Detect if we need to prompt for a title because the title or slug
-        -- is being used
-        if not title and string_contains_one_of(template.target, {
-                TARGET_EXPANSION_KEYS.TITLE,
-                TARGET_EXPANSION_KEYS.SLUG,
-            }) then
-            title = vim.fn.input("Enter title for node: ")
-            if vim.trim(title) == "" then
-                notify.echo_error("Capture needs a title")
-                return
-            end
-        end
-
         -- Always include the entire capture contents, not just
         -- the headline, to make sure the generated property
         -- drawer and title directive are included
         template.whole_file = true
 
         -- Each template should prefix with an org-roam id
-        templates[key] = template:on_compile(function(content)
+        ---@param content string
+        ---@param type "content"|"target"
+        templates[key] = template:on_compile(function(content, type)
+            -- Only handle content with our compile logic
+            if type ~= "content" then return content end
+
             -- Figure out our template's target
             local target = template.target
                 or require("orgmode.config").org_default_notes_file
@@ -191,6 +179,16 @@ local function build_templates(opts)
                     ":ID: " .. require('orgmode.org.id').new(),
                     ":END:",
                 }
+
+                -- Grab the title, which if it does not exist and we detect
+                -- that we need it, we will prompt for it
+                local title = opts.title
+                if not title and string_contains_one_of(template.target, {
+                        TARGET_EXPANSION_KEYS.TITLE,
+                        TARGET_EXPANSION_KEYS.SLUG,
+                    }) then
+                    title = vim.fn.input("Enter title for node: ")
+                end
 
                 -- If we have a title specified, include it
                 if title then
