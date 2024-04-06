@@ -24,8 +24,7 @@ Port of Org-roam <https://www.orgroam.com/> to neovim using nvim-orgmode
 INSTALLATION                           *org-roam-getting-started-installation*
 
 This plugin depends on nvim-orgmode/orgmode
-<https://github.com/nvim-orgmode/orgmode> @ commit db9a4ed
-<https://github.com/nvim-orgmode/orgmode/commit/db9a4ede6c589f6bd88d52bdd358c83317ed3410>.
+<https://github.com/nvim-orgmode/orgmode> @ _commit 4874e72_.
 
 
 LAZY.NVIM ~
@@ -36,7 +35,7 @@ LAZY.NVIM ~
       dependencies = { 
         { 
           "nvim-orgmode/orgmode", 
-          commit = "db9a4ede6c589f6bd88d52bdd358c83317ed3410",
+          commit = "4874e72ab434c440e955b7bc4d9a2df884370137",
         },
       },
       config = function()
@@ -56,7 +55,7 @@ PACKER.NVIM ~
       requires = { 
         { 
           "nvim-orgmode/orgmode",
-          commit = "db9a4ede6c589f6bd88d52bdd358c83317ed3410",
+          commit = "4874e72ab434c440e955b7bc4d9a2df884370137",
         },
       },
       config = function()
