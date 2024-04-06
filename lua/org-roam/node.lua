@@ -22,6 +22,13 @@ local EXPANSIONS = {
     end,
 }
 
+---Target-specific expansions (keys only).
+local TARGET_EXPANSION_KEYS = {
+    SEP   = "%[sep]",
+    SLUG  = "%[slug]",
+    TITLE = "%[title]",
+}
+
 ---@param content string
 ---@param expansions? {[string]:fun():string}
 ---@return string
@@ -114,46 +121,51 @@ function M.find()
     end)
 end
 
----Creates a node if it does not exist, and restores the current window
----configuration upon completion.
----@param opts? {title?:string}
----@param cb? fun(id:org-roam.core.database.Id|nil)
-function M.capture(opts, cb)
-    opts = opts or {}
-    cb = cb or function() end
-
-    local title = opts.title
-    if title then
-        M.__capture({ title = title }, cb)
-    else
-        ---@param input string|nil
-        vim.ui.input({ prompt = "Enter title for node: " }, function(input)
-            if input ~= nil and input ~= "" then
-                M.__capture({ title = input }, cb)
-            else
-                notify.echo_error("Capture needs a title")
-            end
-        end)
+---@param s string
+---@param ... string|string[]
+local function string_contains_one_of(s, ...)
+    ---@type string[]
+    local candidates = vim.tbl_flatten({ ... })
+    for _, c in ipairs(candidates) do
+        if string.match(s, vim.pesc(c)) then
+            return true
+        end
     end
+    return false
 end
 
----@private
----@param opts {title:string}
----@param cb fun(id:org-roam.core.database.Id|nil)
-function M.__capture(opts, cb)
+---Construct org-roam templates with custom expansions applied.
+---Returns `nil` if requested input and received nothing.
+---@param opts? {title?:string}
+---@return OrgCaptureTemplates|nil
+local function build_templates(opts)
     opts = opts or {}
-    cb = cb or function() end
-
-    local Capture = require("orgmode.capture")
     local Templates = require("orgmode.capture.templates")
+
+    -- Grab the title, which if it does not exist and we detect
+    -- that we need it, we will prompt for it
+    local title = opts.title
 
     -- Build our templates such that they include titles and org-ids
     ---@type OrgCaptureTemplates
     local templates = Templates:new(CONFIG.templates)
     for key, template in pairs(templates.templates) do
-        -- Resolve our expansions in the target
+        -- Resolve our general expansions in the target
         if template.target then
             template.target = fill_expansions(template.target)
+        end
+
+        -- Detect if we need to prompt for a title because the title or slug
+        -- is being used
+        if not title and string_contains_one_of(template.target, {
+                TARGET_EXPANSION_KEYS.TITLE,
+                TARGET_EXPANSION_KEYS.SLUG,
+            }) then
+            title = vim.fn.input("Enter title for node: ")
+            if vim.trim(title) == "" then
+                notify.echo_error("Capture needs a title")
+                return
+            end
         end
 
         -- Always include the entire capture contents, not just
@@ -170,7 +182,7 @@ function M.__capture(opts, cb)
             -- Check if the target exists by getting stat of it; if no error, it exists
             local exists = not io.stat_sync(target)
 
-            -- Fill in org-roam expansions for our content, and if the
+            -- Fill in org-roam general expansions for our content, and if the
             -- file does not exist then add our prefix
             content = fill_expansions(content)
             if not exists then
@@ -181,8 +193,8 @@ function M.__capture(opts, cb)
                 }
 
                 -- If we have a title specified, include it
-                if opts.title then
-                    table.insert(prefix, "#+TITLE: " .. opts.title)
+                if title then
+                    table.insert(prefix, "#+TITLE: " .. title)
                 end
 
                 -- Prepend our prefix ensuring blank line between it and content
@@ -193,36 +205,50 @@ function M.__capture(opts, cb)
         end)
     end
 
+    return templates
+end
+
+---@param opts? {title?:string}
+---@return fun(capture:OrgCapture, opts:OrgProcessCaptureOpts)
+local function make_on_pre_refile(opts)
+    opts = opts or {}
+
+    ---@param _ OrgCapture
     ---@param capture_opts OrgProcessCaptureOpts
-    local function on_pre_refile(_, capture_opts)
+    return function(_, capture_opts)
         local title = capture_opts.source_file:get_directive("title")
             or opts.title
             or vim.fn.fnamemodify(capture_opts.source_file.filename, ":t:r")
         local slug = utils.title_to_slug(title)
 
         local expansions = {
-            ["%[title]"] = function()
+            [TARGET_EXPANSION_KEYS.TITLE] = function()
                 return title
             end,
-            ["%[sep]"] = function()
+            [TARGET_EXPANSION_KEYS.SEP] = function()
                 return path_utils.separator()
             end,
-            ["%[slug]"] = function()
+            [TARGET_EXPANSION_KEYS.SLUG] = function()
                 return slug
             end,
         }
 
         local target = capture_opts.template.target
         if target then
+            -- Fill in our custom target-only expansions
             capture_opts.template.target = fill_expansions(
                 target,
                 expansions
             )
         end
     end
+end
 
+---@param cb fun(id:org-roam.core.database.Id|nil)
+---@return fun(capture:OrgCapture, opts:OrgProcessCaptureOpts)
+local function make_on_post_refile(cb)
     ---@param capture_opts OrgProcessCaptureOpts
-    local function on_post_refile(_, capture_opts)
+    return function(_, capture_opts)
         -- Look for the id of the newly-captured ram node
         local id = capture_opts.source_file:get_property("ID")
 
@@ -243,8 +269,24 @@ function M.__capture(opts, cb)
             end)
             :catch(function(_) cb(nil) end)
     end
+end
+
+---Creates a node if it does not exist, and restores the current window
+---configuration upon completion.
+---@param opts? {title?:string}
+---@param cb? fun(id:org-roam.core.database.Id|nil)
+function M.capture(opts, cb)
+    opts = opts or {}
+    cb = cb or function() end
+
+    local templates = build_templates(opts)
+    if not templates then return end
+
+    local on_pre_refile = make_on_pre_refile(opts)
+    local on_post_refile = make_on_post_refile(cb)
 
     db:files():next(function(files)
+        local Capture = require("orgmode.capture")
         local capture = Capture:new({
             files = files,
             templates = templates,
