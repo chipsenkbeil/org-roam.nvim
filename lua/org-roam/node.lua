@@ -188,6 +188,11 @@ local function build_templates(opts)
                         TARGET_EXPANSION_KEYS.SLUG,
                     }) then
                     title = vim.fn.input("Enter title for node: ")
+
+                    -- If we did not get a title, return nil to cancel
+                    if vim.trim(title) == "" then
+                        return
+                    end
                 end
 
                 -- If we have a title specified, include it
