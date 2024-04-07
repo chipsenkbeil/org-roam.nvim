@@ -7,7 +7,6 @@
 local CONFIG = require("org-roam.config")
 local db = require("org-roam.database")
 local io = require("org-roam.core.utils.io")
-local notify = require("org-roam.core.ui.notify")
 local path_utils = require("org-roam.core.utils.path")
 local select_node = require("org-roam.ui.select-node")
 local utils = require("org-roam.utils")
@@ -44,83 +43,6 @@ end
 ---@class org-roam.NodeApi
 local M = {}
 
----Creates a node if it does not exist, and inserts a link to the node
----at the current cursor location.
-function M.insert()
-    local winnr = vim.api.nvim_get_current_win()
-    local cursor = vim.api.nvim_win_get_cursor(winnr)
-
-    ---@param id org-roam.core.database.Id
-    local function insert_link(id)
-        local node = db:get_sync(id)
-
-        if node then
-            local ok = pcall(vim.api.nvim_set_current_win, winnr)
-            if not ok then return end
-
-            -- Ignore errors that occur here
-            pcall(vim.api.nvim_win_set_cursor, winnr, cursor)
-
-            local bufnr = vim.api.nvim_win_get_buf(winnr)
-            local row = cursor[1] - 1
-            local col = cursor[2]
-            vim.api.nvim_buf_set_text(bufnr, row, col, row, col, {
-                string.format("[[id:%s][%s]]", node.id, node.title)
-            })
-
-            -- Force ourselves back into normal mode
-            vim.cmd("stopinsert")
-        end
-    end
-
-    select_node({ allow_select_missing = true }, function(node)
-        if node.id then
-            insert_link(node.id)
-            return
-        end
-
-        M.capture({ title = node.label }, function(id)
-            if id then
-                insert_link(id)
-                return
-            end
-        end)
-    end)
-end
-
----Creates a node if it does not exist, and visits the node.
-function M.find()
-    local winnr = vim.api.nvim_get_current_win()
-
-    ---@param id org-roam.core.database.Id
-    local function visit_node(id)
-        local node = db:get_sync(id)
-
-        if node then
-            local ok = pcall(vim.api.nvim_set_current_win, winnr)
-            if not ok then return end
-            vim.cmd("edit! " .. node.file)
-
-            -- Force ourselves back into normal mode
-            vim.cmd("stopinsert")
-        end
-    end
-
-    select_node({ allow_select_missing = true }, function(node)
-        if node.id then
-            visit_node(node.id)
-            return
-        end
-
-        M.capture({ title = node.label }, function(id)
-            if id then
-                visit_node(id)
-                return
-            end
-        end)
-    end)
-end
-
 ---@param s string
 ---@param ... string|string[]
 local function string_contains_one_of(s, ...)
@@ -137,7 +59,7 @@ end
 ---Construct org-roam templates with custom expansions applied.
 ---Returns `nil` if requested input and received nothing.
 ---@param opts? {title?:string}
----@return OrgCaptureTemplates|nil
+---@return OrgCaptureTemplates
 local function build_templates(opts)
     opts = opts or {}
     local Templates = require("orgmode.capture.templates")
@@ -276,15 +198,13 @@ end
 
 ---Creates a node if it does not exist, and restores the current window
 ---configuration upon completion.
----@param opts? {title?:string}
+---@param opts? {title?:string, immediate?:boolean}
 ---@param cb? fun(id:org-roam.core.database.Id|nil)
 function M.capture(opts, cb)
     opts = opts or {}
     cb = cb or function() end
 
     local templates = build_templates(opts)
-    if not templates then return end
-
     local on_pre_refile = make_on_pre_refile(opts)
     local on_post_refile = make_on_post_refile(cb)
 
@@ -298,6 +218,89 @@ function M.capture(opts, cb)
         })
 
         return capture:prompt()
+    end)
+end
+
+---Creates a node if it does not exist, and inserts a link to the node
+---at the current cursor location.
+---
+---If `immediate` is true, no template will be used to create a node and
+---instead the node will be created with the minimum information and the
+---link injected without navigating to another buffer.
+---@param opts? {immediate?:boolean}
+function M.insert(opts)
+    opts = opts or {}
+    local winnr = vim.api.nvim_get_current_win()
+    local cursor = vim.api.nvim_win_get_cursor(winnr)
+
+    ---@param id org-roam.core.database.Id
+    local function insert_link(id)
+        local node = db:get_sync(id)
+
+        if node then
+            local ok = pcall(vim.api.nvim_set_current_win, winnr)
+            if not ok then return end
+
+            -- Ignore errors that occur here
+            pcall(vim.api.nvim_win_set_cursor, winnr, cursor)
+
+            local bufnr = vim.api.nvim_win_get_buf(winnr)
+            local row = cursor[1] - 1
+            local col = cursor[2]
+            vim.api.nvim_buf_set_text(bufnr, row, col, row, col, {
+                string.format("[[id:%s][%s]]", node.id, node.title)
+            })
+
+            -- Force ourselves back into normal mode
+            vim.cmd("stopinsert")
+        end
+    end
+
+    select_node({ allow_select_missing = true }, function(node)
+        if node.id then
+            insert_link(node.id)
+            return
+        end
+
+        M.capture({ title = node.label, immediate = opts.immediate }, function(id)
+            if id then
+                insert_link(id)
+                return
+            end
+        end)
+    end)
+end
+
+---Creates a node if it does not exist, and visits the node.
+function M.find()
+    local winnr = vim.api.nvim_get_current_win()
+
+    ---@param id org-roam.core.database.Id
+    local function visit_node(id)
+        local node = db:get_sync(id)
+
+        if node then
+            local ok = pcall(vim.api.nvim_set_current_win, winnr)
+            if not ok then return end
+            vim.cmd("edit! " .. node.file)
+
+            -- Force ourselves back into normal mode
+            vim.cmd("stopinsert")
+        end
+    end
+
+    select_node({ allow_select_missing = true }, function(node)
+        if node.id then
+            visit_node(node.id)
+            return
+        end
+
+        M.capture({ title = node.label }, function(id)
+            if id then
+                visit_node(id)
+                return
+            end
+        end)
     end)
 end
 
