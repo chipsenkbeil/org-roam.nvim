@@ -7,6 +7,8 @@
 local CONFIG = require("org-roam.config")
 local db = require("org-roam.database")
 local io = require("org-roam.core.utils.io")
+local log = require("org-roam.core.log")
+local notify = require("org-roam.core.ui.notify")
 local path_utils = require("org-roam.core.utils.path")
 local select_node = require("org-roam.ui.select-node")
 local utils = require("org-roam.utils")
@@ -28,6 +30,9 @@ local TARGET_EXPANSION_KEYS = {
     TITLE = "%[title]",
 }
 
+---@class org-roam.NodeApi
+local M = {}
+
 ---@param content string
 ---@param expansions? {[string]:fun():string}
 ---@return string
@@ -40,9 +45,6 @@ local function fill_expansions(content, expansions)
     return content
 end
 
----@class org-roam.NodeApi
-local M = {}
-
 ---@param s string
 ---@param ... string|string[]
 local function string_contains_one_of(s, ...)
@@ -54,6 +56,33 @@ local function string_contains_one_of(s, ...)
         end
     end
     return false
+end
+
+---@param file OrgFile
+---@param opts? {title?:string}
+---@return fun(target:string):string
+local function make_target_expander(file, opts)
+    opts = opts or {}
+    local title = file:get_directive("title")
+        or opts.title
+        or vim.fn.fnamemodify(file.filename, ":t:r")
+    local slug = utils.title_to_slug(title)
+
+    local expansions = {
+        [TARGET_EXPANSION_KEYS.TITLE] = function()
+            return title
+        end,
+        [TARGET_EXPANSION_KEYS.SEP] = function()
+            return path_utils.separator()
+        end,
+        [TARGET_EXPANSION_KEYS.SLUG] = function()
+            return slug
+        end,
+    }
+
+    return function(target)
+        return fill_expansions(target, expansions)
+    end
 end
 
 ---Construct org-roam templates with custom expansions applied.
@@ -141,30 +170,13 @@ local function make_on_pre_refile(opts)
     ---@param _ OrgCapture
     ---@param capture_opts OrgProcessCaptureOpts
     return function(_, capture_opts)
-        local title = capture_opts.source_file:get_directive("title")
-            or opts.title
-            or vim.fn.fnamemodify(capture_opts.source_file.filename, ":t:r")
-        local slug = utils.title_to_slug(title)
-
-        local expansions = {
-            [TARGET_EXPANSION_KEYS.TITLE] = function()
-                return title
-            end,
-            [TARGET_EXPANSION_KEYS.SEP] = function()
-                return path_utils.separator()
-            end,
-            [TARGET_EXPANSION_KEYS.SLUG] = function()
-                return slug
-            end,
-        }
+        local expander = make_target_expander(capture_opts.source_file, {
+            title = opts.title,
+        })
 
         local target = capture_opts.template.target
         if target then
-            -- Fill in our custom target-only expansions
-            capture_opts.template.target = fill_expansions(
-                target,
-                expansions
-            )
+            capture_opts.template.target = expander(target)
         end
     end
 end
@@ -205,20 +217,70 @@ function M.capture(opts, cb)
     cb = cb or function() end
 
     local templates = build_templates(opts)
-    local on_pre_refile = make_on_pre_refile(opts)
-    local on_post_refile = make_on_post_refile(cb)
 
-    db:files():next(function(files)
-        local Capture = require("orgmode.capture")
-        local capture = Capture:new({
-            files = files,
-            templates = templates,
-            on_pre_refile = on_pre_refile,
-            on_post_refile = on_post_refile,
-        })
+    if opts.immediate then
+        local template = templates.templates[CONFIG.immediate.key]
+        if not template then
+            notify.echo_error("invalid immediate template key: " .. CONFIG.immediate.key)
+            return
+        end
 
-        return capture:prompt()
-    end)
+        ---@param content string[]|nil
+        template:compile():next(function(content)
+            if not content then
+                return notify.echo_info("canceled")
+            end
+
+            -- Target should also have been updated for orgmode expansions,
+            -- but not for org-roam expansions
+            -- TODO
+            local path = template.target
+
+            io.write_file(path, content, function(err)
+                if err then
+                    notify.error(err)
+                    log.error(err)
+                    return
+                end
+
+                vim.schedule(function()
+                    db:load_file({ path = path }):next(function(result)
+                        local file = result.file
+
+                        -- Look for the id of the newly-captured file
+                        local id = file:get_property("ID")
+
+                        -- If we don't find a file-level node, look for headline nodes
+                        if not id then
+                            for _, headline in ipairs(file:get_headlines()) do
+                                id = headline:get_property("ID", false)
+                                if id then break end
+                            end
+                        end
+
+                        -- Trigger the callback regardless of whether we got an id
+                        vim.schedule(function() cb(id) end)
+
+                        return file
+                    end)
+                end)
+            end)
+        end)
+    else
+        local on_pre_refile = make_on_pre_refile(opts)
+        local on_post_refile = make_on_post_refile(cb)
+        db:files():next(function(files)
+            local Capture = require("orgmode.capture")
+            local capture = Capture:new({
+                files = files,
+                templates = templates,
+                on_pre_refile = on_pre_refile,
+                on_post_refile = on_post_refile,
+            })
+
+            return capture:prompt()
+        end)
+    end
 end
 
 ---Creates a node if it does not exist, and inserts a link to the node

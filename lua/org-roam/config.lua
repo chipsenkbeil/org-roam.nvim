@@ -87,7 +87,7 @@ local config = setmetatable({
 
     ---Settings tied to org-roam capture templates.
     ---@class org-roam.config.Templates
-    ---@field [string] table
+    ---@field [string] OrgCaptureTemplateOpts
     templates = {
         d = {
             description = "default",
