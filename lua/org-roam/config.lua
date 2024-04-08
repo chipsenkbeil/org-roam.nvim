@@ -30,6 +30,7 @@ local function replace(tbl, opts)
     end
 end
 
+---Global configuration settings leveraged through org-roam.
 ---@class org-roam.Config
 ---@overload fun(config:org-roam.Config)
 local config = setmetatable({
@@ -51,6 +52,9 @@ local config = setmetatable({
 
         ---Inserts node at cursor position.
         insert_node = "<Leader>ni",
+
+        ---Inserts node at cursor position without opening capture buffer.
+        insert_node_immediate = "<Leader>nm",
 
         ---Opens the quickfix menu for backlinks to the current node under cursor.
         quickfix_backlinks = "<Leader>nq",
@@ -81,6 +85,7 @@ local config = setmetatable({
         update_on_save = true,
     },
 
+    ---Settings tied to org-roam capture templates.
     ---@class org-roam.config.Templates
     ---@field [string] table
     templates = {
@@ -91,8 +96,18 @@ local config = setmetatable({
         },
     },
 
+    ---Settings tied to immediate-mode node operations.
+    ---@class org-roam.config.Immediate
+    immediate = {
+        ---Key within the templates dictionary to use with immediate mode.
+        ---@type string
+        key = "d",
+    },
+
+    ---Settings tied to the user interface.
     ---@class org-roam.config.UserInterface
     ui = {
+        ---Mouse-related configuration settings.
         ---@class org-roam.config.ui.Mouse
         mouse = {
             ---If true, clicking on links will open them.
@@ -109,6 +124,7 @@ local config = setmetatable({
             highlight_links_group = "WarningMsg",
         },
 
+        ---Node view buffer configuration settings.
         ---@class org-roam.config.ui.NodeView
         node_view = {
             ---If true, previews will be highlighted as org syntax when expanded.
