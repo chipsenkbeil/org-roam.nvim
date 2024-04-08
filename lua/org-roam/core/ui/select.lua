@@ -542,11 +542,16 @@ function M:__refresh_filter()
     end
 
     -- If we got exactly one item with our initial filter and we have
-    -- enabled auto-select, we're done and we should return it
+    -- enabled auto-select, or we support allowing missing selection
+    -- and have no items with auto-select enabled, we're done and we
+    -- should return it
     if self.__params.auto_select then
         local is_initial_input = text == self.__params.init_input
+        local is_nonempty = vim.trim(text) ~= ""
         local has_one_item = #self.__view.filtered_items == 1
-        if is_initial_input and has_one_item then
+        local use_missing = self.__params.allow_select_missing
+            and #self.__view.filtered_items == 0
+        if is_nonempty and is_initial_input and (has_one_item or use_missing) then
             self:__trigger_selection()
         end
     end
