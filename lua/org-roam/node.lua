@@ -198,7 +198,7 @@ end
 
 ---Creates a node if it does not exist, and restores the current window
 ---configuration upon completion.
----@param opts? {title?:string, immediate?:boolean}
+---@param opts? {immediate?:boolean, title?:string}
 ---@param cb? fun(id:org-roam.core.database.Id|nil)
 function M.capture(opts, cb)
     opts = opts or {}
@@ -227,7 +227,7 @@ end
 ---If `immediate` is true, no template will be used to create a node and
 ---instead the node will be created with the minimum information and the
 ---link injected without navigating to another buffer.
----@param opts? {immediate?:boolean}
+---@param opts? {immediate?:boolean, title?:string}
 function M.insert(opts)
     opts = opts or {}
     local winnr = vim.api.nvim_get_current_win()
@@ -256,7 +256,11 @@ function M.insert(opts)
         end
     end
 
-    select_node({ allow_select_missing = true }, function(node)
+    select_node({
+        allow_select_missing = true,
+        auto_select = opts.immediate,
+        init_input = opts.title,
+    }, function(node)
         if node.id then
             insert_link(node.id)
             return
@@ -272,7 +276,9 @@ function M.insert(opts)
 end
 
 ---Creates a node if it does not exist, and visits the node.
-function M.find()
+---@param opts? {title?:string}
+function M.find(opts)
+    opts = opts or {}
     local winnr = vim.api.nvim_get_current_win()
 
     ---@param id org-roam.core.database.Id
@@ -289,7 +295,10 @@ function M.find()
         end
     end
 
-    select_node({ allow_select_missing = true }, function(node)
+    select_node({
+        allow_select_missing = true,
+        init_input = opts.title,
+    }, function(node)
         if node.id then
             visit_node(node.id)
             return
