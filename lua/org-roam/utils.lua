@@ -173,8 +173,14 @@ function M.title_to_slug(title)
     return title
 end
 
----Extracts visual selection (supports v and V), returning lines and range.
----The range is 1-based and inclusive.
+---@class org-roam.utils.Range
+---@field start_row integer #starting row (one-indexed, inclusive)
+---@field start_col integer #starting column (one-indexed, inclusive)
+---@field end_row integer #end row (one-indexed, inclusive)
+---@field end_col integer #end column (one-indexed, inclusive)
+
+---Extracts visual selection (supports visual and linewise visual modes),
+---returning lines and range. The range is 1-based and inclusive.
 ---
 ---If `buf` is provided, will select from that buffer, otherwise defaults to
 ---the current buffer.
@@ -185,11 +191,13 @@ end
 ---
 ---From https://github.com/jackMort/ChatGPT.nvim/blob/df53728e05129278d6ea26271ec086aa013bed90/lua/chatgpt/utils.lua#L69
 ---@param opts? {buf?:integer, single_line?:boolean}
----@return string[] lines, integer start_row, integer start_col, integer end_row, integer end_col
+---@return string[] lines, org-roam.utils.Range[] ranges
 function M.get_visual_selection(opts)
     opts = opts or {}
     local bufnr = opts.buf or 0
 
+    -- Force a reset of visual selection, re-selecting it (gv), in order to get
+    -- the markers '< and '> to map to the current selection instead of older
     vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
     vim.api.nvim_feedkeys("gv", "x", false)
     vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
@@ -225,7 +233,17 @@ function M.get_visual_selection(opts)
         lines = { text }
     end
 
-    return lines, start_row, start_col, end_row, end_col
+    ---@type org-roam.utils.Range[]
+    local ranges = {
+        {
+            start_row = start_row,
+            start_col = start_col,
+            end_row = end_row,
+            end_col = end_col,
+        },
+    }
+
+    return lines, ranges
 end
 
 ---@private

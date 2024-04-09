@@ -10,6 +10,17 @@ local AUGROUP = vim.api.nvim_create_augroup("org-roam.nvim", {})
 
 local log = require("org-roam.core.log")
 
+---@alias org-roam.config.NvimMode
+---| "n"
+---| "v"
+---| "x"
+---| "s"
+---| "o"
+---| "i"
+---| "l"
+---| "c"
+---| "t"
+
 ---@param config org-roam.Config
 ---@return org-roam.Config
 local function merge_config(config)
@@ -135,7 +146,7 @@ local function define_keybindings(config)
     -- User can remove all bindings by setting this to nil
     local bindings = config.bindings or {}
 
-    ---@param lhs string|{lhs:string, modes:string[]}|nil
+    ---@param lhs string|{lhs:string, modes:org-roam.config.NvimMode[]}|nil
     ---@param desc string
     ---@param cb fun()
     local function assign(lhs, desc, cb)
@@ -210,24 +221,31 @@ local function define_keybindings(config)
         { lhs = bindings.insert_node_immediate, modes = { "n", "v" } },
         "Inserts at cursor position the selected node, creating new one if missing without opening a capture buffer",
         function()
-            ---@type string|nil, {[1]:integer, [2]:integer, [3]:integer, [4]:integer}|nil
-            local title, range
+            ---@type string|nil, org-roam.utils.Range[]|nil
+            local title, ranges
 
             ---@type string
             local mode = vim.api.nvim_get_mode()["mode"]
-            if mode == "v" then
+
+            -- Handle visual mode and linewise visual mode
+            -- (ignore blockwise-visual mode)
+            if mode == "v" or mode == "V" then
                 local utils = require("org-roam.utils")
-                local lines, sl, sc, el, ec = utils.get_visual_selection({
-                    single_line = true,
-                })
+
+                local lines
+                lines, ranges = utils.get_visual_selection({ single_line = true })
                 title = lines[1]
-                range = { sl, sc, el, ec }
+            elseif mode == "\x16" then
+                require("org-roam.core.ui.notify").echo_error(
+                    "node insertion not supported for blockwise-visual mode"
+                )
+                return
             end
 
             require("org-roam.node").insert({
                 immediate = true,
                 title = title,
-                range = range,
+                ranges = ranges,
             })
         end
     )

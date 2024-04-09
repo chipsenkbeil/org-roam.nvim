@@ -314,10 +314,10 @@ end
 ---instead the node will be created with the minimum information and the
 ---link injected without navigating to another buffer.
 ---
----If `range` is provided, will replace the given range within the buffer
----versus inserting at point. The range is {start_row, start_col, end_row, end_col}.
+---If `ranges` is provided, will replace the given ranges within the buffer
+---versus inserting at point.
 ---where everything uses 1-based indexing and inclusive.
----@param opts? {immediate?:boolean, title?:string, range?:{[1]:integer, [2]:integer, [3]:integer, [4]:integer}}
+---@param opts? {immediate?:boolean, title?:string, ranges?:org-roam.utils.Range[]}
 function M.insert(opts)
     opts = opts or {}
     local winnr = vim.api.nvim_get_current_win()
@@ -344,15 +344,26 @@ function M.insert(opts)
         local end_col = start_col
 
         -- If we have a range, use that for setting text replacement
-        if opts.range then
-            start_row = opts.range[1] - 1
-            start_col = opts.range[2] - 1
-            end_row = opts.range[3] - 1
-            end_col = opts.range[4] -- No -1 because this is exclusive
+        if opts.ranges then
+            -- For each range, we remove it (except first); do so
+            -- in reverse so we don't have to recalcuate the ranges
+            for i = #opts.ranges, 1, -1 do
+                start_row = opts.ranges[i].start_row - 1
+                start_col = opts.ranges[i].start_col - 1
+                end_row = opts.ranges[i].end_row - 1
+                end_col = opts.ranges[i].end_col -- No -1 because this is exclusive
+
+                -- Don't remove the first range as we will replace instead
+                if i == 1 then break end
+
+                -- Clear the text of this range
+                vim.api.nvim_buf_set_text(bufnr, start_row, start_col, end_row, end_col, {})
+            end
         end
 
+        -- Replace or insert the link
         vim.api.nvim_buf_set_text(bufnr, start_row, start_col, end_row, end_col, {
-            string.format("[[id:%s][%s]]", node.id, node.title)
+            string.format("[[id:%s][%s]]", node.id, node.title),
         })
 
         -- Force ourselves back into normal mode
