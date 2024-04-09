@@ -768,7 +768,9 @@ function M:__reset_cursor_and_mode()
 
     -- Reset to insert mode again, and start insert with ! to place at end
     -- of the prompt line while within insert mode
-    vim.cmd("startinsert!")
+    vim.api.nvim_buf_call(window:bufnr(), function()
+        vim.cmd("startinsert!")
+    end)
 
     -- Mark as ready
     self.__state.ready = true

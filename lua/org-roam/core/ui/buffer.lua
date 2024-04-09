@@ -152,6 +152,12 @@ function M:name()
     return vim.api.nvim_buf_get_name(self.__bufnr)
 end
 
+---Returns the lines of the underlying buffer.
+---@return string[]
+function M:lines()
+    return vim.api.nvim_buf_get_lines(self.__bufnr, 0, -1, true)
+end
+
 ---Invokes `cb` right before render has started.
 ---@param cb fun()
 function M:on_pre_render(cb)
