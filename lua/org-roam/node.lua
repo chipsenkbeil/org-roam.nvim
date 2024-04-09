@@ -121,8 +121,12 @@ local function build_template(template_opts, opts)
         local target = template.target or require("orgmode.config").org_default_notes_file
         template.target = target
 
+        -- Make a target expander so we can fully resolve the target, but if
+        -- there is no title, we use empty string so we don't prompt
+        local expander = make_target_expander(nil, { title = opts.title or "" })
+
         -- Check if the target exists by getting stat of it; if no error, it exists
-        local exists = not io.stat_sync(target)
+        local exists = vim.fn.filereadable(expander(target)) == 1
 
         -- Fill in org-roam general expansions for our content, and if the
         -- file does not exist then add our prefix
@@ -170,12 +174,12 @@ local function build_templates(opts)
     local Templates = require("orgmode.capture.templates")
 
     -- Build our templates such that they include titles and org-ids
-    local templates = {}
+    local templates = Templates:new(CONFIG.templates)
     for key, template in pairs(CONFIG.templates) do
-        templates[key] = build_template(template, opts)
+        templates.templates[key] = build_template(template, opts)
     end
 
-    return Templates:new(templates)
+    return templates
 end
 
 ---@param opts? {title?:string}
