@@ -146,6 +146,39 @@ local function define_keybindings(config)
     -- User can remove all bindings by setting this to nil
     local bindings = config.bindings or {}
 
+    ---Retrievies selection if in visual mode.
+    ---Returns "unsupported" if blockwise-visual mode.
+    ---Returns false if not in visual/linewise-visual mode.
+    ---@return {title:string, ranges:org-roam.utils.Range[]}|"unsupported"|false
+    local function get_visual_selection()
+        ---@type string
+        local mode = vim.api.nvim_get_mode()["mode"]
+
+        -- Handle visual mode and linewise visual mode
+        -- (ignore blockwise-visual mode)
+        if mode == "v" or mode == "V" then
+            local utils = require("org-roam.utils")
+            local lines, ranges = utils.get_visual_selection({ single_line = true })
+            local title = lines[1] or ""
+
+            return { title = title, ranges = ranges }
+        elseif mode == "\x16" then
+            -- Force exit visual block mode
+            local ESC_FEEDKEY = vim.api.nvim_replace_termcodes("<ESC>", true, false, true)
+            vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
+
+            vim.schedule(function()
+                require("org-roam.core.ui.notify").echo_error(
+                    "node insertion not supported for blockwise-visual mode"
+                )
+            end)
+
+            return "unsupported"
+        else
+            return false
+        end
+    end
+
     ---@param lhs string|{lhs:string, modes:org-roam.config.NvimMode[]}|nil
     ---@param desc string
     ---@param cb fun()
@@ -200,48 +233,70 @@ local function define_keybindings(config)
     )
 
     assign(
-        bindings.capture,
+        { lhs = bindings.capture, modes = { "n", "v" } },
         "Opens org-roam capture window",
-        require("org-roam.node").capture
+        function()
+            local results = get_visual_selection()
+            local title
+            if type(results) == "table" then
+                title = results.title
+            elseif results == "unsupported" then
+                return
+            end
+            require("org-roam.node").capture({
+                title = title,
+            })
+        end
     )
 
     assign(
-        bindings.find_node,
+        { lhs = bindings.find_node, modes = { "n", "v" } },
         "Finds org-roam node and moves to it, creating new one if missing",
-        require("org-roam.node").find
+        function()
+            local results = get_visual_selection()
+            local title
+            if type(results) == "table" then
+                title = results.title
+            elseif results == "unsupported" then
+                return
+            end
+            require("org-roam.node").find({
+                title = title,
+            })
+        end
     )
 
     assign(
-        bindings.insert_node,
+        { lhs = bindings.insert_node, modes = { "n", "v" } },
         "Inserts at cursor position the selected node, creating new one if missing",
-        require("org-roam.node").insert
+        function()
+            local results = get_visual_selection()
+            local title, ranges
+            if type(results) == "table" then
+                title = results.title
+                ranges = results.ranges
+            elseif results == "unsupported" then
+                return
+            end
+            require("org-roam.node").insert({
+                title = title,
+                ranges = ranges,
+            })
+        end
     )
 
     assign(
         { lhs = bindings.insert_node_immediate, modes = { "n", "v" } },
         "Inserts at cursor position the selected node, creating new one if missing without opening a capture buffer",
         function()
-            ---@type string|nil, org-roam.utils.Range[]|nil
+            local results = get_visual_selection()
             local title, ranges
-
-            ---@type string
-            local mode = vim.api.nvim_get_mode()["mode"]
-
-            -- Handle visual mode and linewise visual mode
-            -- (ignore blockwise-visual mode)
-            if mode == "v" or mode == "V" then
-                local utils = require("org-roam.utils")
-
-                local lines
-                lines, ranges = utils.get_visual_selection({ single_line = true })
-                title = lines[1]
-            elseif mode == "\x16" then
-                require("org-roam.core.ui.notify").echo_error(
-                    "node insertion not supported for blockwise-visual mode"
-                )
+            if type(results) == "table" then
+                title = results.title
+                ranges = results.ranges
+            elseif results == "unsupported" then
                 return
             end
-
             require("org-roam.node").insert({
                 immediate = true,
                 title = title,
