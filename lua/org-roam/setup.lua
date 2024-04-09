@@ -135,12 +135,23 @@ local function define_keybindings(config)
     -- User can remove all bindings by setting this to nil
     local bindings = config.bindings or {}
 
-    ---@param lhs string|nil
+    ---@param lhs string|{lhs:string, modes:string[]}|nil
     ---@param desc string
     ---@param cb fun()
     local function assign(lhs, desc, cb)
-        if type(lhs) == "string" and lhs ~= "" and type(cb) == "function" then
-            vim.api.nvim_set_keymap("n", lhs, "", {
+        if type(cb) ~= "function" then return end
+        if not lhs then return end
+
+        local modes = { "n" }
+        if type(lhs) == "table" then
+            modes = lhs.modes
+            lhs = lhs.lhs
+        end
+
+        if vim.trim(lhs) == "" or #modes == 0 then return end
+
+        for _, mode in ipairs(modes) do
+            vim.api.nvim_set_keymap(mode, lhs, "", {
                 desc = desc,
                 noremap = true,
                 callback = cb,
@@ -196,7 +207,7 @@ local function define_keybindings(config)
     )
 
     assign(
-        bindings.insert_node_immediate,
+        { lhs = bindings.insert_node_immediate, modes = { "n", "v" } },
         "Inserts at cursor position the selected node, creating new one if missing without opening a capture buffer",
         function()
             require("org-roam.node").insert({
