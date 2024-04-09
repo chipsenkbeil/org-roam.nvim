@@ -313,7 +313,11 @@ end
 ---If `immediate` is true, no template will be used to create a node and
 ---instead the node will be created with the minimum information and the
 ---link injected without navigating to another buffer.
----@param opts? {immediate?:boolean, title?:string}
+---
+---If `range` is provided, will replace the given range within the buffer
+---versus inserting at point. The range is {start_row, start_col, end_row, end_col}.
+---where everything uses 1-based indexing and inclusive.
+---@param opts? {immediate?:boolean, title?:string, range?:{[1]:integer, [2]:integer, [3]:integer, [4]:integer}}
 function M.insert(opts)
     opts = opts or {}
     local winnr = vim.api.nvim_get_current_win()
@@ -334,9 +338,20 @@ function M.insert(opts)
         pcall(vim.api.nvim_win_set_cursor, winnr, cursor)
 
         local bufnr = vim.api.nvim_win_get_buf(winnr)
-        local row = cursor[1] - 1
-        local col = cursor[2]
-        vim.api.nvim_buf_set_text(bufnr, row, col, row, col, {
+        local start_row = cursor[1] - 1
+        local start_col = cursor[2]
+        local end_row = start_row
+        local end_col = start_col
+
+        -- If we have a range, use that for setting text replacement
+        if opts.range then
+            start_row = opts.range[1] - 1
+            start_col = opts.range[2] - 1
+            end_row = opts.range[3] - 1
+            end_col = opts.range[4] -- No -1 because this is exclusive
+        end
+
+        vim.api.nvim_buf_set_text(bufnr, start_row, start_col, end_row, end_col, {
             string.format("[[id:%s][%s]]", node.id, node.title)
         })
 

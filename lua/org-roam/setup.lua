@@ -210,19 +210,24 @@ local function define_keybindings(config)
         { lhs = bindings.insert_node_immediate, modes = { "n", "v" } },
         "Inserts at cursor position the selected node, creating new one if missing without opening a capture buffer",
         function()
-            ---@type string|nil
-            local title
+            ---@type string|nil, {[1]:integer, [2]:integer, [3]:integer, [4]:integer}|nil
+            local title, range
 
             ---@type string
             local mode = vim.api.nvim_get_mode()["mode"]
             if mode == "v" then
                 local utils = require("org-roam.utils")
-                title = utils.get_visual_selection({ single_line = true })
+                local lines, sl, sc, el, ec = utils.get_visual_selection({
+                    single_line = true,
+                })
+                title = lines[1]
+                range = { sl, sc, el, ec }
             end
 
             require("org-roam.node").insert({
                 immediate = true,
                 title = title,
+                range = range,
             })
         end
     )
