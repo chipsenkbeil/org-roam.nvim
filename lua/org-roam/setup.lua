@@ -194,6 +194,17 @@ local function define_keybindings(config)
         "Inserts at cursor position the selected node, creating new one if missing",
         require("org-roam.node").insert
     )
+
+    assign(
+        bindings.insert_node_immediate,
+        "Inserts at cursor position the selected node, creating new one if missing without opening a capture buffer",
+        function()
+            require("org-roam.node").insert({
+                immediate = true,
+                -- title = "",
+            })
+        end
+    )
 end
 
 ---@param config org-roam.Config
