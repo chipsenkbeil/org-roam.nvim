@@ -269,11 +269,13 @@ function M.__capture_immediate(opts, cb)
             return notify.echo_info("canceled")
         end
 
+        local content_str = table.concat(content, "\n")
+
         -- Target needs to have target-specific expansions filled
         local expander = make_target_expander(nil, opts)
         local path = expander(template.target)
 
-        io.write_file(path, content, function(err)
+        io.write_file(path, content_str, function(err)
             if err then
                 notify.error(err)
                 log.error(err)
@@ -320,24 +322,26 @@ function M.insert(opts)
     ---@param id org-roam.core.database.Id
     local function insert_link(id)
         local node = db:get_sync(id)
-
-        if node then
-            local ok = pcall(vim.api.nvim_set_current_win, winnr)
-            if not ok then return end
-
-            -- Ignore errors that occur here
-            pcall(vim.api.nvim_win_set_cursor, winnr, cursor)
-
-            local bufnr = vim.api.nvim_win_get_buf(winnr)
-            local row = cursor[1] - 1
-            local col = cursor[2]
-            vim.api.nvim_buf_set_text(bufnr, row, col, row, col, {
-                string.format("[[id:%s][%s]]", node.id, node.title)
-            })
-
-            -- Force ourselves back into normal mode
-            vim.cmd("stopinsert")
+        if not node then
+            log.fmt_warn("node %s does not exist, so not inserting link", id)
+            return
         end
+
+        local ok = pcall(vim.api.nvim_set_current_win, winnr)
+        if not ok then return end
+
+        -- Ignore errors that occur here
+        pcall(vim.api.nvim_win_set_cursor, winnr, cursor)
+
+        local bufnr = vim.api.nvim_win_get_buf(winnr)
+        local row = cursor[1] - 1
+        local col = cursor[2]
+        vim.api.nvim_buf_set_text(bufnr, row, col, row, col, {
+            string.format("[[id:%s][%s]]", node.id, node.title)
+        })
+
+        -- Force ourselves back into normal mode
+        vim.cmd("stopinsert")
     end
 
     select_node({
@@ -368,15 +372,17 @@ function M.find(opts)
     ---@param id org-roam.core.database.Id
     local function visit_node(id)
         local node = db:get_sync(id)
-
-        if node then
-            local ok = pcall(vim.api.nvim_set_current_win, winnr)
-            if not ok then return end
-            vim.cmd("edit! " .. node.file)
-
-            -- Force ourselves back into normal mode
-            vim.cmd("stopinsert")
+        if not node then
+            log.fmt_warn("node %s does not exist, so not visiting", id)
+            return
         end
+
+        local ok = pcall(vim.api.nvim_set_current_win, winnr)
+        if not ok then return end
+        vim.cmd("edit! " .. node.file)
+
+        -- Force ourselves back into normal mode
+        vim.cmd("stopinsert")
     end
 
     select_node({
