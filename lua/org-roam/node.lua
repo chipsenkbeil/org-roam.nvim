@@ -169,16 +169,13 @@ local function build_templates(opts)
     opts = opts or {}
     local Templates = require("orgmode.capture.templates")
 
-    ---TODO: It seems like this may cause no templates to show up!!
-
     -- Build our templates such that they include titles and org-ids
-    ---@type OrgCaptureTemplates
-    local templates = Templates:new({})
+    local templates = {}
     for key, template in pairs(CONFIG.templates) do
         templates[key] = build_template(template, opts)
     end
 
-    return templates
+    return Templates:new(templates)
 end
 
 ---@param opts? {title?:string}
