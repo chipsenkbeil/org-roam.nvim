@@ -169,6 +169,43 @@ function M.title_to_slug(title)
     return title
 end
 
+---@param opts? {buf?:integer, single_line?:boolean}
+---@return string
+function M.get_visual_selection(opts)
+    opts = opts or {}
+    local buf = opts.buf or 0
+
+    local function region_to_text(region)
+        local text = ""
+        local maxcol = vim.v.maxcol
+        for line, cols in vim.spairs(region) do
+            local endcol = cols[2] == maxcol and -1 or cols[2]
+            local chunk = vim.api.nvim_buf_get_text(buf, line, cols[1], line, endcol, {})[1]
+            text = ("%s%s\n"):format(text, chunk)
+        end
+        return text
+    end
+
+    local pos1 = vim.fn.getpos("'<")
+    local pos2 = vim.fn.getpos("'>")
+    local r = vim.region(buf, pos1, pos2, vim.fn.visualmode(), true)
+    local text = region_to_text(r)
+
+    -- If single line, we trim everything and collapse newlines into spaces
+    if opts.single_line then
+        local lines = vim.split(
+            text,
+            "\n",
+            { plain = true, trimempty = true }
+        )
+        text = table.concat(vim.tbl_map(function(line)
+            return vim.trim(line)
+        end, lines), " ")
+    end
+
+    return text
+end
+
 ---@private
 M.__cache = CACHE
 
