@@ -58,24 +58,31 @@ local function string_contains_one_of(s, ...)
     return false
 end
 
----@param file OrgFile
+---@param file? OrgFile
 ---@param opts? {title?:string}
 ---@return fun(target:string):string
 local function make_target_expander(file, opts)
     opts = opts or {}
-    local title = file:get_directive("title")
-        or opts.title
-        or vim.fn.fnamemodify(file.filename, ":t:r")
-    local slug = utils.title_to_slug(title)
+    local title, sep, slug
+
+    ---@return string
+    local function get_title()
+        title = title
+            or (file and file:get_directive("title"))
+            or opts.title
+            or (file and vim.fn.fnamemodify(file.filename, ":t:r"))
+            or vim.fn.input("Enter title for node: ")
+        return title
+    end
 
     local expansions = {
-        [TARGET_EXPANSION_KEYS.TITLE] = function()
-            return title
-        end,
+        [TARGET_EXPANSION_KEYS.TITLE] = get_title,
         [TARGET_EXPANSION_KEYS.SEP] = function()
-            return path_utils.separator()
+            sep = sep or path_utils.separator()
+            return sep
         end,
         [TARGET_EXPANSION_KEYS.SLUG] = function()
+            slug = slug or utils.title_to_slug(get_title())
             return slug
         end,
     }
@@ -85,78 +92,90 @@ local function make_target_expander(file, opts)
     end
 end
 
+---Construct org-roam template with custom expansions applied.
+---@param template_opts OrgCaptureTemplateOpts
+---@param opts? {title?:string}
+---@return OrgCaptureTemplate
+local function build_template(template_opts, opts)
+    opts = opts or {}
+    local Template = require("orgmode.capture.template")
+    local template = Template:new(template_opts)
+
+    -- Resolve our general expansions in the target
+    if template.target then
+        template.target = fill_expansions(template.target)
+    end
+
+    -- Always include the entire capture contents, not just
+    -- the headline, to make sure the generated property
+    -- drawer and title directive are included
+    template.whole_file = true
+
+    ---@param content string
+    ---@param content_type "content"|"target"
+    return template:on_compile(function(content, content_type)
+        -- Ignore types other than content
+        if content_type ~= "content" then return content end
+
+        -- Figure out our template's target
+        local target = template.target or require("orgmode.config").org_default_notes_file
+        template.target = target
+
+        -- Check if the target exists by getting stat of it; if no error, it exists
+        local exists = not io.stat_sync(target)
+
+        -- Fill in org-roam general expansions for our content, and if the
+        -- file does not exist then add our prefix
+        content = fill_expansions(content)
+        if not exists then
+            local prefix = {
+                ":PROPERTIES:",
+                ":ID: " .. require('orgmode.org.id').new(),
+                ":END:",
+            }
+
+            -- Grab the title, which if it does not exist and we detect
+            -- that we need it, we will prompt for it
+            local title = opts.title
+            if not title and string_contains_one_of(template.target, {
+                    TARGET_EXPANSION_KEYS.TITLE,
+                    TARGET_EXPANSION_KEYS.SLUG,
+                }) then
+                title = vim.fn.input("Enter title for node: ")
+
+                -- If we did not get a title, return nil to cancel
+                if vim.trim(title) == "" then
+                    return
+                end
+            end
+
+            -- If we have a title specified, include it
+            if title then
+                table.insert(prefix, "#+TITLE: " .. title)
+            end
+
+            -- Prepend our prefix ensuring blank line between it and content
+            content = table.concat(prefix, "\n") .. "\n\n" .. content
+        end
+
+        return content
+    end)
+end
+
 ---Construct org-roam templates with custom expansions applied.
----Returns `nil` if requested input and received nothing.
 ---@param opts? {title?:string}
 ---@return OrgCaptureTemplates
 local function build_templates(opts)
     opts = opts or {}
     local Templates = require("orgmode.capture.templates")
 
+    ---TODO: It seems like this may cause no templates to show up!!
+
     -- Build our templates such that they include titles and org-ids
     ---@type OrgCaptureTemplates
-    local templates = Templates:new(CONFIG.templates)
-    for key, template in pairs(templates.templates) do
-        -- Resolve our general expansions in the target
-        if template.target then
-            template.target = fill_expansions(template.target)
-        end
-
-        -- Always include the entire capture contents, not just
-        -- the headline, to make sure the generated property
-        -- drawer and title directive are included
-        template.whole_file = true
-
-        -- Each template should prefix with an org-roam id
-        ---@param content string
-        ---@param type "content"|"target"
-        templates[key] = template:on_compile(function(content, type)
-            -- Only handle content with our compile logic
-            if type ~= "content" then return content end
-
-            -- Figure out our template's target
-            local target = template.target
-                or require("orgmode.config").org_default_notes_file
-
-            -- Check if the target exists by getting stat of it; if no error, it exists
-            local exists = not io.stat_sync(target)
-
-            -- Fill in org-roam general expansions for our content, and if the
-            -- file does not exist then add our prefix
-            content = fill_expansions(content)
-            if not exists then
-                local prefix = {
-                    ":PROPERTIES:",
-                    ":ID: " .. require('orgmode.org.id').new(),
-                    ":END:",
-                }
-
-                -- Grab the title, which if it does not exist and we detect
-                -- that we need it, we will prompt for it
-                local title = opts.title
-                if not title and string_contains_one_of(template.target, {
-                        TARGET_EXPANSION_KEYS.TITLE,
-                        TARGET_EXPANSION_KEYS.SLUG,
-                    }) then
-                    title = vim.fn.input("Enter title for node: ")
-
-                    -- If we did not get a title, return nil to cancel
-                    if vim.trim(title) == "" then
-                        return
-                    end
-                end
-
-                -- If we have a title specified, include it
-                if title then
-                    table.insert(prefix, "#+TITLE: " .. title)
-                end
-
-                -- Prepend our prefix ensuring blank line between it and content
-                content = table.concat(prefix, "\n") .. "\n\n" .. content
-            end
-
-            return content
-        end)
+    local templates = Templates:new({})
+    for key, template in pairs(CONFIG.templates) do
+        templates[key] = build_template(template, opts)
     end
 
     return templates
@@ -187,12 +206,12 @@ local function make_on_post_refile(cb)
     ---@param capture_opts OrgProcessCaptureOpts
     return function(_, capture_opts)
         -- Look for the id of the newly-captured ram node
-        local id = capture_opts.source_file:get_property("ID")
+        local id = capture_opts.source_file:get_property("id")
 
         -- If we don't find a file-level node, look for headline nodes
         if not id then
             for _, headline in ipairs(capture_opts.source_file:get_headlines()) do
-                id = headline:get_property("ID", false)
+                id = headline:get_property("id", false)
                 if id then break end
             end
         end
@@ -216,57 +235,10 @@ function M.capture(opts, cb)
     opts = opts or {}
     cb = cb or function() end
 
-    local templates = build_templates(opts)
-
     if opts.immediate then
-        local template = templates.templates[CONFIG.immediate.key]
-        if not template then
-            notify.echo_error("invalid immediate template key: " .. CONFIG.immediate.key)
-            return
-        end
-
-        ---@param content string[]|nil
-        template:compile():next(function(content)
-            if not content then
-                return notify.echo_info("canceled")
-            end
-
-            -- Target should also have been updated for orgmode expansions,
-            -- but not for org-roam expansions
-            -- TODO
-            local path = template.target
-
-            io.write_file(path, content, function(err)
-                if err then
-                    notify.error(err)
-                    log.error(err)
-                    return
-                end
-
-                vim.schedule(function()
-                    db:load_file({ path = path }):next(function(result)
-                        local file = result.file
-
-                        -- Look for the id of the newly-captured file
-                        local id = file:get_property("ID")
-
-                        -- If we don't find a file-level node, look for headline nodes
-                        if not id then
-                            for _, headline in ipairs(file:get_headlines()) do
-                                id = headline:get_property("ID", false)
-                                if id then break end
-                            end
-                        end
-
-                        -- Trigger the callback regardless of whether we got an id
-                        vim.schedule(function() cb(id) end)
-
-                        return file
-                    end)
-                end)
-            end)
-        end)
+        M.__capture_immediate(opts, cb)
     else
+        local templates = build_templates({ title = opts.title })
         local on_pre_refile = make_on_pre_refile(opts)
         local on_post_refile = make_on_post_refile(cb)
         db:files():next(function(files)
@@ -281,6 +253,59 @@ function M.capture(opts, cb)
             return capture:prompt()
         end)
     end
+end
+
+---@private
+---@param opts {title?:string}
+---@param cb fun(id:org-roam.core.database.Id|nil)
+function M.__capture_immediate(opts, cb)
+    local template = build_template({
+        target = CONFIG.immediate.target,
+        template = CONFIG.immediate.template,
+    }, {
+        title = opts.title,
+    })
+
+    ---@param content string[]|nil
+    template:compile():next(function(content)
+        if not content then
+            return notify.echo_info("canceled")
+        end
+
+        -- Target needs to have target-specific expansions filled
+        local expander = make_target_expander(nil, opts)
+        local path = expander(template.target)
+
+        io.write_file(path, content, function(err)
+            if err then
+                notify.error(err)
+                log.error(err)
+                return
+            end
+
+            vim.schedule(function()
+                db:load_file({ path = path }):next(function(result)
+                    local file = result.file
+
+                    -- Look for the id of the newly-captured file
+                    local id = file:get_property("ID")
+
+                    -- If we don't find a file-level node, look for headline nodes
+                    if not id then
+                        for _, headline in ipairs(file:get_headlines()) do
+                            id = headline:get_property("ID", false)
+                            if id then break end
+                        end
+                    end
+
+                    -- Trigger the callback regardless of whether we got an id
+                    vim.schedule(function() cb(id) end)
+
+                    return file
+                end)
+            end)
+        end)
+    end)
 end
 
 ---Creates a node if it does not exist, and inserts a link to the node

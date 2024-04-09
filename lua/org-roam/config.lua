@@ -25,8 +25,15 @@ local function replace(tbl, opts)
     -- Replace all top-level keys of old config with new
     ---@diagnostic disable-next-line:no-unknown
     for key, value in pairs(config) do
-        ---@diagnostic disable-next-line:no-unknown
-        tbl[key] = value
+        -- Special case for templates, as we don't want to merge
+        -- old and new, but rather replace old with new, to avoid
+        -- issue where it's impossible to remove the old template
+        if key == "templates" and type(opts[key]) == "table" then
+            tbl[key] = vim.deepcopy(opts[key])
+        else
+            ---@diagnostic disable-next-line:no-unknown
+            tbl[key] = value
+        end
     end
 end
 
@@ -96,12 +103,16 @@ local config = setmetatable({
         },
     },
 
-    ---Settings tied to immediate-mode node operations.
+    ---Settings tied to org-roam immediate mode.
     ---@class org-roam.config.Immediate
     immediate = {
-        ---Key within the templates dictionary to use with immediate mode.
+        ---Target where the immediate-mode node should be written.
         ---@type string
-        key = "d",
+        target = "%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org",
+
+        ---Template to use for the immediate-mode node's content.
+        ---@type string
+        template = "",
     },
 
     ---Settings tied to the user interface.
