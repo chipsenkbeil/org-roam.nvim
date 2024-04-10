@@ -25,11 +25,19 @@ local function replace(tbl, opts)
     -- Replace all top-level keys of old config with new
     ---@diagnostic disable-next-line:no-unknown
     for key, value in pairs(config) do
-        ---@diagnostic disable-next-line:no-unknown
-        tbl[key] = value
+        -- Special case for templates, as we don't want to merge
+        -- old and new, but rather replace old with new, to avoid
+        -- issue where it's impossible to remove the old template
+        if key == "templates" and type(opts[key]) == "table" then
+            tbl[key] = vim.deepcopy(opts[key])
+        else
+            ---@diagnostic disable-next-line:no-unknown
+            tbl[key] = value
+        end
     end
 end
 
+---Global configuration settings leveraged through org-roam.
 ---@class org-roam.Config
 ---@overload fun(config:org-roam.Config)
 local config = setmetatable({
@@ -51,6 +59,9 @@ local config = setmetatable({
 
         ---Inserts node at cursor position.
         insert_node = "<Leader>ni",
+
+        ---Inserts node at cursor position without opening capture buffer.
+        insert_node_immediate = "<Leader>nm",
 
         ---Opens the quickfix menu for backlinks to the current node under cursor.
         quickfix_backlinks = "<Leader>nq",
@@ -81,8 +92,9 @@ local config = setmetatable({
         update_on_save = true,
     },
 
+    ---Settings tied to org-roam capture templates.
     ---@class org-roam.config.Templates
-    ---@field [string] table
+    ---@field [string] OrgCaptureTemplateOpts
     templates = {
         d = {
             description = "default",
@@ -91,8 +103,22 @@ local config = setmetatable({
         },
     },
 
+    ---Settings tied to org-roam immediate mode.
+    ---@class org-roam.config.Immediate
+    immediate = {
+        ---Target where the immediate-mode node should be written.
+        ---@type string
+        target = "%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org",
+
+        ---Template to use for the immediate-mode node's content.
+        ---@type string
+        template = "",
+    },
+
+    ---Settings tied to the user interface.
     ---@class org-roam.config.UserInterface
     ui = {
+        ---Mouse-related configuration settings.
         ---@class org-roam.config.ui.Mouse
         mouse = {
             ---If true, clicking on links will open them.
@@ -109,6 +135,7 @@ local config = setmetatable({
             highlight_links_group = "WarningMsg",
         },
 
+        ---Node view buffer configuration settings.
         ---@class org-roam.config.ui.NodeView
         node_view = {
             ---If true, previews will be highlighted as org syntax when expanded.

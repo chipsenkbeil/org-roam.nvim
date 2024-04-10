@@ -56,6 +56,7 @@
   | complete_at_point        | =<Leader>n/= | Completes the node under cursor.                                        |
   | find_node                | =<Leader>nf= | Finds node and moves to it, creating it if it does not exist.           |
   | insert_node              | =<Leader>ni= | Inserts node at cursor position, creating it if it does not exist.      |
+  | insert_node_immediate    | =<Leader>nm= | Same as =insert_node=, but skips opening capture buffer.                |
   | quickfix_backlinks       | =<Leader>nq= | Opens the quickfix menu for backlinks to the current node under cursor. |
   | toggle_roam_buffer       | =<Leader>nl= | Toggles the org-roam node-view buffer for the node under cursor.        |
   | toggle_roam_buffer_fixed | =<Leader>nb= | Toggles a fixed org-roam node-view buffer for a selected node.          |

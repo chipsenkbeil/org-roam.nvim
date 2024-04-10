@@ -94,7 +94,6 @@ end)()
 ---@field input string #user-provided input
 
 ---@class (exact) org-roam.core.ui.select.State
----@field ready boolean #true once the cursor is placed and in insert mode
 ---@field prompt_id integer|nil #id of the virtual text prompt
 ---@field emitter org-roam.core.utils.Emitter #event manager
 ---@field window org-roam.core.ui.Window|nil #internal window
@@ -200,7 +199,6 @@ function M:new(opts)
 
     instance.__state = {
         emitter = Emitter:new(),
-        ready = false,
         prompt_id = nil,
         window = nil,
     }
@@ -281,10 +279,7 @@ function M:open()
             winopts = {
                 cursorline = false,
             },
-            components = {
-                function() return self:__render_component() end,
-                function() return self:__reset_cursor_and_mode() end,
-            },
+            components = { function() return self:__render_component() end },
         })
 
         -- If we have some initial filter text, set it on the buffer
@@ -293,6 +288,24 @@ function M:open()
                 self.__params.init_input,
             })
         end
+
+        local ready = false
+        window:buffer():on_post_render(function()
+            local winnr = window:winnr()
+            if not ready and winnr then
+                -- Point our cursor to the prompt line (at the beginning)
+                vim.api.nvim_win_set_cursor(winnr, { 1, 0 })
+
+                -- Reset to insert mode again, and start insert with ! to place at end
+                -- of the prompt line while within insert mode
+                vim.api.nvim_buf_call(window:bufnr(), function()
+                    vim.cmd("startinsert!")
+                end)
+
+                -- Mark ready so we don't reset the cursor again
+                ready = true
+            end
+        end)
 
         -- Register a one-time emitter for selecting or cancelling
         -- so we can ensure only one is triggered.
@@ -542,11 +555,16 @@ function M:__refresh_filter()
     end
 
     -- If we got exactly one item with our initial filter and we have
-    -- enabled auto-select, we're done and we should return it
+    -- enabled auto-select, or we support allowing missing selection
+    -- and have no items with auto-select enabled, we're done and we
+    -- should return it
     if self.__params.auto_select then
         local is_initial_input = text == self.__params.init_input
+        local is_nonempty = vim.trim(text) ~= ""
         local has_one_item = #self.__view.filtered_items == 1
-        if is_initial_input and has_one_item then
+        local use_missing = self.__params.allow_select_missing
+            and #self.__view.filtered_items == 0
+        if is_nonempty and is_initial_input and (has_one_item or use_missing) then
             self:__trigger_selection()
         end
     end
@@ -746,29 +764,6 @@ function M:__render_component()
     end
 
     return lines
-end
-
----@private
----@return org-roam.core.ui.Line[]
-function M:__reset_cursor_and_mode()
-    local window = self.__state.window
-    if self.__state.ready or not window or not window:is_open() then
-        return {}
-    end
-
-    local winnr = assert(window:winnr(), "missing window handle")
-
-    -- Point our cursor to the prompt line (at the beginning)
-    vim.api.nvim_win_set_cursor(winnr, { 1, 0 })
-
-    -- Reset to insert mode again, and start insert with ! to place at end
-    -- of the prompt line while within insert mode
-    vim.cmd("startinsert!")
-
-    -- Mark as ready
-    self.__state.ready = true
-
-    return {}
 end
 
 return M
