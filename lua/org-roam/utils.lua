@@ -7,6 +7,7 @@
 local File = require("org-roam.core.file")
 local IntervalTree = require("org-roam.core.utils.tree")
 local OrgFile = require("orgmode.files.file")
+local unpack = require("org-roam.core.utils.table").unpack
 
 ---@class (exact) org-roam.utils.BufferCache
 ---@field file org-roam.core.File
@@ -18,6 +19,9 @@ local OrgFile = require("orgmode.files.file")
 ---nodes within buffers.
 ---@type table<integer, org-roam.utils.BufferCache>
 local CACHE = {}
+
+---Escape key used for `nvim_feedkeys()`.
+local ESC_FEEDKEY = vim.api.nvim_replace_termcodes("<ESC>", true, false, true)
 
 local M = {}
 
@@ -167,6 +171,79 @@ function M.title_to_slug(title)
     title = string.gsub(title, "^_", "_")
     title = string.gsub(title, "_$", "_")
     return title
+end
+
+---@class org-roam.utils.Range
+---@field start_row integer #starting row (one-indexed, inclusive)
+---@field start_col integer #starting column (one-indexed, inclusive)
+---@field end_row integer #end row (one-indexed, inclusive)
+---@field end_col integer #end column (one-indexed, inclusive)
+
+---Extracts visual selection (supports visual and linewise visual modes),
+---returning lines and range. The range is 1-based and inclusive.
+---
+---If `buf` is provided, will select from that buffer, otherwise defaults to
+---the current buffer.
+---
+---If `single_line` is true, will collapse all visual lines into a single line,
+---filtering out empty lines and replacing newlines with spaces. The range will
+---still represent the full range of the visual selection.
+---
+---From https://github.com/jackMort/ChatGPT.nvim/blob/df53728e05129278d6ea26271ec086aa013bed90/lua/chatgpt/utils.lua#L69
+---@param opts? {buf?:integer, single_line?:boolean}
+---@return string[] lines, org-roam.utils.Range[] ranges
+function M.get_visual_selection(opts)
+    opts = opts or {}
+    local bufnr = opts.buf or 0
+
+    -- Force a reset of visual selection, re-selecting it (gv), in order to get
+    -- the markers '< and '> to map to the current selection instead of older
+    vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
+    vim.api.nvim_feedkeys("gv", "x", false)
+    vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
+
+    local start_row, start_col = unpack(vim.api.nvim_buf_get_mark(bufnr, "<"))
+    local end_row, end_col = unpack(vim.api.nvim_buf_get_mark(bufnr, ">"))
+    local lines = vim.api.nvim_buf_get_lines(bufnr, start_row - 1, end_row, false)
+
+    -- get whole buffer if there is no current/previous visual selection
+    if start_row == 0 then
+        lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        start_row = 1
+        start_col = 0
+        end_row = #lines
+        end_col = #lines[#lines]
+    end
+
+    -- use 1-based indexing and handle selections made in visual line mode (see :help getpos)
+    start_col = start_col + 1
+    end_col = math.min(end_col, #lines[#lines] - 1) + 1
+
+    -- shorten first/last line according to start_col/end_col
+    lines[#lines] = string.sub(lines[#lines], 1, end_col)
+    lines[1] = string.sub(lines[1], start_col)
+
+    -- If single line, we trim everything and collapse newlines into spaces
+    if opts.single_line then
+        local text = table.concat(vim.tbl_filter(function(line)
+            return line ~= ""
+        end, vim.tbl_map(function(line)
+            return vim.trim(line)
+        end, lines)), " ")
+        lines = { text }
+    end
+
+    ---@type org-roam.utils.Range[]
+    local ranges = {
+        {
+            start_row = start_row,
+            start_col = start_col,
+            end_row = end_row,
+            end_col = end_col,
+        },
+    }
+
+    return lines, ranges
 end
 
 ---@private
