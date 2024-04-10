@@ -2,9 +2,9 @@
 #+HTML:   <img alt="org-roam.nvim logo" src="/assets/org-roam-logo.png" width="250px" style="border-radius:10px;" />
 #+HTML: </div>
 
-* org-roam.nvim
+  Port of [[https://www.orgroam.com/][Org-roam]] to [[https://neovim.io/][neovim]] using [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]].
 
-  Port of [[https://www.orgroam.com/][Org-roam]] to neovim using [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]].
+  Requires *neovim 0.9.2+*.
 
 ** Installation
 
@@ -48,9 +48,12 @@
     }
     #+end_src
 
-** Usage
+** Documentation
 
-   TODO I'll get to this once the plugin is ready for usage.
+   See [[file:DOCS.org][DOCS.org]] for detailed guidance on the plugin.
+
+   The documentation is also generated in vimdoc help format, which can be
+   accessed via =:h org-roam.txt=.
 
 ** Bindings
 
@@ -64,28 +67,6 @@
    | quickfix_backlinks       | =<Leader>nq= | Opens the quickfix menu for backlinks to the current node under cursor. |
    | toggle_roam_buffer       | =<Leader>nl= | Toggles the org-roam node-view buffer for the node under cursor.        |
    | toggle_roam_buffer_fixed | =<Leader>nb= | Toggles a fixed org-roam node-view buffer for a selected node.          |
-
-*** Modifying bindings
- 
-    Bindings can be changed during configuration by overwriting them within the =bindings= table:
- 
-    #+begin_src lua
-    require("org-roam"):setup({
-      -- ...
-      bindings = {
-        capture = "<LocalLeader>nc",
-      },
-    })
-    #+end_src
- 
-    To disable all bindings, set the =bindings= field to =false=:
- 
-    #+begin_src lua
-    require("org-roam"):setup({
-      -- ...
-      bindings = false,
-    })
-    #+end_src
  
 ** Roadmap
 
@@ -112,6 +93,7 @@
      - [X] Implement *org-roam-node-insert*
      - [X] Implement *org-roam-node-find*
      - [X] Implement *org-roam-capture*
+     - [X] Implement *org-roam-node-insert-immediate*
    - [ ] Implement extensions
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002ddailies][org-roam-dailies]]
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002dexport][org-roam-export]]
@@ -123,7 +105,7 @@
 *** Running tests
  
     A /makefile/ is provided to support running tests. It will download [[https://github.com/nvim-lua/plenary.nvim][plenary.nvim]]
-    into the /vendor/ directory.
+    and [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]] into the /vendor/ directory.
  
     #+begin_src bash 
     make test 
