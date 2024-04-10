@@ -8,6 +8,17 @@ if vim.endswith(cwd, "lua") or vim.endswith(cwd, "lua/") or vim.endswith(cwd, "l
     cwd = vim.fs.dirname(cwd)
 end
 
+---@type string|false
+local report_enabled = vim.fn.getenv("ROAM_TEST_REPORT")
+if report_enabled == vim.NIL or vim.trim(report_enabled):lower() == "false" then
+    report_enabled = false
+end
+local function report(...)
+    if report_enabled then
+        print(...)
+    end
+end
+
 ---@class Plugin
 ---@field name string
 ---@field path string
@@ -31,7 +42,7 @@ local plugins = {
         repo = "https://github.com/nvim-orgmode/orgmode",
         config = function()
             -- Setup orgmode
-            print("Running orgmode setup")
+            report("Running orgmode setup")
             require("orgmode").setup({
                 org_agenda_files = "~/orgfiles/**/*",
                 org_default_notes_file = "~/orgfiles/refile.org",
@@ -44,7 +55,7 @@ local plugins = {
 for _, plugin in ipairs(plugins) do
     -- If plugin not yet downloaded, do that now
     if vim.fn.isdirectory(plugin.path) == 0 then
-        print("Downloading " .. plugin.name .. " into: " .. plugin.path)
+        report("Downloading " .. plugin.name .. " into: " .. plugin.path)
         vim.fn.system {
             "git",
             "clone",
@@ -55,12 +66,12 @@ for _, plugin in ipairs(plugins) do
     end
 
     -- Add plugin to our runtime path
-    print("Adding plugin to runtime path: " .. plugin.path)
+    report("Adding plugin to runtime path: " .. plugin.path)
     vim.opt.rtp:prepend(plugin.path)
 
     -- If we have a config function, execute it
     if type(plugin.config) == "function" then
-        print("Configuring " .. plugin.name)
+        report("Configuring " .. plugin.name)
         local ok, msg = pcall(plugin.config)
         if not ok then
             error("Failed to configure plugin " .. plugin.name .. ": " .. vim.inspect(msg))

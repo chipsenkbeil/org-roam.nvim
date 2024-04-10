@@ -7,6 +7,11 @@
 local pack = require("org-roam.core.utils.table").pack
 local unpack = require("org-roam.core.utils.table").unpack
 
+---Maximum timeout (in seconds) for `vim.wait`.
+---Needed as `math.huge` is too big for `vim.wait` to support.
+---@type integer
+local MAX_TIMEOUT = 2 ^ 31
+
 ---@class org-roam.core.utils.Async
 local M = {}
 
@@ -55,7 +60,7 @@ end
 function M.wrap(f, opts)
     opts = opts or {}
 
-    local TIME = opts.time or math.huge
+    local TIME = opts.time or MAX_TIMEOUT
     local INTERVAL = opts.interval or 200
 
     return function(...)
