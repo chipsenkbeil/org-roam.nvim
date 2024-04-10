@@ -24,8 +24,10 @@ Table of Contents                                 *org-roam-table-of-contents*
 ==============================================================================
 1. Getting Started                                  *org-roam-getting-started*
 
-Port of Org-roam <https://www.orgroam.com/> to neovim using nvim-orgmode
-<https://github.com/nvim-orgmode/orgmode>.
+Port of Org-roam <https://www.orgroam.com/> to neovim <https://neovim.io/>
+using nvim-orgmode <https://github.com/nvim-orgmode/orgmode>.
+
+Requires **neovim 0.9.2+**.
 
 
 INSTALLATION                           *org-roam-getting-started-installation*
