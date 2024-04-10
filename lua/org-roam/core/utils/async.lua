@@ -55,7 +55,7 @@ end
 function M.wrap(f, opts)
     opts = opts or {}
 
-    local TIME = opts.time or math.huge
+    local TIME = opts.time or math.huge - 1
     local INTERVAL = opts.interval or 200
 
     return function(...)
