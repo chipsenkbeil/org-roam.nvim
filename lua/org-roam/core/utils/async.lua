@@ -4,9 +4,11 @@
 -- Utilities to do async operations.
 -------------------------------------------------------------------------------
 
-local MAX_INT = require("org-roam.core.utils.math").MAX_INT
 local pack = require("org-roam.core.utils.table").pack
 local unpack = require("org-roam.core.utils.table").unpack
+
+---@type integer
+local MAX_TIMEOUT = 2 ^ 31
 
 ---@class org-roam.core.utils.Async
 local M = {}
@@ -56,7 +58,7 @@ end
 function M.wrap(f, opts)
     opts = opts or {}
 
-    local TIME = opts.time or MAX_INT
+    local TIME = opts.time or MAX_TIMEOUT
     print("TIME", TIME)
     local INTERVAL = opts.interval or 200
     print("INTERVAL", INTERVAL)
