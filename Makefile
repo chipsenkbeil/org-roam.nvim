@@ -9,14 +9,14 @@ test: ## Run all tests
 		--headless \
 		--noplugin \
 		-u spec/minimal_init.lua \
-		-c "lua require('plenary.test_harness').test_directory('spec', {minimal_init='spec/minimal_init.lua'})"
+		-c "lua require('plenary.test_harness').test_directory('spec', {minimal_init='spec/minimal_init.lua', sequential=true})"
 
 test-file: ## Run specific test file denoted by FILE environment variable
 	@nvim \
 		--headless \
 		--noplugin \
 		-u spec/minimal_init.lua \
-		-c "lua require('plenary.test_harness').test_directory('spec/$(FILE)', {minimal_init='spec/minimal_init.lua'})"
+		-c "lua require('plenary.test_harness').test_directory('spec/$(FILE)', {minimal_init='spec/minimal_init.lua', sequential=true})"
 
 clean: ## Cleans out vendor directory
 	@rm -rf vendor/*
