@@ -89,7 +89,6 @@
    - [X] Support [[https://www.orgroam.com/manual.html#Completion][completion]]
      - [X] [[https://www.orgroam.com/manual.html#Completing-within-Link-Brackets][Completing within Link Brackets]]
      - [X] [[https://www.orgroam.com/manual.html#Completing-anywhere][Completing anywhere]]
-   - [ ] Support [[https://www.orgroam.com/manual.html#Encryption][encryption]] (emacs supports natively, so we may defer to plugins)
    - [X] Support [[https://www.orgroam.com/manual.html#The-Templating-System][templating]]
      - [X] Implement *org-roam-node-insert*
      - [X] Implement *org-roam-node-find*
