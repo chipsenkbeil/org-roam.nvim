@@ -7,6 +7,8 @@
 local pack = require("org-roam.core.utils.table").pack
 local unpack = require("org-roam.core.utils.table").unpack
 
+---Maximum timeout (in seconds) for `vim.wait`.
+---Needed as `math.huge` is too big for `vim.wait` to support.
 ---@type integer
 local MAX_TIMEOUT = 2 ^ 31
 
@@ -59,9 +61,7 @@ function M.wrap(f, opts)
     opts = opts or {}
 
     local TIME = opts.time or MAX_TIMEOUT
-    print("TIME", TIME)
     local INTERVAL = opts.interval or 200
-    print("INTERVAL", INTERVAL)
 
     return function(...)
         -- NOTE: As of neovim 0.10, we can no longer call `vim.wait` within a fast
