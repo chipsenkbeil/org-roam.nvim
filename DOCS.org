@@ -311,60 +311,6 @@
 
    Configuration settings tied to the user interface.
 
-*** mouse
-
-    Bindings tied specifically to mouse interaction in org buffers.
-
-**** click_open_links
-     
-     If true, clicking on links will open them.
-  
-     Takes a boolean. Defaults to =true=.
-  
-     #+begin_src lua
-     require("org-roam"):setup({
-       ui = {
-         mouse = {
-           click_open_links = false,
-         },
-       },
-     })
-     #+end_src
-  
-**** highlight_links
-     
-     If true, highlights links when mousing over them.
-     
-     This will enable =vim.opt.mouseoverevent= if disabled!
-  
-     Takes a boolean. Defaults to =true=.
-  
-     #+begin_src lua
-     require("org-roam"):setup({
-       ui = {
-         mouse = {
-           highlight_links = false,
-         },
-       },
-     })
-     #+end_src
-  
-**** highlight_links_group
-     
-     Highlight group to apply when highlighting links.
-  
-     Takes a string. Defaults to =WarningMsg=.
-  
-     #+begin_src lua
-     require("org-roam"):setup({
-       ui = {
-         mouse = {
-           highlight_links_group = "Comment",
-         },
-       },
-     })
-     #+end_src
-
 *** node_view
 
     Bindings tied specifically to the roam buffer.
