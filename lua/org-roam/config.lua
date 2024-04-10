@@ -52,7 +52,7 @@ local config = setmetatable({
         capture = "<Leader>nc",
 
         ---Completes the node under cursor.
-        complete_at_point = "<Leader>n/",
+        complete_at_point = "<Leader>n.",
 
         ---Finds node and moves to it.
         find_node = "<Leader>nf",
@@ -92,17 +92,6 @@ local config = setmetatable({
         update_on_save = true,
     },
 
-    ---Settings tied to org-roam capture templates.
-    ---@class org-roam.config.Templates
-    ---@field [string] OrgCaptureTemplateOpts
-    templates = {
-        d = {
-            description = "default",
-            template = "%?",
-            target = "%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org",
-        },
-    },
-
     ---Settings tied to org-roam immediate mode.
     ---@class org-roam.config.Immediate
     immediate = {
@@ -113,6 +102,17 @@ local config = setmetatable({
         ---Template to use for the immediate-mode node's content.
         ---@type string
         template = "",
+    },
+
+    ---Settings tied to org-roam capture templates.
+    ---@class org-roam.config.Templates
+    ---@field [string] OrgCaptureTemplateOpts
+    templates = {
+        d = {
+            description = "default",
+            template = "%?",
+            target = "%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org",
+        },
     },
 
     ---Settings tied to the user interface.
