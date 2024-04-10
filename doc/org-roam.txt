@@ -5,8 +5,15 @@ Table of Contents                                 *org-roam-table-of-contents*
 
 1. Getting Started                                  |org-roam-getting-started|
   - Installation                       |org-roam-getting-started-installation|
-2. Settings                                                |org-roam-settings|
+2. Configuration                                      |org-roam-configuration|
+  - directory                               |org-roam-configuration-directory|
+  - bindings                                 |org-roam-configuration-bindings|
+  - database                                 |org-roam-configuration-database|
+  - immediate                               |org-roam-configuration-immediate|
+  - templates                               |org-roam-configuration-templates|
+  - ui                                             |org-roam-configuration-ui|
 3. Bindings                                                |org-roam-bindings|
+  - Modifying bindings                  |org-roam-bindings-modifying-bindings|
   - Coming from Emacs                    |org-roam-bindings-coming-from-emacs|
 4. User Interface                                    |org-roam-user-interface|
   - Org Roam Buffer                  |org-roam-user-interface-org-roam-buffer|
@@ -68,9 +75,408 @@ PACKER.NVIM ~
 
 
 ==============================================================================
-2. Settings                                                *org-roam-settings*
+2. Configuration                                      *org-roam-configuration*
 
-TODO
+
+DIRECTORY                                   *org-roam-configuration-directory*
+
+Path to the directory containing org files for use with org-roam.
+
+Takes a string representing the path to the directory, which can can contain
+`~` that will expand to your home directory.
+
+>lua
+    require("org-roam"):setup({
+      directory = "~/orgfiles",
+    })
+<
+
+
+BINDINGS                                     *org-roam-configuration-bindings*
+
+Configuration settings used to specify keybindings.
+
+
+CAPTURE ~
+
+Opens a roam capture window.
+
+Takes a string representing the keybinding. Defaults to `<Leader>nc`.
+
+>lua
+    require("org-roam"):setup({
+      bindings = {
+        capture = "<LocalLeader>nc",
+      },
+    })
+<
+
+
+COMPLETEATPOINT ~
+
+Completes the node under cursor by searching for a node with matching title or
+alias. If exactly one match is found, the text under cursor is replaced with
+the link; otherwise, a selection dialog pops up to pick the node.
+
+Takes a string representing the keybinding. Defaults to `<Leader>n.`.
+
+>lua
+    require("org-roam"):setup({
+      bindings = {
+        complete_at_point = "<LocalLeader>n.",
+      },
+    })
+<
+
+
+FINDNODE ~
+
+Finds a node by title or alias and opens it in the current window.
+
+If the node does not exist, opens a capture buffer for the new node using the
+title.
+
+Takes a string representing the keybinding. Defaults to `<Leader>nf`.
+
+>lua
+    require("org-roam"):setup({
+      bindings = {
+        find_node = "<LocalLeader>nf",
+      },
+    })
+<
+
+
+INSERTNODE ~
+
+Inserts a link at cursor position to a node by title or alias.
+
+If the node does not exist, opens a capture buffer for the new node using the
+title.
+
+Takes a string representing the keybinding. Defaults to `<Leader>ni`.
+
+>lua
+    require("org-roam"):setup({
+      bindings = {
+        insert_node = "<LocalLeader>ni",
+      },
+    })
+<
+
+
+INSERTNODEIMMEDIATE ~
+
+Inserts a link at cursor position to a node by title or alias. Unlike
+`insert_node`, this does not open a capture buffer if a new node is created.
+
+Takes a string representing the keybinding. Defaults to `<Leader>nm`.
+
+>lua
+    require("org-roam"):setup({
+      bindings = {
+        insert_node_immediate = "<LocalLeader>nm",
+      },
+    })
+<
+
+
+QUICKFIXBACKLINKS ~
+
+Opens the quickfix list, populating it with backlinks for the node under
+cursor.
+
+Takes a string representing the keybinding. Defaults to `<Leader>nq`.
+
+>lua
+    require("org-roam"):setup({
+      bindings = {
+        quickfix_backlinks = "<LocalLeader>nq",
+      },
+    })
+<
+
+
+TOGGLEROAMBUFFER ~
+
+Opens the roam buffer for the node under cursor, updating the buffer when the
+cursor moves to a different node. See the user interface
+|org-roam-org-roam-buffer| section for details.
+
+Takes a string representing the keybinding. Defaults to `<Leader>nl`.
+
+>lua
+    require("org-roam"):setup({
+      bindings = {
+        toggle_roam_buffer = "<LocalLeader>nl",
+      },
+    })
+<
+
+
+TOGGLEROAMBUFFERFIXED ~
+
+Opens the roam buffer for a specific node, and will not change as the cursor
+moves across nodes. See the user interface |org-roam-org-roam-buffer| section
+for details.
+
+Takes a string representing the keybinding. Defaults to `<Leader>nb`.
+
+>lua
+    require("org-roam"):setup({
+      bindings = {
+        toggle_roam_buffer_fixed = "<LocalLeader>nb",
+      },
+    })
+<
+
+
+DATABASE                                     *org-roam-configuration-database*
+
+Configuration settings tied to the roam database.
+
+
+PATH ~
+
+Sets the path where the roam database will be stored & loaded when persisting
+to disk.
+
+Takes a string representing the path. Defaults to For example,
+`~/.local/share/nvim/org-roam.nvim/db`.
+
+>lua
+    require("org-roam"):setup({
+      database = {
+        path = "~/some/path/to/db",
+      },
+    })
+<
+
+
+PERSIST ~
+
+If true, the database will be written to disk to save on future loading times;
+otherwise, whenever neovim boots the entire database will need to be rebuilt.
+
+Takes a boolean. Defaults to `true`.
+
+>lua
+    require("org-roam"):setup({
+      database = {
+        persist = false,
+      },
+    })
+<
+
+
+UPDATEONSAVE ~
+
+If true, updates database whenever a write occurs. If you have large files, it
+is recommended to disable this option and manually update using the vim command
+`OrgRoamUpdate`.
+
+Takes a boolean. Defaults to `true`.
+
+>lua
+    require("org-roam"):setup({
+      database = {
+        update_on_save = false,
+      },
+    })
+<
+
+
+IMMEDIATE                                   *org-roam-configuration-immediate*
+
+Configuration settings tied to immediate mode.
+
+
+TARGET ~
+
+Target where the immediate-mode node should be written.
+
+Takes a string. Defaults to `%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org`.
+
+>lua
+    require("org-roam"):setup({
+      immediate = {
+        target = "%r%[sep]%[slug].org",
+      },
+    })
+<
+
+
+TEMPLATE ~
+
+Template to use for the immediate-mode node's content.
+
+Takes a string. Defaults to ==.
+
+>lua
+    require("org-roam"):setup({
+      immediate = {
+        template = "The date is %<%Y%m%d>!",
+      },
+    })
+<
+
+
+TEMPLATES                                   *org-roam-configuration-templates*
+
+A map of templates associated with roam. These have the exact same format as
+`nvim-orgmode`'s templates, but include additional variables and are only
+displayed and used during roam's capture dialog.
+
+Takes a `table<string, table>`. Defaults to the following:
+
+>lua
+    require("org-roam"):setup({
+      templates = {
+        d = {
+          description = "default",
+          template = "%?",
+          target = "%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org",
+        },
+      },
+    })
+<
+
+Variables:
+
+- `%r`: Prints the roam directory.
+- `%R`: Like `%r`, but inserts the full path.
+
+Target-only Variables:
+
+- `%[sep]`: Prints the path separator for the current operating system.
+- `%[slug]`: Prints a slug representing the node's title.
+- `%[title]`: Prints the node's title.
+
+
+UI                                                 *org-roam-configuration-ui*
+
+Configuration settings tied to the user interface.
+
+
+MOUSE ~
+
+Bindings tied specifically to mouse interaction in org buffers.
+
+1. click_openlinks
+
+If true, clicking on links will open them.
+
+Takes a boolean. Defaults to `true`.
+
+>lua
+    require("org-roam"):setup({
+      ui = {
+        mouse = {
+          click_open_links = false,
+        },
+      },
+    })
+<
+
+
+2. highlight_links
+
+If true, highlights links when mousing over them.
+
+This will enable `vim.opt.mouseoverevent` if disabled!
+
+Takes a boolean. Defaults to `true`.
+
+>lua
+    require("org-roam"):setup({
+      ui = {
+        mouse = {
+          highlight_links = false,
+        },
+      },
+    })
+<
+
+
+3. highlight_linksgroup
+
+Highlight group to apply when highlighting links.
+
+Takes a string. Defaults to `WarningMsg`.
+
+>lua
+    require("org-roam"):setup({
+      ui = {
+        mouse = {
+          highlight_links_group = "Comment",
+        },
+      },
+    })
+<
+
+
+
+
+NODEVIEW ~
+
+Bindings tied specifically to the roam buffer.
+
+1. highlight_previews
+
+If true, previews will be highlighted as org syntax when expanded.
+
+NOTE: This can cause flickering on initial expansion, but preview highlights
+are then cached for future renderings. If flickering is undesired, disable
+highlight previews.
+
+Takes a boolean. Defaults to `true`.
+
+>lua
+    require("org-roam"):setup({
+      ui = {
+        node_view = {
+          highlight_previews = false,
+        },
+      },
+    })
+<
+
+
+2. show_keybindings
+
+If true, will include a section covering available keybindings.
+
+Takes a boolean. Defaults to `true`.
+
+>lua
+    require("org-roam"):setup({
+      ui = {
+        node_view = {
+          show_keybindings = false,
+        },
+      },
+    })
+<
+
+
+3. unique
+
+If true, shows a single link (backlink/citation/unlinked reference) per node
+instead of all links.
+
+Takes a boolean. Defaults to `false`.
+
+>lua
+    require("org-roam"):setup({
+      ui = {
+        node_view = {
+          unique = true,
+        },
+      },
+    })
+<
+
+
 
 
 ==============================================================================
@@ -79,13 +485,16 @@ TODO
   Name                       Keybinding   Description
   -------------------------- ------------ -------------------------------------------------------------------------
   capture                    <Leader>nc   Opens org-roam capture window.
-  complete_(atpoint)         <Leader>n/   Completes the node under cursor.
+  complete_(atpoint)         <Leader>n.   Completes the node under cursor.
   find_(node)                <Leader>nf   Finds node and moves to it, creating it if it does not exist.
   insert_(node)              <Leader>ni   Inserts node at cursor position, creating it if it does not exist.
   insert_(nodeimmediate)     <Leader>nm   Same as insert_node, but skips opening capture buffer.
   quickfix_(backlinks)       <Leader>nq   Opens the quickfix menu for backlinks to the current node under cursor.
   toggle_(roambuffer)        <Leader>nl   Toggles the org-roam node-view buffer for the node under cursor.
   toggle_(roambufferfixed)   <Leader>nb   Toggles a fixed org-roam node-view buffer for a selected node.
+
+MODIFYING BINDINGS                      *org-roam-bindings-modifying-bindings*
+
 Bindings can be changed during configuration by overwriting them within the
 `bindings` table:
 
@@ -115,12 +524,12 @@ Here is a recommended setup you can use to leverage `C-c`
 
 >lua
     require("org-roam"):setup({
-      -- ...
       bindings = {
         capture                  = "<C-c>nc",
         complete_at_point        = "<M-/>",
         find_node                = "<C-c>nf",
         insert_node              = "<C-c>ni",
+        insert_node_immediate    = "<C-c>nm",
         quickfix_backlinks       = "<C-c>nq",
         toggle_roam_buffer       = "<C-c>nl",
         toggle_roam_buffer_fixed = "<C-c>nb",
