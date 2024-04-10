@@ -55,8 +55,10 @@ end
 function M.wrap(f, opts)
     opts = opts or {}
 
-    local TIME = opts.time or math.huge - 1
+    local TIME = opts.time or math.huge
+    print("TIME", TIME)
     local INTERVAL = opts.interval or 200
+    print("INTERVAL", INTERVAL)
 
     return function(...)
         -- NOTE: As of neovim 0.10, we can no longer call `vim.wait` within a fast
