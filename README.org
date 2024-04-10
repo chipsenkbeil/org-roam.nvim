@@ -14,6 +14,7 @@
 *** lazy.nvim
 
     #+HTML: <details open>
+    #+HTML: <summary>Code Example</summary>
 
     #+begin_src lua
     {
@@ -37,6 +38,7 @@
 *** packer.nvim
 
     #+HTML: <details>
+    #+HTML: <summary>Code Example</summary>
 
     #+begin_src lua
     use {
