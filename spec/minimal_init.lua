@@ -24,45 +24,14 @@ local plugins = {
         repo = "https://github.com/nvim-lua/plenary.nvim",
     },
 
-    -- Dependency of orgmode
-    {
-        name = "treesitter",
-        path = cwd .. "/vendor/treesitter.nvim",
-        repo = "https://github.com/nvim-treesitter/nvim-treesitter",
-    },
-
     -- Primary plugin we work with
     {
         name = "orgmode",
         path = cwd .. "/vendor/orgmode.nvim",
         repo = "https://github.com/nvim-orgmode/orgmode",
         config = function()
-            -- Load treesitter grammar for org
-            print("-> Setting up treesitter grammar for orgmode")
-            require("orgmode").setup_ts_grammar()
-
-            -- Setup treesitter
-            print("-> Running treesitter setup")
-            local parser_install_dir = cwd .. "/vendor/ts-parsers"
-            require("nvim-treesitter.configs").setup({
-                parser_install_dir = parser_install_dir,
-                highlight = {
-                    enable = true,
-                    additional_vim_regex_highlighting = { "org" },
-                },
-                ensure_installed = { "org" },
-            })
-
-            -- Ensure that parser directory for treesitter is on path
-            print("-> Placing treesitter parser directory on path")
-            vim.opt.rtp:append(parser_install_dir)
-
-            -- Force installation of org treesitter language
-            print("-> Forcing treesitter language for orgmode to be installed")
-            require("nvim-treesitter.install").update({ with_sync = true })("org")
-
             -- Setup orgmode
-            print("-> Running orgmode setup")
+            print("Running orgmode setup")
             require("orgmode").setup({
                 org_agenda_files = "~/orgfiles/**/*",
                 org_default_notes_file = "~/orgfiles/refile.org",
