@@ -71,13 +71,23 @@ function M.write_file(path, data, cb)
                 return
             end
 
-            uv.fs_close(fd, function(err)
+            -- Force writing of data to avoid situations where
+            -- we write and then immediately try to read and get
+            -- the old file contents
+            uv.fs_fsync(fd, function(err)
                 if err then
                     cb(err)
                     return
                 end
 
-                cb(nil)
+                uv.fs_close(fd, function(err)
+                    if err then
+                        cb(err)
+                        return
+                    end
+
+                    cb(nil)
+                end)
             end)
         end)
     end)
