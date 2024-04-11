@@ -307,6 +307,9 @@ function M:open()
             end
         end)
 
+        -- Get the current state, which we will restore if normal
+        local is_normal = vim.api.nvim_get_mode()["mode"] == "n"
+
         -- Register a one-time emitter for selecting or cancelling
         -- so we can ensure only one is triggered.
         ---@param tbl {type:string}
@@ -325,7 +328,13 @@ function M:open()
             --       during the closing of the window. For instance, a
             --       choice is selected, we close, and that causes cancel
             --       to also fire for some reason.
-            vim.schedule(function() self:close() end)
+            vim.schedule(function()
+                self:close()
+
+                if is_normal then
+                    vim.cmd.stopinsert()
+                end
+            end)
         end)
 
         -- When the window closes, we trigger our callback
