@@ -9,7 +9,7 @@ local notify = require("org-roam.core.ui.notify")
 local Select = require("org-roam.core.ui.select")
 local utils = require("org-roam.utils")
 
-local ALIASES_PROP_NAME = "roam_aliases"
+local ALIASES_PROP_NAME = "ROAM_ALIASES"
 
 local M = {}
 
@@ -83,21 +83,21 @@ function M.remove_alias(opts)
             elseif entry then
                 local aliases = entry:get_property(ALIASES_PROP_NAME) or ""
 
-                -- Open a selection dialog for the alias to remove
-                Select:new({
-                    auto_select = true,
-                    init_input = opts.alias,
-                    items = utils.parse_prop_value(aliases),
-                }):on_cancel(function()
+                local function on_cancel()
                     notify.echo_info("canceled removing alias")
-                end):on_choice(function(alias)
+                end
+
+                ---@param alias string
+                local function on_choice(alias)
+                    local remaining = vim.tbl_filter(function(item)
+                        return item ~= "" and item ~= alias
+                    end, utils.parse_prop_value(aliases))
+
                     -- Break up our alias into pieces, filter out the specified alias,
                     -- and then reconstruct back (wrapping in quotes) into aliases string
                     aliases = vim.trim(table.concat(vim.tbl_map(function(item)
                         return "\"" .. utils.wrap_prop_value(item) .. "\""
-                    end, vim.tbl_filter(function(item)
-                        return item ~= "" and item ~= alias
-                    end, utils.parse_prop_value(aliases))), " "))
+                    end, remaining), " "))
 
                     -- Update the entry
                     if aliases == "" then
@@ -106,7 +106,17 @@ function M.remove_alias(opts)
                     else
                         entry:set_property(ALIASES_PROP_NAME, aliases)
                     end
-                end)
+                end
+
+                -- Open a selection dialog for the alias to remove
+                Select:new({
+                    auto_select = true,
+                    init_input = opts.alias,
+                    items = utils.parse_prop_value(aliases),
+                })
+                    :on_cancel(on_cancel)
+                    :on_choice(on_choice)
+                    :open()
             end
 
             return file
