@@ -207,7 +207,7 @@ local function define_keybindings(config)
         bindings.quickfix_backlinks,
         "Open quickfix of backlinks for org-roam node under cursor",
         function()
-            require("org-roam.ui.quickfix")({
+            require("org-roam.api").open_quickfix_list({
                 backlinks = true,
                 show_preview = true,
             })
@@ -217,19 +217,21 @@ local function define_keybindings(config)
     assign(
         bindings.toggle_roam_buffer,
         "Opens org-roam buffer for node under cursor",
-        require("org-roam.ui.node-view")
+        require("org-roam.api").open_node_buffer
     )
 
     assign(
         bindings.toggle_roam_buffer_fixed,
         "Opens org-roam buffer for a specific node, not changing",
-        function() require("org-roam.ui.node-view")({ fixed = true }) end
+        function()
+            require("org-roam.api").open_node_buffer({ fixed = true })
+        end
     )
 
     assign(
         bindings.complete_at_point,
         "Completes link to a node based on expression under cursor",
-        require("org-roam.completion").complete_node_under_cursor
+        require("org-roam.api").complete_node
     )
 
     assign(
@@ -243,7 +245,7 @@ local function define_keybindings(config)
             elseif results == "unsupported" then
                 return
             end
-            require("org-roam.node").capture({
+            require("org-roam.api").capture_node({
                 title = title,
             })
         end
@@ -260,7 +262,7 @@ local function define_keybindings(config)
             elseif results == "unsupported" then
                 return
             end
-            require("org-roam.node").find({
+            require("org-roam.api").find_node({
                 title = title,
             })
         end
@@ -278,7 +280,7 @@ local function define_keybindings(config)
             elseif results == "unsupported" then
                 return
             end
-            require("org-roam.node").insert({
+            require("org-roam.api").insert_node({
                 title = title,
                 ranges = ranges,
             })
@@ -297,7 +299,7 @@ local function define_keybindings(config)
             elseif results == "unsupported" then
                 return
             end
-            require("org-roam.node").insert({
+            require("org-roam.api").insert_node({
                 immediate = true,
                 title = title,
                 ranges = ranges,
@@ -348,12 +350,44 @@ local function modify_orgmode_plugin(config)
     end
 end
 
----Initializes the plugin.
 ---@param config org-roam.Config
-return function(config)
+local function initialize_database(config)
+    local db      = require("org-roam.database")
+    local Promise = require("orgmode.utils.promise")
+
+    -- Load the database asynchronously
+    db:load():next(function()
+        -- If we are persisting to disk, do so now as the database may
+        -- have changed post-load
+        if config.database.persist then
+            return db:save()
+        else
+            return Promise.resolve(nil)
+        end
+    end):catch(function(err)
+        require("org-roam.core.ui.notify").error(err)
+    end)
+end
+
+---@param this OrgRoam
+---@param config org-roam.Config
+local function populate_plugin(this, config)
+    this.api    = require("org-roam.api")
+    this.config = config
+    this.db     = require("org-roam.database")
+    this.evt    = require("org-roam.events")
+    this.ext    = require("org-roam.extensions")
+end
+
+---Initializes the plugin.
+---@param this OrgRoam
+---@param config org-roam.Config
+return function(this, config)
     config = merge_config(config)
     define_autocmds(config)
     define_commands(config)
     define_keybindings(config)
     modify_orgmode_plugin(config)
+    initialize_database(config)
+    populate_plugin(this, config)
 end

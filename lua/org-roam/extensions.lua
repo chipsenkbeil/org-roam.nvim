@@ -6,4 +6,5 @@
 -- See https://www.orgroam.com/manual.html#Extensions
 -------------------------------------------------------------------------------
 
+---@class org-roam.Extensions
 return {}

@@ -75,7 +75,7 @@ function M:files_path()
 end
 
 ---Loads the database from disk and re-parses files.
----Callback receives a database reference and collection of files.
+---Returns a promise that receives a database reference and collection of files.
 ---@param opts? {force?:boolean}
 ---@return OrgPromise<{database:org-roam.core.Database, files:OrgFiles}>
 function M:load(opts)
@@ -191,9 +191,11 @@ end
 
 ---Retrieves a node from the database by its id.
 ---@param id org-roam.core.database.Id
+---@param opts? {timeout?:integer}
 ---@return org-roam.core.file.Node|nil
-function M:get_sync(id)
-    return self:get(id):wait()
+function M:get_sync(id, opts)
+    opts = opts or {}
+    return self:get(id):wait(opts.timeout)
 end
 
 ---Retrieves nodes with the specified alias.
@@ -209,9 +211,11 @@ end
 
 ---Retrieves nodes with the specified alias.
 ---@param alias string
+---@param opts? {timeout?:integer}
 ---@return org-roam.core.file.Node[]
-function M:find_nodes_by_alias_sync(alias)
-    return self:find_nodes_by_alias(alias):wait()
+function M:find_nodes_by_alias_sync(alias, opts)
+    opts = opts or {}
+    return self:find_nodes_by_alias(alias):wait(opts.timeout)
 end
 
 ---Retrieves nodes from the specified file.
@@ -232,9 +236,11 @@ end
 
 ---Retrieves nodes from the specified file.
 ---@param file string
+---@param opts? {timeout?:integer}
 ---@return org-roam.core.file.Node[]
-function M:find_nodes_by_file_sync(file)
-    return self:find_nodes_by_file(file):wait()
+function M:find_nodes_by_file_sync(file, opts)
+    opts = opts or {}
+    return self:find_nodes_by_file(file):wait(opts.timeout)
 end
 
 ---Retrieves nodes with the specified tag.
@@ -250,9 +256,11 @@ end
 
 ---Retrieves nodes with the specified tag.
 ---@param tag string
+---@param opts? {timeout?:integer}
 ---@return org-roam.core.file.Node[]
-function M:find_nodes_by_tag_sync(tag)
-    return self:find_nodes_by_tag(tag):wait()
+function M:find_nodes_by_tag_sync(tag, opts)
+    opts = opts or {}
+    return self:find_nodes_by_tag(tag):wait(opts.timeout)
 end
 
 ---Retrieves nodes with the specified title.
@@ -268,9 +276,11 @@ end
 
 ---Retrieves nodes with the specified title.
 ---@param title string
+---@param opts? {timeout?:integer}
 ---@return org-roam.core.file.Node[]
-function M:find_nodes_by_title_sync(title)
-    return self:find_nodes_by_title(title):wait()
+function M:find_nodes_by_title_sync(title, opts)
+    opts = opts or {}
+    return self:find_nodes_by_title(title):wait(opts.timeout)
 end
 
 ---Retrieves ids of nodes linked from a file.
@@ -312,11 +322,11 @@ end
 ---is specified, then indirect links are included. The values of the returned
 ---table are the distance from the file with 1 being immediately connected.
 ---@param file string
----@param opts? {max_depth?:integer}
+---@param opts? {max_depth?:integer, timeout?:integer}
 ---@return table<string, integer>
 function M:get_file_links_sync(file, opts)
-    ---@diagnostic disable-next-line:param-type-mismatch
-    return self:get_file_links(file, opts):wait()
+    opts = opts or {}
+    return self:get_file_links(file, opts):wait(opts.timeout)
 end
 
 ---Retrieves ids of nodes linking to a file.
@@ -360,11 +370,11 @@ end
 ---the returned table are the distance from the file with 1 being immediately
 ---connected.
 ---@param file string
----@param opts? {max_depth?:integer}
+---@param opts? {max_depth?:integer, timeout?:integer}
 ---@return OrgPromise<table<string, integer>>
 function M:get_file_backlinks_sync(file, opts)
-    ---@diagnostic disable-next-line:param-type-mismatch
-    return self:get_file_backlinks(file, opts):wait()
+    opts = opts or {}
+    return self:get_file_backlinks(file, opts):wait(opts.timeout)
 end
 
 local INSTANCE = M:new()

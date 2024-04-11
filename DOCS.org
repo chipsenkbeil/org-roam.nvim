@@ -20,7 +20,7 @@
         },
       },
       config = function()
-        require("org-roam").setup({
+        require("org-roam"):setup({
           directory = "~/orgfiles",
         })
       end
@@ -79,7 +79,7 @@
     })
     #+end_src
  
-*** complete_at_point
+*** complete at point
  
     Completes the node under cursor by searching for a node with matching title
     or alias. If exactly one match is found, the text under cursor is replaced
@@ -95,7 +95,7 @@
     })
     #+end_src
  
-*** find_node
+*** find node
  
     Finds a node by title or alias and opens it in the current window.
  
@@ -112,7 +112,7 @@
     })
     #+end_src
  
-*** insert_node
+*** insert node
  
     Inserts a link at cursor position to a node by title or alias.
  
@@ -129,7 +129,7 @@
     })
     #+end_src
  
-*** insert_node_immediate
+*** insert node immediate
  
     Inserts a link at cursor position to a node by title or alias. Unlike
     =insert_node=, this does not open a capture buffer if a new node is created.
@@ -144,7 +144,7 @@
     })
     #+end_src
  
-*** quickfix_backlinks
+*** quickfix backlinks
  
     Opens the quickfix list, populating it with backlinks for the node
     under cursor.
@@ -159,7 +159,7 @@
     })
     #+end_src
  
-*** toggle_roam_buffer
+*** toggle roam buffer
  
     Opens the roam buffer for the node under cursor, updating the buffer
     when the cursor moves to a different node. See the user interface
@@ -175,7 +175,7 @@
     })
     #+end_src
  
-*** toggle_roam_buffer_fixed
+*** toggle roam buffer fixed
  
     Opens the roam buffer for a specific node, and will not change as the
     cursor moves across nodes. See the user interface
@@ -227,7 +227,7 @@
     })
     #+end_src
  
-*** update_on_save
+*** update on save
  
     If true, updates database whenever a write occurs. If you have large files,
     it is recommended to disable this option and manually update using the vim
@@ -311,11 +311,11 @@
 
    Configuration settings tied to the user interface.
 
-*** node_view
+*** node view
 
     Bindings tied specifically to the roam buffer.
 
-**** highlight_previews
+**** highlight previews
      
      If true, previews will be highlighted as org syntax when expanded.
   
@@ -335,7 +335,7 @@
      })
      #+end_src
   
-**** show_keybindings
+**** show keybindings
      
      If true, will include a section covering available keybindings.
   
@@ -451,7 +451,758 @@
 
 * API
 
-  TODO
+** Capture Node
+
+   roam.api.capture_node({opts}, {cb})
+
+   Description:
+
+   Creates a node if it does not exist, prompting for a template to use, and
+   restores the current window configuration upon completion.
+
+   Parameters:
+
+   - {opts} optional table.
+     - title: if provided, seeds the capture dialog with the title string.
+     - immediate: if true, skips displaying the capture buffer and instead
+                  populates a file using the immediate configuration. If
+                  title is also provided, it is used as the title of the
+                  created node.
+   - {cb}   optional callback when finished. Is passed the id
+            of the created node, or nil if capture was canceled.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.api.capture_node({}, function(id)
+     if id then
+       print("Captured node: " .. id)
+     else
+       print("Capture canceled")
+     end
+   end)
+   #+end_src
+
+** Complete Node
+
+   roam.api.complete_node()
+
+   Description:
+
+   Opens a dialog to select a node based on the expression under the cursor and
+   replace the expression with a link to the selected node. If there is only
+   one choice, this will automatically inject the link without bringing up the
+   selection dialog.
+
+   This implements the functionality of both =org-roam-complete-link-at-point=
+   and =org-roam-complete-everywhere=.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.api.complete_node()
+   #+end_src
+
+** Find Node
+
+   roam.api.find_node({opts})
+
+   Description:
+
+   Creates a node if it does not exist, and then visits the node in
+   the current window.
+
+   Parameters:
+
+   - {opts} optional table.
+     - title: if provided, seeds the select dialog with the title string.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.api.find_node({ title = "Some Node" })
+   #+end_src
+
+** Insert Node
+
+   roam.api.insert_node({opts})
+
+   Description:
+
+   Creates a node if it does not exist, and inserts a link to the node at the
+   current cursor location.
+
+   If =immediate= is true, no template will be used to create a node and
+   instead the node will be created with the minimum information and the link
+   injected without navigating to another buffer.
+
+   If =ranges= is provided, will replace the given ranges within the buffer
+   versus inserting at point, where everything uses 1-based indexing and
+   inclusive.
+
+   Parameters:
+
+   - {opts} optional table.
+     - immediate: if true, skips displaying the capture buffer and instead
+                  populates a file using the immediate configuration. If
+                  title is also provided, it is used as the title of the
+                  created node.
+     - title: if provided, seeds the select dialog with the title string.
+     - ranges: list of ranges to replace. Each range is comprised of the
+               following fields:
+       - start_row: integer (one-indexed, inclusive)
+       - start_col: integer (one-indexed, inclusive)
+       - end_row: integer (one-indexed, inclusive)
+       - end_col: integer (one-indexed, inclusive)
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.api.insert_node({ 
+     title = "Some Node",
+     ranges = { { start_row = 1, end_row = 3, start_col = 5, end_col = 12 } },
+   })
+   #+end_src
+
+** Open Node Buffer
+
+   roam.api.open_node_buffer({opts})
+
+   Description:
+
+   Toggles an org-roam buffer, either for a cursor or for a fixed id.
+
+   If =fixed= is true or an string, will load a fixed buffer, otherwise the
+   buffer will change based on the node under cursor.
+
+   Parameters:
+
+   - {opts} optional table.
+     - fixed: indicates that the node buffer should not update when the
+              node changes under the cursor. Takes the id of a node or
+              a boolean value, which if true will leverage the select dialog
+              to pick a node.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.api.open_node_buffer({ fixed = "1234" })
+   #+end_src
+
+** Open Quickfix List
+
+   roam.api.open_quickfix_list({opts})
+
+   Description:
+
+   Creates and opens a new quickfix list, populated with various links
+   tied to a roam node.
+
+   Parameters:
+
+   - {opts} optional table.
+     - id: string id of the node whose information will populate the list.
+           If not provided, will open a selection dialog to pick a node.
+     - backlinks: if true, show's the selected node's backlinks.
+     - links: if true, show's the selected node's links.
+     - show_preview: if true, loads a preview of content for each list item.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.api.open_quickfix_list({ id = "1234", backlinks = true })
+   #+end_src
+
+* Database
+
+** Files
+
+   roam.db:files({opts})
+
+   Description:
+
+   Loads org files (or retrieves from cache) asynchronously.
+
+   Parameters:
+
+   - {opts} optional table.
+     - force: optional, if true, will reload each file regardless of
+              whether they have changed on disk. If false, only reloads
+              pre-existing files if they have changed.
+     - skip: optional, if true, will avoid loading entirely and just
+             return the files as they are (no updates).
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:files():next(function(files)
+     for _, path in ipairs(files.paths) do
+       print("File " .. path)
+     end
+   end)
+   #+end_src
+
+** Files Path
+
+   roam.db:files_path()
+
+   Description:
+
+   Returns the path to the files directory.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:files_path()
+   #+end_src
+
+** Files Sync
+
+   roam.db:files_sync({opts})
+
+   Description:
+
+   Loads org files (or retrieves from cache) synchronously.
+
+   Parameters:
+
+   - {opts} optional table.
+     - force: optional, if true, will reload each file regardless of
+              whether they have changed on disk. If false, only reloads
+              pre-existing files if they have changed.
+     - timeout: optional, integer representing maximum time (in milliseconds)
+                to wait for the operation to complete. Throws error on timeout.
+     - skip: optional, if true, will avoid loading entirely and just
+             return the files as they are (no updates).
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   local files = roam.db:files_sync()
+   for _, path in ipairs(files.paths) do
+     print("File " .. path)
+   end
+   #+end_src
+
+** Find Nodes by Alias
+
+   roam.db:find_nodes_by_alias({alias})
+
+   Description:
+
+   Retrieves nodes with the specified alias from the database.
+
+   Operation is performed asynchronously, returning a promise of a list of
+   nodes that have the alias.
+
+   Parameters:
+
+   - {alias} string representing the node's alias.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:find_nodes_by_alias("Some Alias"):next(function(nodes)
+     for _, node in ipairs(nodes) do
+       print("Got node " .. node.id)
+     end
+   end)
+   #+end_src
+
+** Find Nodes by Alias Sync
+
+   roam.db:find_nodes_by_alias_sync({alias}, {opts})
+
+   Description:
+
+   Retrieves nodes with the specified alias from the database.
+   Operation is performed synchronously, returning a list of nodes.
+
+   Parameters:
+
+   - {alias} string representing the node's alias.
+   - {opts} optional table.
+     - timeout: optional, integer representing maximum time (in milliseconds)
+                to wait for the operation to complete. Throws error on timeout.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   local nodes = roam.db:find_nodes_by_alias_sync("Some Alias")
+   for _, node in ipairs(nodes) do
+     print("Got node " .. node.id)
+   end
+   #+end_src
+
+** Find Nodes by File
+
+   roam.db:find_nodes_by_file({file})
+
+   Description:
+
+   Retrieves nodes with the specified file from the database.
+
+   Operation is performed asynchronously, returning a promise of a list of
+   nodes that have the file.
+
+   Parameters:
+
+   - {file} string representing the node's file path.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:find_nodes_by_file("path/to/file.org"):next(function(nodes)
+     for _, node in ipairs(nodes) do
+       print("Got node " .. node.id)
+     end
+   end)
+   #+end_src
+
+** Find Nodes by File Sync
+
+   roam.db:find_nodes_by_file_sync({file}, {opts})
+
+   Description:
+
+   Retrieves nodes with the specified file from the database.
+   Operation is performed synchronously, returning a list of nodes.
+
+   Parameters:
+
+   - {file} string representing the node's file path.
+   - {opts} optional table.
+     - timeout: optional, integer representing maximum time (in milliseconds)
+                to wait for the operation to complete. Throws error on timeout.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   local nodes = roam.db:find_nodes_by_file_sync("path/to/file.org")
+   for _, node in ipairs(nodes) do
+     print("Got node " .. node.id)
+   end
+   #+end_src
+
+** Find Nodes by Tag
+
+   roam.db:find_nodes_by_tag({tag})
+
+   Description:
+
+   Retrieves nodes with the specified tag from the database.
+
+   Operation is performed asynchronously, returning a promise of a list of
+   nodes that have the tag.
+
+   Parameters:
+
+   - {tag} string representing the tag.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:find_nodes_by_tag("example"):next(function(nodes)
+     for _, node in ipairs(nodes) do
+       print("Got node " .. node.id)
+     end
+   end)
+   #+end_src
+
+** Find Nodes by Tag Sync
+
+   roam.db:find_nodes_by_tag_sync({tag}, {opts})
+
+   Description:
+
+   Retrieves nodes with the specified tag from the database.
+   Operation is performed synchronously, returning a list of nodes.
+
+   Parameters:
+
+   - {tag} string representing the tag.
+   - {opts} optional table.
+     - timeout: optional, integer representing maximum time (in milliseconds)
+                to wait for the operation to complete. Throws error on timeout.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   local nodes = roam.db:find_nodes_by_tag_sync("example")
+   for _, node in ipairs(nodes) do
+     print("Got node " .. node.id)
+   end
+   #+end_src
+
+** Find Nodes by Title
+
+   roam.db:find_nodes_by_title({title})
+
+   Description:
+
+   Retrieves nodes with the specified title from the database.
+
+   Operation is performed asynchronously, returning a promise of a list of
+   nodes that have the title.
+
+   Parameters:
+
+   - {title} string representing the node's title.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:find_nodes_by_title("Some Title"):next(function(nodes)
+     for _, node in ipairs(nodes) do
+       print("Got node " .. node.id)
+     end
+   end)
+   #+end_src
+
+** Find Nodes by Title Sync
+
+   roam.db:find_nodes_by_title_sync({title}, {opts})
+
+   Description:
+
+   Retrieves nodes with the specified title from the database.
+   Operation is performed synchronously, returning a list of nodes.
+
+   Parameters:
+
+   - {title} string representing the node's title.
+   - {opts} optional table.
+     - timeout: optional, integer representing maximum time (in milliseconds)
+                to wait for the operation to complete. Throws error on timeout.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   local nodes = roam.db:find_nodes_by_title_sync("example")
+   for _, node in ipairs(nodes) do
+     print("Got node " .. node.id)
+   end
+   #+end_src
+
+** Get
+
+   roam.db:get({id})
+
+   Description:
+
+   Retrieves a node from the database by its id. Operation is performed
+   asynchronously, returning a promise of the node or nil if none exists.
+
+   Parameters:
+
+   - {id} string representing the node's id.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:get("1234"):next(function(node)
+     if node then
+       print("Got node " .. node.title)
+     end
+   end)
+   #+end_src
+
+** Get Sync
+
+   roam.db:get_sync({id}, {opts})
+
+   Description:
+
+   Retrieves a node from the database by its id. Operation is performed
+   synchronously, returning the node or nil if none exists.
+
+   Parameters:
+
+   - {id} string representing the node's id.
+   - {opts} optional table.
+     - timeout: optional, integer representing maximum time (in milliseconds)
+                to wait for the operation to complete. Throws error on timeout.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   local node = roam.db:get_sync("1234")
+   if node then
+     print("Got node " .. node.title)
+   end
+   #+end_src
+
+** Get File Backlinks
+
+   roam.db:get_file_backlinks({file}, {opts})
+
+   Description:
+
+   Retrieves ids of nodes linking to a file. Operation is performed
+   asynchronously, returning a promise of a table of id -> distance
+   away from the file.
+
+   Parameters:
+
+   - {file} string representing a file path.
+   - {opts} optional table.
+     - max_depth: optional, integer representing maximum depth to traverse
+                  from the nodes of the file (default 1). 
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:get_file_backlinks("path/to/file.org"):next(function(backlinks)
+     for id, distance in pairs(backlinks) do
+       print("Got node " .. id .. " with distance " .. distance)
+     end
+   end)
+   #+end_src
+
+** Get File Backlinks Sync
+
+   roam.db:get_file_backlinks_sync({id}, {opts})
+
+   Description:
+
+   Retrieves ids of nodes linking to a file. Operation is performed
+   synchronously, returning a table of id -> distance away from the file.
+
+   Parameters:
+
+   - {file} string representing a file path.
+   - {opts} optional table.
+     - max_depth: optional, integer representing maximum depth to traverse
+                  from the nodes of the file (default 1). 
+     - timeout: optional, integer representing maximum time (in milliseconds)
+                to wait for the operation to complete. Throws error on timeout.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   local backlinks = roam.db:get_file_backlinks_sync("path/to/file.org")
+   for id, distance in pairs(backlinks) do
+     print("Got node " .. id .. " with distance " .. distance)
+   end
+   #+end_src
+
+** Get File Links
+
+   roam.db:get_file_links({file}, {opts})
+
+   Description:
+
+   Retrieves ids of nodes linked from a file. Operation is performed
+   asynchronously, returning a promise of a table of id -> distance
+   away from the file.
+
+   Parameters:
+
+   - {file} string representing a file path.
+   - {opts} optional table.
+     - max_depth: optional, integer representing maximum depth to traverse
+                  from the nodes of the file (default 1). 
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:get_file_links("path/to/file.org"):next(function(links)
+     for id, distance in pairs(links) do
+       print("Got node " .. id .. " with distance " .. distance)
+     end
+   end)
+   #+end_src
+
+** Get File Links Sync
+
+   roam.db:get_file_links_sync({id}, {opts})
+
+   Description:
+
+   Retrieves ids of nodes linked from a file. Operation is performed
+   synchronously, returning a table of id -> distance away from the file.
+
+   Parameters:
+
+   - {file} string representing a file path.
+   - {opts} optional table.
+     - max_depth: optional, integer representing maximum depth to traverse
+                  from the nodes of the file (default 1). 
+     - timeout: optional, integer representing maximum time (in milliseconds)
+                to wait for the operation to complete. Throws error on timeout.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   local links = roam.db:get_file_links_sync("path/to/file.org")
+   for id, distance in pairs(links) do
+     print("Got node " .. id .. " with distance " .. distance)
+   end
+   #+end_src
+
+** Load
+
+   roam.db:load({opts})
+
+   Description:
+
+   Loads the database from disk and re-parses files. Returns a promise that
+   receives a database reference and collection of files.
+
+   Parameters:
+
+   - {opts} optional table.
+     - force: if true, will reload each file and node regardless of whether
+              they have changed on disk. If false, only reloads pre-existing
+              files and nodes if they have changed.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:load({ force = true }):next(function(results)
+     ---@type OrgFiles
+     local files = results.files
+   end)
+   #+end_src
+
+** Load File
+
+   roam.db:load_file({opts})
+
+   Description:
+
+   Loads the database from disk and re-parses files. Returns a promise that
+   receives an org file and list of roam nodes.
+
+   Parameters:
+
+   - {opts} required table.
+     - path: required, string representing the path to the file.
+     - force: optional, if true, will reload each file and node regardless of
+              whether they have changed on disk. If false, only reloads
+              pre-existing files and nodes if they have changed.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:load_file({ path = "path/to/file.org" }):next(function(results)
+     ---@type OrgFile
+     local file = results.file
+
+     ---@type org-roam.core.file.Node[]
+     local node = results.nodes
+   end)
+   #+end_src
+
+** Path
+
+   roam.db:path()
+
+   Description:
+
+   Returns the path to the database on disk.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:path()
+   #+end_src
+
+** Save
+
+   roam.db:save({opts})
+
+   Description:
+
+   Saves the database to disk. Returns a promise of nil.
+
+   Parameters:
+
+   - {opts} optional table.
+     - force: optional, if true, will reload each file and node regardless of
+              whether they have changed on disk. If false, only reloads
+              pre-existing files and nodes if they have changed.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.db:save():next(function()
+     print("Done!")
+   end)
+   #+end_src
+
+* Events
+
+** On Cursor Node Changed
+
+   roam.evts.on_cursor_node_changed({cb})
+
+   Description:
+
+   Register a callback when a cursor move results in the node
+   under the cursor changing. This will also be triggered when
+   the cursor moves to a position where there is no node.
+
+   Parameters:
+
+   - {cb} triggered when the cursor moves to a different node or no node.
+          Takes the node as an argument, or nil if no node.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.evts.on_cursor_node_changed(function(node)
+     if node then
+       print("Node under cursor is " .. node.id)
+     end
+   end)
+   #+end_src
+
+* Extensions
+
+** Dailies
+
+   Unimplemented for now!
+
+** Export
+
+   Unimplemented for now!
+
+** Graph
+
+   Unimplemented for now!
+
+** Protocol
+
+   Unimplemented for now!
 
 * Changelog
 
