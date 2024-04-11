@@ -204,6 +204,18 @@ local function define_keybindings(config)
     end
 
     assign(
+        bindings.add_alias,
+        "Adds an alias to the roam node under cursor",
+        require("org-roam.api").add_alias
+    )
+
+    assign(
+        bindings.remove_alias,
+        "Removes an alias from the roam node under cursor",
+        require("org-roam.api").remove_alias
+    )
+
+    assign(
         bindings.quickfix_backlinks,
         "Open quickfix of backlinks for org-roam node under cursor",
         function()
