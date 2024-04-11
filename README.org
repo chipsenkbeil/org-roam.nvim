@@ -92,6 +92,8 @@
        - Nodes that reference this node (see [[https://www.orgroam.com/manual.html#Refs][Refs]])
      - [ ] Implement *Unlinked references* widget for buffer
        - View nodes that contain text that match the nodes title/alias but are not linked
+     - [ ] Implement *Origin* widget for buffer (custom, not in Org Roam!)
+       - Displays the origin of the node as defined in =ROAM_ORIGIN=
    - [ ] Support [[https://www.orgroam.com/manual.html#Citations][citations]]
      - [ ] As of orgmode 9.5, *org-cite* is built-in and has the form *[cite:@key]*
      - [ ] Alongside *org-cite*, there is also support for [[https://github.com/jkitchin/org-ref][org-ref]] (v2 & v3),
@@ -104,6 +106,15 @@
      - [X] Implement *org-roam-node-find*
      - [X] Implement *org-roam-capture*
      - [X] Implement *org-roam-node-insert-immediate*
+   - [ ] Support origin (custom, not in Org Roam!)
+     - [ ] =ROAM_ORIGIN= available within node properties, containing org id
+     - [ ] Ability to query database for nodes with origin matching an id
+     - [ ] Keybinding to jump forward and backward across origins
+   - [X] Miscellaneous Roam functions
+     - [X] Implement *org-roam-alias-add*
+     - [X] Implement *org-roam-alias-remove*
+     - [ ] Implement *org-roam-origin-insert* (custom, not in Org Roam!)
+     - [ ] Implement *org-roam-origin-remove* (custom, not in Org Roam!)
    - [ ] Implement extensions
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002ddailies][org-roam-dailies]]
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002dexport][org-roam-export]]
