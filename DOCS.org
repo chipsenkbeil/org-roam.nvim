@@ -441,12 +441,14 @@
    #+begin_src lua
    require("org-roam"):setup({
      bindings = {
+       add_alias                = "<C-c>naa",
        capture                  = "<C-c>nc",
        complete_at_point        = "<M-/>",
        find_node                = "<C-c>nf",
        insert_node              = "<C-c>ni",
        insert_node_immediate    = "<C-c>nm",
        quickfix_backlinks       = "<C-c>nq",
+       remove_alias             = "<C-c>nar",
        toggle_roam_buffer       = "<C-c>nl",
        toggle_roam_buffer_fixed = "<C-c>nb",
      },
