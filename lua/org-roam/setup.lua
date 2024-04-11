@@ -307,42 +307,6 @@ local function define_keybindings(config)
 end
 
 ---@param config org-roam.Config
-local function define_mouse_features(config)
-    -- Force-enable mouse movement if highlighting links
-    if not vim.opt.mousemoveevent:get() and config.ui.mouse.highlight_links then
-        vim.opt.mousemoveevent = true
-    end
-
-    -- Register on org filetype to set the mouse keybindings locally to
-    -- those buffers to avoid conflicts with other plugins that add mouse
-    -- keybindings in specialized ways
-    vim.api.nvim_create_autocmd("FileType", {
-        group = AUGROUP,
-        pattern = { "org", "org-roam-*" },
-        callback = function(opts)
-            ---@type integer
-            local buf = opts.buf
-
-            if config.ui.mouse.highlight_links then
-                vim.keymap.set("n", "<MouseMove>", function()
-                    local hl_group = config.ui.mouse.highlight_links_group
-                    require("org-roam.mouse").highlight_link(hl_group)
-                end, { buffer = buf, silent = true })
-            end
-
-            if config.ui.mouse.click_open_links then
-                vim.keymap.set("n", "<LeftRelease>", function()
-                    -- NOTE: The cursor moves BEFORE this mapping is fired,
-                    --       which is exactly what we want to be able to
-                    --       open at point!
-                    require("orgmode").org_mappings:open_at_point()
-                end, { buffer = buf, silent = true })
-            end
-        end,
-    })
-end
-
----@param config org-roam.Config
 local function modify_orgmode_plugin(config)
     -- Provide a wrapper around `open_at_point` from orgmode mappings so we can
     -- attempt to jump to an id referenced by our database first, and then fall
@@ -359,7 +323,7 @@ local function modify_orgmode_plugin(config)
 
         -- If we found a node, open the file at the start of the node
         if node then
-            log.fmt_debug("Detected node %s under mouse click at (%d,%d)",
+            log.fmt_debug("Detected node %s under at (%d,%d)",
                 node.id, row, col)
             local winnr = vim.api.nvim_get_current_win()
             vim.cmd.edit(node.file)
@@ -391,6 +355,5 @@ return function(config)
     define_autocmds(config)
     define_commands(config)
     define_keybindings(config)
-    define_mouse_features(config)
     modify_orgmode_plugin(config)
 end
