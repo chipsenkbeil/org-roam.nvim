@@ -1,4 +1,4 @@
-*org-roam.txt*            For NVIM v0.9.2           Last change: 2024 April 10
+*org-roam.txt*            For NVIM v0.9.2           Last change: 2024 April 11
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -358,65 +358,6 @@ Target-only Variables:
 UI                                                 *org-roam-configuration-ui*
 
 Configuration settings tied to the user interface.
-
-
-MOUSE ~
-
-Bindings tied specifically to mouse interaction in org buffers.
-
-1. click_openlinks
-
-If true, clicking on links will open them.
-
-Takes a boolean. Defaults to `true`.
-
->lua
-    require("org-roam"):setup({
-      ui = {
-        mouse = {
-          click_open_links = false,
-        },
-      },
-    })
-<
-
-
-2. highlight_links
-
-If true, highlights links when mousing over them.
-
-This will enable `vim.opt.mouseoverevent` if disabled!
-
-Takes a boolean. Defaults to `true`.
-
->lua
-    require("org-roam"):setup({
-      ui = {
-        mouse = {
-          highlight_links = false,
-        },
-      },
-    })
-<
-
-
-3. highlight_linksgroup
-
-Highlight group to apply when highlighting links.
-
-Takes a string. Defaults to `WarningMsg`.
-
->lua
-    require("org-roam"):setup({
-      ui = {
-        mouse = {
-          highlight_links_group = "Comment",
-        },
-      },
-    })
-<
-
-
 
 
 NODEVIEW ~
