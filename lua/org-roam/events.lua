@@ -14,4 +14,12 @@ EMITTER.KIND = {
     CURSOR_NODE_CHANGED = "cursor:node-changed",
 }
 
+---Register a callback when a cursor move results in the node under the
+---cursor changing. This will also be triggered when the cursor moves
+---to a position where there is no node.
+---@param cb fun(node:org-roam.core.file.Node|nil)
+function EMITTER.on_cursor_node_changed(cb)
+    EMITTER:on(EMITTER.KIND.CURSOR_NODE_CHANGED, cb)
+end
+
 return EMITTER
