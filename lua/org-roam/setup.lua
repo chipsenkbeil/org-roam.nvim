@@ -105,7 +105,7 @@ local function define_commands(config)
     local notify = require("org-roam.core.ui.notify")
     local Profiler = require("org-roam.core.utils.profiler")
 
-    vim.api.nvim_create_user_command("OrgRoamSave", function(opts)
+    vim.api.nvim_create_user_command("RoamSave", function(opts)
         log.fmt_debug("Saving database")
 
         -- Start profiling so we can report the time taken
@@ -120,9 +120,9 @@ local function define_commands(config)
                 return ...
             end)
             :catch(notify.error)
-    end, { bang = true, desc = "Saves the org-roam database" })
+    end, { bang = true, desc = "Saves the roam database" })
 
-    vim.api.nvim_create_user_command("OrgRoamUpdate", function(opts)
+    vim.api.nvim_create_user_command("RoamUpdate", function(opts)
         local force = opts.bang or false
 
         -- Start profiling so we can report the time taken
@@ -138,7 +138,36 @@ local function define_commands(config)
                 return ...
             end)
             :catch(notify.error)
-    end, { bang = true, desc = "Updates the org-roam database" })
+    end, { bang = true, desc = "Updates the roam database" })
+
+    vim.api.nvim_create_user_command("RoamAddAlias", function(opts)
+        ---@type string|nil
+        local alias = vim.trim(opts.args)
+        if alias and alias == "" then
+            alias = nil
+        end
+
+        require("org-roam.api").add_alias({ alias = alias })
+    end, {
+        desc = "Adds an alias to the current node under cursor",
+        nargs = "*",
+    })
+
+    vim.api.nvim_create_user_command("RoamRemoveAlias", function(opts)
+        local all = opts.bang or false
+
+        ---@type string|nil
+        local alias = vim.trim(opts.args)
+        if alias and alias == "" then
+            alias = nil
+        end
+
+        require("org-roam.api").remove_alias({ alias = alias, all = all })
+    end, {
+        bang = true,
+        desc = "Removes an alias from the current node under cursor",
+        nargs = "*",
+    })
 end
 
 ---@param config org-roam.Config

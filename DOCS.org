@@ -259,7 +259,7 @@
  
     If true, updates database whenever a write occurs. If you have large files,
     it is recommended to disable this option and manually update using the vim
-    command =OrgRoamUpdate=.
+    command =RoamUpdate=.
  
     Takes a boolean. Defaults to =true=.
  

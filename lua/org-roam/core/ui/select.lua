@@ -203,12 +203,19 @@ function M:new(opts)
         window = nil,
     }
 
+    -- Build our prompt, updating it to a left-hand side
+    -- style if we have neovim 0.10+ which supports inlining
+    local default_prompt = "({sel}/{cnt})"
+    if vim.fn.has("nvim-0.10") == 1 then
+        default_prompt = "{sel}/{cnt}> "
+    end
+
     instance.__view = {
         filtered_items = {}, -- To be populated
         start = 1,
         selected = 1,
         max_rows = opts.max_displayed_rows or 8,
-        prompt = opts.prompt or "",
+        prompt = opts.prompt or default_prompt,
         input = instance.__params.init_input .. "|", -- Force refresh
     }
 

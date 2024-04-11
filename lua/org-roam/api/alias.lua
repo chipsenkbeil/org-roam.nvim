@@ -108,11 +108,19 @@ function M.remove_alias(opts)
                     end
                 end
 
+                -- Build our prompt, updating it to a left-hand side
+                -- style if we have neovim 0.10+ which supports inlining
+                local prompt = "(alias {sel}/{cnt})"
+                if vim.fn.has("nvim-0.10") == 1 then
+                    prompt = "{sel}/{cnt} alias> "
+                end
+
                 -- Open a selection dialog for the alias to remove
                 Select:new({
                     auto_select = true,
                     init_input = opts.alias,
                     items = utils.parse_prop_value(aliases),
+                    prompt = prompt,
                 })
                     :on_cancel(on_cancel)
                     :on_choice(on_choice)
