@@ -89,7 +89,7 @@ end
 
 ---Removes an alias from the node under cursor.
 ---
----If no `alias` is specified, prompt is provided.
+---If no `alias` is specified, selection dialog of aliases is provided.
 ---If `all` is true, will remove all aliases instead of one.
 ---
 ---@param opts? {alias?:string, all?:boolean}
@@ -109,16 +109,16 @@ function M.remove_alias(opts)
                 -- TODO: How do we fully remove?
                 entry:set_property(ALIASES_PROP_NAME, "")
             elseif entry then
+                local aliases = entry:get_property(ALIASES_PROP_NAME) or ""
+
                 -- Open a selection dialog for the alias to remove
                 Select:new({
                     auto_select = true,
                     init_input = opts.alias,
-                    items = node.aliases,
+                    items = to_prop_list(aliases),
                 }):on_cancel(function()
                     notify.echo_info("canceled removing alias")
                 end):on_choice(function(alias)
-                    local aliases = entry:get_property(ALIASES_PROP_NAME) or ""
-
                     -- Break up our alias into pieces, filter out the specified alias,
                     -- and then reconstruct back (wrapping in quotes) into aliases string
                     aliases = vim.trim(table.concat(vim.tbl_map(function(item)
