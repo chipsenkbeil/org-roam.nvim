@@ -453,7 +453,25 @@
 
 ** Capture Node
 
-   TODO
+   roam.api.capture_node({opts}, {cb})
+
+   Description:
+
+   Creates a node if it does not exist, prompting for a template to use, and
+   restores the current window configuration upon completion.
+
+   Parameters:
+
+   - {opts} optional table.
+     - title: if provided, seeds the capture dialog with the title string.
+     - immediate: if true, skips displaying the capture buffer and instead
+                  populates a file using the immediate configuration. If
+                  title is also provided, it is used as the title of the
+                  created node.
+   - {cb}   optional callback when finished. Is passed the id
+            of the created node, or nil if capture was canceled.
+
+   Example:
 
    #+begin_src lua
    local roam = require("org-roam")
@@ -464,6 +482,140 @@
        print("Capture canceled")
      end
    end)
+   #+end_src
+
+** Complete Node
+
+   roam.api.complete_node()
+
+   Description:
+
+   Opens a dialog to select a node based on the expression under the cursor and
+   replace the expression with a link to the selected node. If there is only
+   one choice, this will automatically inject the link without bringing up the
+   selection dialog.
+
+   This implements the functionality of both =org-roam-complete-link-at-point=
+   and =org-roam-complete-everywhere=.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.api.complete_node()
+   #+end_src
+
+** Find Node
+
+   roam.api.find_node({opts})
+
+   Description:
+
+   Creates a node if it does not exist, and then visits the node in
+   the current window.
+
+   Parameters:
+
+   - {opts} optional table.
+     - title: if provided, seeds the select dialog with the title string.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.api.find_node({ title = "Some Node" })
+   #+end_src
+
+** Insert Node
+
+   roam.api.insert_node({opts})
+
+   Description:
+
+   Creates a node if it does not exist, and inserts a link to the node at the
+   current cursor location.
+
+   If =immediate= is true, no template will be used to create a node and
+   instead the node will be created with the minimum information and the link
+   injected without navigating to another buffer.
+
+   If =ranges= is provided, will replace the given ranges within the buffer
+   versus inserting at point, where everything uses 1-based indexing and
+   inclusive.
+
+   Parameters:
+
+   - {opts} optional table.
+     - immediate: if true, skips displaying the capture buffer and instead
+                  populates a file using the immediate configuration. If
+                  title is also provided, it is used as the title of the
+                  created node.
+     - title: if provided, seeds the select dialog with the title string.
+     - ranges: list of ranges to replace. Each range is comprised of the
+               following fields:
+       - start_row: integer (one-indexed, inclusive)
+       - start_col: integer (one-indexed, inclusive)
+       - end_row: integer (one-indexed, inclusive)
+       - end_col: integer (one-indexed, inclusive)
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.api.insert_node({ 
+     title = "Some Node",
+     ranges = { { start_row = 1, end_row = 3, start_col = 5, end_col = 12 } },
+   })
+   #+end_src
+
+** Open Node Buffer
+
+   roam.api.open_node_buffer({opts})
+
+   Description:
+
+   Toggles an org-roam buffer, either for a cursor or for a fixed id.
+
+   If =fixed= is true or an string, will load a fixed buffer, otherwise the
+   buffer will change based on the node under cursor.
+
+   Parameters:
+
+   - {opts} optional table.
+     - fixed: indicates that the node buffer should not update when the
+              node changes under the cursor. Takes the id of a node or
+              a boolean value, which if true will leverage the select dialog
+              to pick a node.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.api.open_node_buffer({ fixed = "1234" })
+   #+end_src
+
+** Open Quickfix List
+
+   roam.api.open_quickfix_list({opts})
+
+   Description:
+
+   Creates and opens a new quickfix list, populated with 
+
+   Parameters:
+
+   - {opts} optional table.
+     - id: string id of the node whose information will populate the list.
+           If not provided, will open a selection dialog to pick a node.
+     - backlinks: if true, show's the selected node's backlinks.
+     - links: if true, show's the selected node's links.
+     - show_preview: if true, loads a preview of content for each list item.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.api.open_quickfix_list({ id = "1234", backlinks = true })
    #+end_src
 
 * Database
