@@ -20,7 +20,7 @@
         },
       },
       config = function()
-        require("org-roam").setup({
+        require("org-roam"):setup({
           directory = "~/orgfiles",
         })
       end
@@ -450,6 +450,31 @@
      backlink, reference link, or unlinked reference.
 
 * API
+
+** Capture Node
+
+   TODO
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.api.capture_node({}, function(id)
+     if id then
+       print("Captured node: " .. id)
+     else
+       print("Capture canceled")
+     end
+   end)
+   #+end_src
+
+* Database
+
+  TODO
+
+* Events
+
+  TODO
+
+* Extensions
 
   TODO
 

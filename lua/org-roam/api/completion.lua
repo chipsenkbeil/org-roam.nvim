@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 -- COMPLETION.LUA
 --
--- Contains functionality tied to org-roam completion.
+-- Contains functionality tied to roam completion api.
 -------------------------------------------------------------------------------
 
 local db = require("org-roam.database")
