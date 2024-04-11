@@ -7,39 +7,11 @@
 local db = require("org-roam.database")
 local notify = require("org-roam.core.ui.notify")
 local Select = require("org-roam.core.ui.select")
-local to_prop_list = require("org-roam.core.file.utils").parse_property_value
 local utils = require("org-roam.utils")
 
-local ID_PROP_NAME = "id"
 local ALIASES_PROP_NAME = "roam_aliases"
 
 local M = {}
-
----@param file OrgFile
----@param id string
----@return OrgFile|OrgHeadline|nil
-local function find_id_match(file, id)
-    if file:get_property(ID_PROP_NAME) == id then
-        return file
-    else
-        -- Search through all headlines to see if we have a match
-        for _, headline in ipairs(file:get_headlines()) do
-            if headline:get_property(ID_PROP_NAME, false) == id then
-                return headline
-            end
-        end
-
-        -- Found nothing
-        return
-    end
-end
-
----@param alias string
----@return string
-local function wrap_alias(alias)
-    local text = string.gsub(string.gsub(alias, "\\", "\\\\"), "\"", "\\\"")
-    return text
-end
 
 ---Adds an alias to the node under cursor.
 ---
@@ -56,7 +28,7 @@ function M.add_alias(opts)
             local file = results.file
 
             -- Look for a file or headline that matches our node
-            local entry = find_id_match(file, node.id)
+            local entry = utils.find_id_match(file, node.id)
 
             if entry then
                 -- Get list of aliases that already exist
@@ -73,7 +45,7 @@ function M.add_alias(opts)
                 end
 
                 -- Escape double quotes and backslashes within alias as we're going to wrap it
-                alias = wrap_alias(alias)
+                alias = utils.wrap_prop_value(alias)
 
                 -- Append our new alias to the end
                 aliases = vim.trim(string.format("%s \"%s\"", aliases, alias))
@@ -103,7 +75,7 @@ function M.remove_alias(opts)
             local file = results.file
 
             -- Look for a file or headline that matches our node
-            local entry = find_id_match(file, node.id)
+            local entry = utils.find_id_match(file, node.id)
 
             if entry and opts.all then
                 -- TODO: How do we fully remove?
@@ -115,17 +87,17 @@ function M.remove_alias(opts)
                 Select:new({
                     auto_select = true,
                     init_input = opts.alias,
-                    items = to_prop_list(aliases),
+                    items = utils.parse_prop_value(aliases),
                 }):on_cancel(function()
                     notify.echo_info("canceled removing alias")
                 end):on_choice(function(alias)
                     -- Break up our alias into pieces, filter out the specified alias,
                     -- and then reconstruct back (wrapping in quotes) into aliases string
                     aliases = vim.trim(table.concat(vim.tbl_map(function(item)
-                        return "\"" .. wrap_alias(item) .. "\""
+                        return "\"" .. utils.wrap_prop_value(item) .. "\""
                     end, vim.tbl_filter(function(item)
                         return item ~= "" and item ~= alias
-                    end, to_prop_list(aliases))), " "))
+                    end, utils.parse_prop_value(aliases))), " "))
 
                     -- Update the entry
                     if aliases == "" then

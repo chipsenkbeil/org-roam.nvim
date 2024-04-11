@@ -7,6 +7,7 @@
 local File = require("org-roam.core.file")
 local IntervalTree = require("org-roam.core.utils.tree")
 local OrgFile = require("orgmode.files.file")
+local parse_property_value = require("org-roam.core.file.utils").parse_property_value
 local unpack = require("org-roam.core.utils.table").unpack
 
 ---@class (exact) org-roam.utils.BufferCache
@@ -173,6 +174,41 @@ function M.title_to_slug(title)
     return title
 end
 
+M.parse_prop_value = parse_property_value
+
+---Wraps a value meant to be part of a proprty such that it can be quoted.
+---This escapes " and \ characters.
+---@param value string
+---@return string
+function M.wrap_prop_value(value)
+    local text = string.gsub(string.gsub(value, "\\", "\\\\"), "\"", "\\\"")
+    return text
+end
+
+---Searches an org file for a match with the specified `id`.
+---
+---The match could be an `OrgFile` (top-level property drawer) or an
+---`OrgHeadline`. Returns `nil` if there is no match.
+---
+---@param file OrgFile
+---@param id string
+---@return OrgFile|OrgHeadline|nil
+function M.find_id_match(file, id)
+    if file:get_property("id") == id then
+        return file
+    else
+        -- Search through all headlines to see if we have a match
+        for _, headline in ipairs(file:get_headlines()) do
+            if headline:get_property("id", false) == id then
+                return headline
+            end
+        end
+
+        -- Found nothing
+        return
+    end
+end
+
 ---@class org-roam.utils.Range
 ---@field start_row integer #starting row (one-indexed, inclusive)
 ---@field start_col integer #starting column (one-indexed, inclusive)
@@ -245,8 +281,5 @@ function M.get_visual_selection(opts)
 
     return lines, ranges
 end
-
----@private
-M.__cache = CACHE
 
 return M
