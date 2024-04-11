@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 -- NODE.LUA
 --
--- Contains functionality tied to org-roam nodes.
+-- Contains functionality tied to the roam node api.
 -------------------------------------------------------------------------------
 
 local CONFIG = require("org-roam.config")
@@ -30,7 +30,6 @@ local TARGET_EXPANSION_KEYS = {
     TITLE = "%[title]",
 }
 
----@class org-roam.NodeApi
 local M = {}
 
 ---@param content string

@@ -152,6 +152,13 @@ end
 ---@field links? boolean #if true, shows links
 ---@field show_preview? boolean #if true, loads preview of linked content
 
+---Creates and opens a new quickfix list.
+---
+---* `id`: id of node, or opens a selection dialog to pick a node
+---* `backlinks`: if true, shows node's backlinks
+---* `links`: if true, shows node's links
+---* `show_preview`: if true, loads preview of each link's content
+---
 ---@param opts? org-roam.ui.quickfix.Opts
 return function(opts)
     opts = opts or {}

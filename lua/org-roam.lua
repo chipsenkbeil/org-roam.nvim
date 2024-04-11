@@ -9,30 +9,20 @@ if not pcall(require, "orgmode") then
     error("missing dependency: orgmode")
 end
 
----@class org-roam.OrgRoam
+---@class OrgRoam
+---@field api org-roam.Api
+---@field config org-roam.Config
+---@field db org-roam.Database
+---@field evt org-roam.events.Emitter
+---@field ext org-roam.Extensions
 local M = {}
 
----Called to initialize the org-roam plugin.
+---Initializes the plugin.
+---
+---NOTE: This MUST be called before doing anything else!
 ---@param config org-roam.Config
-function M.setup(config)
-    require("org-roam.setup")(config)
-
-    local CONFIG  = require("org-roam.config")
-    local db      = require("org-roam.database")
-    local Promise = require("orgmode.utils.promise")
-
-    -- Load the database asynchronously
-    db:load():next(function()
-        -- If we are persisting to disk, do so now as the database may
-        -- have changed post-load
-        if CONFIG.database.persist then
-            return db:save()
-        else
-            return Promise.resolve(nil)
-        end
-    end):catch(function(err)
-        require("org-roam.core.ui.notify").error(err)
-    end)
+function M:setup(config)
+    require("org-roam.setup")(self, config)
 end
 
 return M
