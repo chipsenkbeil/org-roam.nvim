@@ -35,7 +35,7 @@ function M.add_alias(opts)
                 local aliases = entry:get_property(ALIASES_PROP_NAME) or ""
 
                 local alias = vim.trim(opts.alias or vim.fn.input({
-                    prompt = "Node alias: ",
+                    prompt = "Alias: ",
                 }))
 
                 -- Skip if not given a non-empty alias
@@ -78,8 +78,7 @@ function M.remove_alias(opts)
             local entry = utils.find_id_match(file, node.id)
 
             if entry and opts.all then
-                -- TODO: How do we fully remove?
-                entry:set_property(ALIASES_PROP_NAME, "")
+                entry:set_property(ALIASES_PROP_NAME, nil)
             elseif entry then
                 local aliases = entry:get_property(ALIASES_PROP_NAME) or ""
 
@@ -101,8 +100,7 @@ function M.remove_alias(opts)
 
                     -- Update the entry
                     if aliases == "" then
-                        -- TODO: How do we fully remove?
-                        entry:set_property(ALIASES_PROP_NAME, "")
+                        entry:set_property(ALIASES_PROP_NAME, nil)
                     else
                         entry:set_property(ALIASES_PROP_NAME, aliases)
                     end
