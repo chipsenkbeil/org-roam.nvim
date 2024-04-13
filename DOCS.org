@@ -73,8 +73,22 @@
  
     #+begin_src lua
     require("org-roam"):setup({
-      add_alias = {
-        capture = "<LocalLeader>naa",
+      bindings = {
+        add_alias = "<LocalLeader>naa",
+      },
+    })
+    #+end_src
+
+*** add origin
+
+    Adds an origin to the node under cursor.
+
+    Takes a string representing the keybinding. Defaults to =<Leader>noa=.
+
+    #+begin_src lua
+    require("org-roam"):setup({
+      bindings = {
+        add_origin = "<LocalLeader>noa",
       },
     })
     #+end_src
@@ -181,12 +195,26 @@
  
     #+begin_src lua
     require("org-roam"):setup({
-      remove_alias = {
-        capture = "<LocalLeader>nar",
+      bindings = {
+        remove_alias = "<LocalLeader>nar",
       },
     })
     #+end_src
+
+*** remove origin
  
+    Removes the origin from the node under cursor.
+
+    Takes a string representing the keybinding. Defaults to =<Leader>nor=.
+
+    #+begin_src lua
+    require("org-roam"):setup({
+      bindings = {
+        remove_origin = "<LocalLeader>nor",
+      },
+    })
+    #+end_src
+
 *** toggle roam buffer
  
     Opens the roam buffer for the node under cursor, updating the buffer
@@ -401,6 +429,7 @@
   | Name                     | Keybinding    | Description                                                             |
   |--------------------------+---------------+-------------------------------------------------------------------------|
   | add_alias                | =<Leader>naa= | Adds an alias to the node under cursor.                                 |
+  | add_origin               | =<Leader>noa= | Adds an origin to the node under cursor.                                |
   | capture                  | =<Leader>nc=  | Opens org-roam capture window.                                          |
   | complete_at_point        | =<Leader>n.=  | Completes the node under cursor.                                        |
   | find_node                | =<Leader>nf=  | Finds node and moves to it, creating it if it does not exist.           |
@@ -408,6 +437,7 @@
   | insert_node_immediate    | =<Leader>nm=  | Same as =insert_node=, but skips opening capture buffer.                |
   | quickfix_backlinks       | =<Leader>nq=  | Opens the quickfix menu for backlinks to the current node under cursor. |
   | remove_alias             | =<Leader>nar= | Removes an alias from the node under cursor.                            |
+  | remove_origin            | =<Leader>nor= | Removes the origin from the node under cursor.                          |
   | toggle_roam_buffer       | =<Leader>nl=  | Toggles the org-roam node-view buffer for the node under cursor.        |
   | toggle_roam_buffer_fixed | =<Leader>nb=  | Toggles a fixed org-roam node-view buffer for a selected node.          |
 

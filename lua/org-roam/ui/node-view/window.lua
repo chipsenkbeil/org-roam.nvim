@@ -44,6 +44,7 @@ local KEYBINDINGS = {
 ---Mapping of kind -> highlight group.
 local HL = {
     NODE_TITLE    = "Title",
+    NODE_ORIGIN   = "Title",
     COMMENT       = "Comment",
     KEYBINDING    = "WarningMsg",
     SECTION_LABEL = "Title",
@@ -236,6 +237,20 @@ local function render(this, node, details)
             ),
             C.hl(node.title, HL.NODE_TITLE),
         })
+
+        -- If we have an origin for the node, display it next
+        if node.origin then
+            local origin_node = db:get_sync(node.origin)
+            if origin_node then
+                table.insert(lines, {
+                    C.hl(
+                        "Origin: ",
+                        HL.NORMAL
+                    ),
+                    C.hl(origin_node.title, HL.NODE_ORIGIN),
+                })
+            end
+        end
 
         -- Insert a blank line as a divider
         table.insert(lines, "")

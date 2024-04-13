@@ -177,6 +177,22 @@ describe("org-roam.database", function()
         assert.are.same({ "3" }, retrieve_ids(three_path))
     end)
 
+    it("should support retrieving nodes by origin", function()
+        -- Trigger initial loading of all files
+        db:load():wait()
+
+        ---@param origin string
+        ---@return org-roam.core.database.Id[]
+        local function retrieve_ids(origin)
+            local nodes = db:find_nodes_by_origin_sync(origin)
+            return vim.tbl_map(function(node) return node.id end, nodes)
+        end
+
+        assert.are.same({ "2" }, retrieve_ids("1"))
+        assert.are.same({ "3" }, retrieve_ids("2"))
+        assert.are.same({}, retrieve_ids("3"))
+    end)
+
     it("should support retrieving nodes by tag", function()
         -- Trigger initial loading of all files
         db:load():wait()

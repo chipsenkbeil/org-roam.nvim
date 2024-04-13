@@ -168,6 +168,26 @@ local function define_commands(config)
         desc = "Removes an alias from the current node under cursor",
         nargs = "*",
     })
+
+    vim.api.nvim_create_user_command("RoamAddOrigin", function(opts)
+        ---@type string|nil
+        local origin = vim.trim(opts.args)
+        if origin and origin == "" then
+            origin = nil
+        end
+
+        require("org-roam.api").add_origin({ origin = origin })
+    end, {
+        desc = "Adds an origin to the current node under cursor",
+        nargs = "*",
+    })
+
+    vim.api.nvim_create_user_command("RoamRemoveOrigin", function()
+        require("org-roam.api").remove_origin()
+    end, {
+        bang = true,
+        desc = "Removes an origin from the current node under cursor",
+    })
 end
 
 ---@param config org-roam.Config
@@ -242,6 +262,18 @@ local function define_keybindings(config)
         bindings.remove_alias,
         "Removes an alias from the roam node under cursor",
         require("org-roam.api").remove_alias
+    )
+
+    assign(
+        bindings.add_origin,
+        "Adds an origin to the roam node under cursor",
+        require("org-roam.api").add_origin
+    )
+
+    assign(
+        bindings.remove_origin,
+        "Removes the origin from the roam node under cursor",
+        require("org-roam.api").remove_origin
     )
 
     assign(
