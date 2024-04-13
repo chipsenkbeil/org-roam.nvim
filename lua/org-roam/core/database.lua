@@ -442,16 +442,19 @@ function M:reindex(opts)
 
                 -- For each value, we cache a pointer to the node's id
                 for _, value in ipairs(result) do
-                    if type(self.__indexes[name][value]) == "nil" then
-                        -- Create empty cache for value if doesn't exist yet
-                        self.__indexes[name][value] = {}
-                    end
+                    -- Protect against list with nil values
+                    if type(value) ~= "nil" then
+                        if type(self.__indexes[name][value]) == "nil" then
+                            -- Create empty cache for value if doesn't exist yet
+                            self.__indexes[name][value] = {}
+                        end
 
-                    -- Store the node's id in the lookup cache
-                    if not should_remove then
-                        self.__indexes[name][value][id] = true
-                    else
-                        self.__indexes[name][value][id] = nil
+                        -- Store the node's id in the lookup cache
+                        if not should_remove then
+                            self.__indexes[name][value][id] = true
+                        else
+                            self.__indexes[name][value][id] = nil
+                        end
                     end
                 end
             end

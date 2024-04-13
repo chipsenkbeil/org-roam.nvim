@@ -1,6 +1,7 @@
 :PROPERTIES:
 :ID: 2
 :ROAM_ALIASES: two
+:ROAM_ORIGIN: 1
 :END:
 #+FILETAGS: :two:
 

@@ -51,6 +51,9 @@ local config = setmetatable({
         ---Adds an alias to the node under cursor.
         add_alias = "<Leader>naa",
 
+        ---Adds an origin to the node under cursor.
+        add_origin = "<Leader>noa",
+
         ---Opens org-roam capture window.
         capture = "<Leader>nc",
 
@@ -71,6 +74,9 @@ local config = setmetatable({
 
         ---Removes an alias from the node under cursor.
         remove_alias = "<Leader>nar",
+
+        ---Removes the origin from the node under cursor.
+        remove_origin = "<Leader>nor",
 
         ---Toggles the org-roam node-view buffer for the node under cursor.
         toggle_roam_buffer = "<Leader>nl",

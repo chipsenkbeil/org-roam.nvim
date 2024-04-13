@@ -69,6 +69,7 @@
 
 ---@class org-roam.core.file.Node
 ---@field id string #unique id associated with the node
+---@field origin string|nil #unique id associated with node where this node originated
 ---@field range org-roam.core.file.Range #range representing full node
 ---@field file string #path to file where node is located
 ---@field mtime integer #last time the node's file was modified (nanoseconds)
@@ -82,6 +83,7 @@ M.__index = M
 
 ---@class org-roam.core.file.Node.NewOpts
 ---@field id string
+---@field origin? string
 ---@field range org-roam.core.file.Range
 ---@field file string
 ---@field mtime integer
@@ -98,6 +100,7 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
     instance.id = opts.id
+    instance.origin = opts.origin
     instance.range = opts.range
     instance.file = opts.file
     instance.mtime = opts.mtime
@@ -130,6 +133,7 @@ function M:hash()
 
     return vim.fn.sha256(table.concat({
         self.id,
+        self.origin or "",
         string.format("%s%s", self.range.start.offset, self.range.end_.offset),
         self.file,
         self.title,

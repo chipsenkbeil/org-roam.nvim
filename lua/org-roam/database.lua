@@ -243,6 +243,26 @@ function M:find_nodes_by_file_sync(file, opts)
     return self:find_nodes_by_file(file):wait(opts.timeout)
 end
 
+---Retrieves nodes with the specified origin.
+---@param origin string
+---@return OrgPromise<org-roam.core.file.Node[]>
+function M:find_nodes_by_origin(origin)
+    ---@diagnostic disable-next-line:missing-return-value
+    return self:__get_loader():database():next(function(db)
+        local ids = db:find_by_index(schema.ORIGIN, origin)
+        return vim.tbl_values(db:get_many(ids))
+    end)
+end
+
+---Retrieves nodes with the specified origin.
+---@param origin string
+---@param opts? {timeout?:integer}
+---@return org-roam.core.file.Node[]
+function M:find_nodes_by_origin_sync(origin, opts)
+    opts = opts or {}
+    return self:find_nodes_by_origin(origin):wait(opts.timeout)
+end
+
 ---Retrieves nodes with the specified tag.
 ---@param tag string
 ---@return OrgPromise<org-roam.core.file.Node[]>

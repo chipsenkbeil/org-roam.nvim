@@ -8,7 +8,7 @@ local db = require("org-roam.database")
 local Select = require("org-roam.core.ui.select")
 
 ---Opens up a selection dialog populated with nodes (titles and aliases).
----@overload fun(cb:fun(selection:{id:org-roam.core.database.Id, label:string}))
+---@overload fun(cb:fun(selection:{id:org-roam.core.database.Id|nil, label:string}))
 ---@param opts {allow_select_missing?:boolean, auto_select?:boolean, init_input?:string}
 ---@param cb fun(selection:{id:org-roam.core.database.Id|nil, label:string})
 return function(opts, cb)

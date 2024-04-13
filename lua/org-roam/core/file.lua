@@ -10,6 +10,13 @@ local Node         = require("org-roam.core.file.node")
 local Range        = require("org-roam.core.file.range")
 local utils        = require("org-roam.core.file.utils")
 
+local KEYS         = {
+    DIR_TITLE    = "TITLE",
+    PROP_ALIASES = "ROAM_ALIASES",
+    PROP_ID      = "ID",
+    PROP_ORIGIN  = "ROAM_ORIGIN",
+}
+
 ---@class org-roam.core.File
 ---@field filename string
 ---@field links org-roam.core.file.Link[]
@@ -96,21 +103,25 @@ function M:from_org_file(file)
     end
 
     -- Build up our file-level node
-    local id = file:get_property("id")
+    local id = file:get_property(KEYS.PROP_ID)
     if id then
         local tags = file:get_filetags()
         table.sort(tags)
 
+        local origin = file:get_property(KEYS.PROP_ORIGIN)
+        origin = origin and vim.trim(origin)
+
         table.insert(nodes, Node:new({
             id = id,
+            origin = origin,
             range = Range:new(
                 { row = 0, column = 0, offset = 0 },
                 { row = math.huge, column = math.huge, offset = math.huge }
             ),
             file = file.filename,
             mtime = file.metadata.mtime,
-            title = file:get_directive("title"),
-            aliases = utils.parse_property_value(file:get_property("roam_aliases") or ""),
+            title = file:get_directive(KEYS.DIR_TITLE),
+            aliases = utils.parse_property_value(file:get_property(KEYS.PROP_ALIASES) or ""),
             tags = tags,
             level = 0,
             linked = {},
@@ -119,7 +130,7 @@ function M:from_org_file(file)
 
     -- Build up our section-level nodes
     for _, headline in ipairs(file:get_headlines()) do
-        local id = headline:get_property("id")
+        local id = headline:get_property(KEYS.PROP_ID)
         if id then
             -- NOTE: By default, this will get filetags and respect tag inheritance
             --       for nested headlines. If this is turned off in orgmode, then
@@ -128,13 +139,17 @@ function M:from_org_file(file)
             local tags = headline:get_tags()
             table.sort(tags)
 
+            local origin = headline:get_property(KEYS.PROP_ORIGIN)
+            origin = origin and vim.trim(origin)
+
             table.insert(nodes, Node:new({
                 id = id,
+                origin = origin,
                 range = Range:from_node(headline.headline:parent()),
                 file = file.filename,
                 mtime = file.metadata.mtime,
                 title = headline:get_title(),
-                aliases = utils.parse_property_value(headline:get_property("roam_aliases") or ""),
+                aliases = utils.parse_property_value(headline:get_property(KEYS.PROP_ALIASES) or ""),
                 tags = tags,
                 level = headline:get_level(),
                 linked = {},
