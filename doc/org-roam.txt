@@ -1,4 +1,4 @@
-*org-roam.txt*            For NVIM v0.9.2           Last change: 2024 April 11
+*org-roam.txt*            For NVIM v0.9.2           Last change: 2024 April 13
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -18,12 +18,14 @@ Table of Contents                                 *org-roam-table-of-contents*
 4. User Interface                                    |org-roam-user-interface|
   - Org Roam Buffer                  |org-roam-user-interface-org-roam-buffer|
 5. API                                                          |org-roam-api|
+  - Add Alias                                         |org-roam-api-add-alias|
   - Capture Node                                   |org-roam-api-capture-node|
   - Complete Node                                 |org-roam-api-complete-node|
   - Find Node                                         |org-roam-api-find-node|
   - Insert Node                                     |org-roam-api-insert-node|
   - Open Node Buffer                           |org-roam-api-open-node-buffer|
   - Open Quickfix List                       |org-roam-api-open-quickfix-list|
+  - Remove Alias                                   |org-roam-api-remove-alias|
 6. Database                                                |org-roam-database|
   - Files                                            |org-roam-database-files|
   - Files Path                                  |org-roam-database-files-path|
@@ -68,7 +70,8 @@ Requires **neovim 0.9.2+**.
 INSTALLATION                           *org-roam-getting-started-installation*
 
 This plugin depends on nvim-orgmode/orgmode
-<https://github.com/nvim-orgmode/orgmode> @ _commit 4874e72_.
+<https://github.com/nvim-orgmode/orgmode> @ commit 5875037
+<https://github.com/nvim-orgmode/orgmode/commit/5875037fa9c7c8e0abf29cd69510150355d248a0>.
 
 
 LAZY.NVIM ~
@@ -79,7 +82,7 @@ LAZY.NVIM ~
       dependencies = { 
         { 
           "nvim-orgmode/orgmode", 
-          commit = "4874e72ab434c440e955b7bc4d9a2df884370137",
+          commit = "5875037fa9c7c8e0abf29cd69510150355d248a0",
         },
       },
       config = function()
@@ -99,7 +102,7 @@ PACKER.NVIM ~
       requires = { 
         { 
           "nvim-orgmode/orgmode",
-          commit = "4874e72ab434c440e955b7bc4d9a2df884370137",
+          commit = "5875037fa9c7c8e0abf29cd69510150355d248a0",
         },
       },
       config = function()
@@ -132,6 +135,21 @@ Takes a string representing the path to the directory, which can can contain
 BINDINGS                                     *org-roam-configuration-bindings*
 
 Configuration settings used to specify keybindings.
+
+
+ADD ALIAS ~
+
+Adds an alias to the node under cursor.
+
+Takes a string representing the keybinding. Defaults to `<Leader>naa`.
+
+>lua
+    require("org-roam"):setup({
+      add_alias = {
+        capture = "<LocalLeader>naa",
+      },
+    })
+<
 
 
 CAPTURE ~
@@ -234,6 +252,21 @@ Takes a string representing the keybinding. Defaults to `<Leader>nq`.
 <
 
 
+REMOVE ALIAS ~
+
+Removes an alias from the node under cursor.
+
+Takes a string representing the keybinding. Defaults to `<Leader>nar`.
+
+>lua
+    require("org-roam"):setup({
+      remove_alias = {
+        capture = "<LocalLeader>nar",
+      },
+    })
+<
+
+
 TOGGLE ROAM BUFFER ~
 
 Opens the roam buffer for the node under cursor, updating the buffer when the
@@ -310,7 +343,7 @@ UPDATE ON SAVE ~
 
 If true, updates database whenever a write occurs. If you have large files, it
 is recommended to disable this option and manually update using the vim command
-`OrgRoamUpdate`.
+`RoamUpdate`.
 
 Takes a boolean. Defaults to `true`.
 
@@ -460,16 +493,18 @@ Takes a boolean. Defaults to `false`.
 ==============================================================================
 3. Bindings                                                *org-roam-bindings*
 
-  Name                       Keybinding   Description
-  -------------------------- ------------ -------------------------------------------------------------------------
-  capture                    <Leader>nc   Opens org-roam capture window.
-  complete_(atpoint)         <Leader>n.   Completes the node under cursor.
-  find_(node)                <Leader>nf   Finds node and moves to it, creating it if it does not exist.
-  insert_(node)              <Leader>ni   Inserts node at cursor position, creating it if it does not exist.
-  insert_(nodeimmediate)     <Leader>nm   Same as insert_node, but skips opening capture buffer.
-  quickfix_(backlinks)       <Leader>nq   Opens the quickfix menu for backlinks to the current node under cursor.
-  toggle_(roambuffer)        <Leader>nl   Toggles the org-roam node-view buffer for the node under cursor.
-  toggle_(roambufferfixed)   <Leader>nb   Toggles a fixed org-roam node-view buffer for a selected node.
+  Name                       Keybinding    Description
+  -------------------------- ------------- -------------------------------------------------------------------------
+  add_(alias)                <Leader>naa   Adds an alias to the node under cursor.
+  capture                    <Leader>nc    Opens org-roam capture window.
+  complete_(atpoint)         <Leader>n.    Completes the node under cursor.
+  find_(node)                <Leader>nf    Finds node and moves to it, creating it if it does not exist.
+  insert_(node)              <Leader>ni    Inserts node at cursor position, creating it if it does not exist.
+  insert_(nodeimmediate)     <Leader>nm    Same as insert_node, but skips opening capture buffer.
+  quickfix_(backlinks)       <Leader>nq    Opens the quickfix menu for backlinks to the current node under cursor.
+  remove_(alias)             <Leader>nar   Removes an alias from the node under cursor.
+  toggle_(roambuffer)        <Leader>nl    Toggles the org-roam node-view buffer for the node under cursor.
+  toggle_(roambufferfixed)   <Leader>nb    Toggles a fixed org-roam node-view buffer for a selected node.
 
 MODIFYING BINDINGS                      *org-roam-bindings-modifying-bindings*
 
@@ -503,12 +538,14 @@ Here is a recommended setup you can use to leverage `C-c`
 >lua
     require("org-roam"):setup({
       bindings = {
+        add_alias                = "<C-c>naa",
         capture                  = "<C-c>nc",
         complete_at_point        = "<M-/>",
         find_node                = "<C-c>nf",
         insert_node              = "<C-c>ni",
         insert_node_immediate    = "<C-c>nm",
         quickfix_backlinks       = "<C-c>nq",
+        remove_alias             = "<C-c>nar",
         toggle_roam_buffer       = "<C-c>nl",
         toggle_roam_buffer_fixed = "<C-c>nb",
       },
@@ -549,6 +586,28 @@ couple of specific bindings available:
 5. API                                                          *org-roam-api*
 
 
+ADD ALIAS                                             *org-roam-api-add-alias*
+
+roam.api.add_alias({opts})
+
+Description:
+
+Adds an alias to the node under cursor.
+
+Parameters:
+
+- {opts} optional table.
+    - alias: optional, if provided, added to the node under cursor, otherwise
+        prompts for an alias to add to the node under cursor.
+
+Example:
+
+>lua
+    local roam = require("org-roam")
+    roam.api.add_alias({ alias = "My Alias" })
+<
+
+
 CAPTURE NODE                                       *org-roam-api-capture-node*
 
 roam.api.capture_node({opts}, {cb})
@@ -561,10 +620,10 @@ restores the current window configuration upon completion.
 Parameters:
 
 - {opts} optional table.
-    - title: if provided, seeds the capture dialog with the title string.
-    - immediate: if true, skips displaying the capture buffer and instead
-        populates a file using the immediate configuration. If
-        title is also provided, it is used as the title of the
+    - title: optional, seeds the capture dialog with the title string.
+    - immediate: optional, if true, skips displaying the capture buffer and
+        instead populates a file using the immediate configuration.
+        If title is also provided, it is used as the title of the
         created node.
 - {cb} optional callback when finished. Is passed the id
     of the created node, or nil if capture was canceled.
@@ -617,7 +676,7 @@ window.
 Parameters:
 
 - {opts} optional table.
-    - title: if provided, seeds the select dialog with the title string.
+    - title: optional, seeds the select dialog with the title string.
 
 Example:
 
@@ -646,13 +705,13 @@ inserting at point, where everything uses 1-based indexing and inclusive.
 Parameters:
 
 - {opts} optional table.
-    - immediate: if true, skips displaying the capture buffer and instead
-        populates a file using the immediate configuration. If
-        title is also provided, it is used as the title of the
+    - immediate: optional, if true, skips displaying the capture buffer and
+        instead populates a file using the immediate configuration.
+        If title is also provided, it is used as the title of the
         created node.
-    - title: if provided, seeds the select dialog with the title string.
-    - ranges: list of ranges to replace. Each range is comprised of the
-        following fields:
+    - title: optional, seeds the select dialog with the title string.
+    - ranges: optional, list of ranges to replace. Each range is comprised of
+        the following fields:
         - start_row: integer (one-indexed, inclusive)
         - start_col: integer (one-indexed, inclusive)
         - end_row: integer (one-indexed, inclusive)
@@ -683,8 +742,8 @@ will change based on the node under cursor.
 Parameters:
 
 - {opts} optional table.
-    - fixed: indicates that the node buffer should not update when the
-        node changes under the cursor. Takes the id of a node or
+    - fixed: optional, indicates that the node buffer should not update when
+        the node changes under the cursor. Takes the id of a node or
         a boolean value, which if true will leverage the select dialog
         to pick a node.
 
@@ -708,17 +767,43 @@ roam node.
 Parameters:
 
 - {opts} optional table.
-    - id: string id of the node whose information will populate the list.
-        If not provided, will open a selection dialog to pick a node.
-    - backlinks: if true, show's the selected node's backlinks.
-    - links: if true, show's the selected node's links.
-    - show_preview: if true, loads a preview of content for each list item.
+    - id: optional, string id of the node whose information will populate
+        the list. If not provided, will open a selection dialog to pick
+        a node.
+    - backlinks: optional, if true, show's the selected node's backlinks.
+    - links: optional, if true, show's the selected node's links.
+    - show_preview: optional, if true, loads a preview of content for each
+        list item.
 
 Example:
 
 >lua
     local roam = require("org-roam")
     roam.api.open_quickfix_list({ id = "1234", backlinks = true })
+<
+
+
+REMOVE ALIAS                                       *org-roam-api-remove-alias*
+
+roam.api.remove_alias({opts})
+
+Description:
+
+Removes an alias from the node under cursor.
+
+Parameters:
+
+- {opts} optional table.
+    - alias: optional, if provided, removes from node under cursor, otherwise
+        prompts for an alias to remove from the node under cursor.
+    - all: optional, if true, will remove all aliases instead of just one.
+        Overrides removing `alias` from node under cursor.
+
+Example:
+
+>lua
+    local roam = require("org-roam")
+    roam.api.remove_alias({ all = true })
 <
 
 
@@ -1197,9 +1282,9 @@ receives a database reference and collection of files.
 Parameters:
 
 - {opts} optional table.
-    - force: if true, will reload each file and node regardless of whether
-        they have changed on disk. If false, only reloads pre-existing
-        files and nodes if they have changed.
+    - force: optional, if true, will reload each file and node regardless of
+        whether they have changed on disk. If false, only reloads
+        pre-existing files and nodes if they have changed.
 
 Example:
 
