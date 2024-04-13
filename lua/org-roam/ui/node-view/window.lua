@@ -242,12 +242,38 @@ local function render(this, node, details)
         if node.origin then
             local origin_node = db:get_sync(node.origin)
             if origin_node then
+                local function do_open()
+                    local win = vim.api.nvim_get_current_win()
+                    local filter = function(winnr) return winnr ~= win end
+
+                    WindowPicker
+                        :new({
+                            autoselect = true,
+                            filter = filter,
+                        })
+                        :on_choice(function(winnr)
+                            vim.api.nvim_set_current_win(winnr)
+                            vim.cmd.edit(origin_node.file)
+
+                            local row = origin_node.range.start.row + 1
+                            local col = origin_node.range.start.column
+
+                            -- NOTE: We need to schedule to ensure the file has loaded
+                            --       into the buffer before we try to move the cursor!
+                            vim.schedule(function()
+                                vim.api.nvim_win_set_cursor(winnr, { row, col })
+                            end)
+                        end)
+                        :open()
+                end
+
                 table.insert(lines, {
                     C.hl(
                         "Origin: ",
                         HL.NORMAL
                     ),
                     C.hl(origin_node.title, HL.NODE_ORIGIN),
+                    C.action(KEYBINDINGS.OPEN_LINK.key, do_open),
                 })
             end
         end

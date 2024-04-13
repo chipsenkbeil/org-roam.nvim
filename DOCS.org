@@ -390,7 +390,32 @@
        },
      })
      #+end_src
-  
+
+**** open
+
+     Configuration to open the node view window.
+
+     Takes a string or a function that returns a window handle.
+     Defaults to =botright vsplit | vertical resize 50=.
+
+     #+begin_src lua
+     require("org-roam"):setup({
+       ui = {
+         node_view = {
+           open = function()
+             return vim.api.nvim_open_win(0, false, {
+               relative = "editor",
+               row = 0,
+               col = 0,
+               width = 50,
+               height = 20,
+             })
+           end,
+         },
+       },
+     })
+     #+end_src
+
 **** show keybindings
      
      If true, will include a section covering available keybindings.
