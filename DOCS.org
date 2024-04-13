@@ -546,11 +546,12 @@
    Parameters:
 
    - {opts} optional table.
-     - title: optional, seeds the capture dialog with the title string.
      - immediate: optional, if true, skips displaying the capture buffer and
                   instead populates a file using the immediate configuration.
                   If title is also provided, it is used as the title of the
                   created node.
+     - origin: optional, id of node acting as origin of this node.
+     - title: optional, seeds the capture dialog with the title string.
    - {cb}   optional callback when finished. Is passed the id
             of the created node, or nil if capture was canceled.
 
@@ -600,6 +601,7 @@
    Parameters:
 
    - {opts} optional table.
+     - origin: optional, id of node acting as origin of this node (creation-only).
      - title: optional, seeds the select dialog with the title string.
 
    Example:
@@ -633,6 +635,7 @@
                   instead populates a file using the immediate configuration.
                   If title is also provided, it is used as the title of the
                   created node.
+     - origin: optional, id of node acting as origin of this node (creation-only).
      - title: optional, seeds the select dialog with the title string.
      - ranges: optional, list of ranges to replace. Each range is comprised of
                the following fields:

@@ -93,7 +93,7 @@ end
 
 ---Construct org-roam template with custom expansions applied.
 ---@param template_opts OrgCaptureTemplateOpts
----@param opts? {title?:string}
+---@param opts? {origin?:string, title?:string}
 ---@return OrgCaptureTemplate
 local function build_template(template_opts, opts)
     opts = opts or {}
@@ -134,8 +134,13 @@ local function build_template(template_opts, opts)
             local prefix = {
                 ":PROPERTIES:",
                 ":ID: " .. require('orgmode.org.id').new(),
-                ":END:",
             }
+
+            if opts.origin then
+                table.insert(prefix, ":ROAM_ORIGIN: " .. opts.origin)
+            end
+
+            table.insert(prefix, ":END:")
 
             -- Grab the title, which if it does not exist and we detect
             -- that we need it, we will prompt for it
@@ -166,7 +171,7 @@ local function build_template(template_opts, opts)
 end
 
 ---Construct org-roam templates with custom expansions applied.
----@param opts? {title?:string}
+---@param opts? {origin?:string, title?:string}
 ---@return OrgCaptureTemplates
 local function build_templates(opts)
     opts = opts or {}
@@ -229,7 +234,7 @@ end
 
 ---Creates a node if it does not exist, and restores the current window
 ---configuration upon completion.
----@param opts? {immediate?:boolean, title?:string}
+---@param opts? {immediate?:boolean, origin?:string, title?:string}
 ---@param cb? fun(id:org-roam.core.database.Id|nil)
 function M.capture(opts, cb)
     opts = opts or {}
@@ -238,7 +243,10 @@ function M.capture(opts, cb)
     if opts.immediate then
         M.__capture_immediate(opts, cb)
     else
-        local templates = build_templates({ title = opts.title })
+        local templates = build_templates({
+            origin = opts.origin,
+            title = opts.title,
+        })
         local on_pre_refile = make_on_pre_refile(opts)
         local on_post_refile = make_on_post_refile(cb)
         db:files():next(function(files)
@@ -256,15 +264,13 @@ function M.capture(opts, cb)
 end
 
 ---@private
----@param opts {title?:string}
+---@param opts {origin:string|nil, title:string|nil}
 ---@param cb fun(id:org-roam.core.database.Id|nil)
 function M.__capture_immediate(opts, cb)
     local template = build_template({
         target = CONFIG.immediate.target,
         template = CONFIG.immediate.template,
-    }, {
-        title = opts.title,
-    })
+    }, opts)
 
     ---@param content string[]|nil
     template:compile():next(function(content)
@@ -320,7 +326,7 @@ end
 ---If `ranges` is provided, will replace the given ranges within the buffer
 ---versus inserting at point.
 ---where everything uses 1-based indexing and inclusive.
----@param opts? {immediate?:boolean, title?:string, ranges?:org-roam.utils.Range[]}
+---@param opts? {immediate?:boolean, origin?:string, title?:string, ranges?:org-roam.utils.Range[]}
 function M.insert(opts)
     opts = opts or {}
     local winnr = vim.api.nvim_get_current_win()
@@ -383,7 +389,11 @@ function M.insert(opts)
             return
         end
 
-        M.capture({ title = node.label, immediate = opts.immediate }, function(id)
+        M.capture({
+            immediate = opts.immediate,
+            origin = opts.origin,
+            title = node.label,
+        }, function(id)
             if id then
                 insert_link(id)
                 return
@@ -393,7 +403,7 @@ function M.insert(opts)
 end
 
 ---Creates a node if it does not exist, and visits the node.
----@param opts? {title?:string}
+---@param opts? {origin?:string, title?:string}
 function M.find(opts)
     opts = opts or {}
     local winnr = vim.api.nvim_get_current_win()
@@ -423,7 +433,7 @@ function M.find(opts)
             return
         end
 
-        M.capture({ title = node.label }, function(id)
+        M.capture({ origin = opts.origin, title = node.label }, function(id)
             if id then
                 visit_node(id)
                 return

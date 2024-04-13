@@ -98,28 +98,34 @@ end
 ---Retrieves the expression under cursor. In the case that
 ---an expression is not found or not within an orgmode buffer,
 ---the current word under cursor via `<cword>` is returned.
+---@param opts? {win?:integer}
 ---@return string
-function M.expr_under_cursor()
+function M.expr_under_cursor(opts)
+    opts = opts or {}
+    local bufnr = vim.api.nvim_win_get_buf(opts.win or 0)
+
     -- Figure out our word, trying out treesitter
     -- if we are in an orgmode buffer, otherwise
     -- defaulting back to the vim word under cursor
     local word = vim.fn.expand("<cword>")
-    if vim.api.nvim_buf_get_option(0, "filetype") == "org" then
+    if vim.api.nvim_buf_get_option(bufnr, "filetype") == "org" then
         ---@type TSNode|nil
         local ts_node = vim.treesitter.get_node()
         if ts_node and ts_node:type() == "expr" then
             ---@type string
-            word = vim.treesitter.get_node_text(ts_node, 0)
+            word = vim.treesitter.get_node_text(ts_node, bufnr)
         end
     end
     return word
 end
 
 ---Looks for a link under cursor. If it exists, the raw parsed link is returned.
+---@param opts? {win?:integer}
 ---@return org-roam.core.file.Link|nil
-function M.link_under_cursor()
-    local bufnr = vim.api.nvim_win_get_buf(0)
-    local cursor = vim.api.nvim_win_get_cursor(0)
+function M.link_under_cursor(opts)
+    opts = opts or {}
+    local bufnr = vim.api.nvim_win_get_buf(opts.win or 0)
+    local cursor = vim.api.nvim_win_get_cursor(opts.win or 0)
     local offset = vim.api.nvim_buf_get_offset(bufnr, cursor[1] - 1) + cursor[2]
 
     local cache = get_buffer_cache(bufnr)
@@ -135,10 +141,12 @@ end
 ---      result when possible. The cache is discarded whenever the current
 ---      buffer is detected as changed as seen via `b:changedtick`.
 ---
----@param cb fun(id:org-roam.core.file.Node|nil)
-function M.node_under_cursor(cb)
-    local bufnr = vim.api.nvim_win_get_buf(0)
-    local cursor = vim.api.nvim_win_get_cursor(0)
+---@param cb fun(node:org-roam.core.file.Node|nil)
+---@param opts? {win?:integer}
+function M.node_under_cursor(cb, opts)
+    opts = opts or {}
+    local bufnr = vim.api.nvim_win_get_buf(opts.win or 0)
+    local cursor = vim.api.nvim_win_get_cursor(opts.win or 0)
     local offset = vim.api.nvim_buf_get_offset(bufnr, cursor[1] - 1) + cursor[2]
 
     ---@return org-roam.core.file.Node|nil
