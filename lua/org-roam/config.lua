@@ -48,6 +48,9 @@ local config = setmetatable({
     ---Bindings associated with org-roam functionality.
     ---@class org-roam.config.Bindings
     bindings = {
+        ---Adds an alias to the node under cursor.
+        add_alias = "<Leader>naa",
+
         ---Opens org-roam capture window.
         capture = "<Leader>nc",
 
@@ -65,6 +68,9 @@ local config = setmetatable({
 
         ---Opens the quickfix menu for backlinks to the current node under cursor.
         quickfix_backlinks = "<Leader>nq",
+
+        ---Removes an alias from the node under cursor.
+        remove_alias = "<Leader>nar",
 
         ---Toggles the org-roam node-view buffer for the node under cursor.
         toggle_roam_buffer = "<Leader>nl",
