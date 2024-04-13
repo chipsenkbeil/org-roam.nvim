@@ -290,12 +290,12 @@ function M.__capture_immediate(opts, cb)
                     local file = result.file
 
                     -- Look for the id of the newly-captured file
-                    local id = file:get_property("ID")
+                    local id = file:get_property("id")
 
                     -- If we don't find a file-level node, look for headline nodes
                     if not id then
                         for _, headline in ipairs(file:get_headlines()) do
-                            id = headline:get_property("ID", false)
+                            id = headline:get_property("id", false)
                             if id then break end
                         end
                     end

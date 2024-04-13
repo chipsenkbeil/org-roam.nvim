@@ -9,7 +9,7 @@
 
 ** Installation
 
-   This plugin depends on [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode/orgmode]] @ [[https://github.com/nvim-orgmode/orgmode/commit/68b6275bac3b321590b8a292576bea0f1766ccff][commit 68b6275]].
+   This plugin depends on [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode/orgmode]] @ [[https://github.com/nvim-orgmode/orgmode/commit/5875037fa9c7c8e0abf29cd69510150355d248a0][commit 5875037]].
 
 *** lazy.nvim (recommended)
 
@@ -22,7 +22,7 @@
       dependencies = { 
         { 
           "nvim-orgmode/orgmode", 
-          commit = "68b6275bac3b321590b8a292576bea0f1766ccff",
+          commit = "5875037fa9c7c8e0abf29cd69510150355d248a0",
         },
       },
       config = function()
@@ -46,7 +46,7 @@
       requires = { 
         { 
           "nvim-orgmode/orgmode",
-          commit = "68b6275bac3b321590b8a292576bea0f1766ccff",
+          commit = "5875037fa9c7c8e0abf29cd69510150355d248a0",
         },
       },
       config = function()
@@ -61,16 +61,18 @@
 
 ** Bindings
 
-   | Name                     | Keybinding   | Description                                                             |
-   |--------------------------+--------------+-------------------------------------------------------------------------|
-   | capture                  | =<Leader>nc= | Opens org-roam capture window.                                          |
-   | complete_at_point        | =<Leader>n.= | Completes the node under cursor.                                        |
-   | find_node                | =<Leader>nf= | Finds node and moves to it, creating it if it does not exist.           |
-   | insert_node              | =<Leader>ni= | Inserts node at cursor position, creating it if it does not exist.      |
-   | insert_node_immediate    | =<Leader>nm= | Same as =insert_node=, but skips opening capture buffer.                |
-   | quickfix_backlinks       | =<Leader>nq= | Opens the quickfix menu for backlinks to the current node under cursor. |
-   | toggle_roam_buffer       | =<Leader>nl= | Toggles the org-roam node-view buffer for the node under cursor.        |
-   | toggle_roam_buffer_fixed | =<Leader>nb= | Toggles a fixed org-roam node-view buffer for a selected node.          |
+   | Name                     | Keybinding    | Description                                                             |
+   |--------------------------+---------------+-------------------------------------------------------------------------|
+   | add_alias                | =<Leader>naa= | Adds an alias to the node under cursor.                                 |
+   | capture                  | =<Leader>nc=  | Opens org-roam capture window.                                          |
+   | complete_at_point        | =<Leader>n.=  | Completes the node under cursor.                                        |
+   | find_node                | =<Leader>nf=  | Finds node and moves to it, creating it if it does not exist.           |
+   | insert_node              | =<Leader>ni=  | Inserts node at cursor position, creating it if it does not exist.      |
+   | insert_node_immediate    | =<Leader>nm=  | Same as =insert_node=, but skips opening capture buffer.                |
+   | quickfix_backlinks       | =<Leader>nq=  | Opens the quickfix menu for backlinks to the current node under cursor. |
+   | remove_alias             | =<Leader>nar= | Removes an alias from the node under cursor.                            |
+   | toggle_roam_buffer       | =<Leader>nl=  | Toggles the org-roam node-view buffer for the node under cursor.        |
+   | toggle_roam_buffer_fixed | =<Leader>nb=  | Toggles a fixed org-roam node-view buffer for a selected node.          |
 
 ** Documentation
 
@@ -92,6 +94,8 @@
        - Nodes that reference this node (see [[https://www.orgroam.com/manual.html#Refs][Refs]])
      - [ ] Implement *Unlinked references* widget for buffer
        - View nodes that contain text that match the nodes title/alias but are not linked
+     - [ ] Implement *Origin* widget for buffer (custom, not in Org Roam!)
+       - Displays the origin of the node as defined in =ROAM_ORIGIN=
    - [ ] Support [[https://www.orgroam.com/manual.html#Citations][citations]]
      - [ ] As of orgmode 9.5, *org-cite* is built-in and has the form *[cite:@key]*
      - [ ] Alongside *org-cite*, there is also support for [[https://github.com/jkitchin/org-ref][org-ref]] (v2 & v3),
@@ -104,6 +108,15 @@
      - [X] Implement *org-roam-node-find*
      - [X] Implement *org-roam-capture*
      - [X] Implement *org-roam-node-insert-immediate*
+   - [ ] Support origin (custom, not in Org Roam!)
+     - [ ] =ROAM_ORIGIN= available within node properties, containing org id
+     - [ ] Ability to query database for nodes with origin matching an id
+     - [ ] Keybinding to jump forward and backward across origins
+   - [X] Miscellaneous Roam functions
+     - [X] Implement *org-roam-alias-add*
+     - [X] Implement *org-roam-alias-remove*
+     - [ ] Implement *org-roam-origin-insert* (custom, not in Org Roam!)
+     - [ ] Implement *org-roam-origin-remove* (custom, not in Org Roam!)
    - [ ] Implement extensions
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002ddailies][org-roam-dailies]]
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002dexport][org-roam-export]]
