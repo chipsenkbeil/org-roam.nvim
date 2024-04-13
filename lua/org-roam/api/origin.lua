@@ -5,7 +5,6 @@
 -------------------------------------------------------------------------------
 
 local db = require("org-roam.database")
-local notify = require("org-roam.core.ui.notify")
 local select_node = require("org-roam.ui.select-node")
 local utils = require("org-roam.utils")
 
@@ -34,7 +33,9 @@ function M.add_origin(opts)
             if entry and opts.origin then
                 entry:set_property(ORIGIN_PROP_NAME, opts.origin)
             elseif entry then
-                select_node(function(selection)
+                -- If no origin specified, we load up a selection dialog
+                -- to pick a node other than the current one
+                select_node({ exclude = { node.id } }, function(selection)
                     if selection.id then
                         entry:set_property(ORIGIN_PROP_NAME, selection.id)
                     end

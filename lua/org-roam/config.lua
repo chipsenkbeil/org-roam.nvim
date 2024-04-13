@@ -141,6 +141,11 @@ local config = setmetatable({
             ---@type boolean
             highlight_previews = true,
 
+            ---Configuration to open the node view window.
+            ---Can be a string, or a function that returns the window handle.
+            ---@type string|fun():integer
+            open = "botright vsplit | vertical resize 50",
+
             ---If true, will include a section covering available keybindings.
             ---@type boolean
             show_keybindings = true,
