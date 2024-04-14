@@ -63,6 +63,15 @@ local config = setmetatable({
         ---Finds node and moves to it.
         find_node = "<Leader>nf",
 
+        ---Goes to the next node sequentially based on origin of the node under cursor.
+        ---
+        ---If more than one node has the node under cursor as its origin, a selection
+        ---dialog is displayed to choose the node.
+        goto_next_node = "<Leader>nn",
+
+        ---Goes to the previous node sequentially based on origin of the node under cursor.
+        goto_prev_node = "<Leader>np",
+
         ---Inserts node at cursor position.
         insert_node = "<Leader>ni",
 

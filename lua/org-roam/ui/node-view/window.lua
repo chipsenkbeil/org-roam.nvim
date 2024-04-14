@@ -252,17 +252,10 @@ local function render(this, node, details)
                             filter = filter,
                         })
                         :on_choice(function(winnr)
-                            vim.api.nvim_set_current_win(winnr)
-                            vim.cmd.edit(origin_node.file)
-
-                            local row = origin_node.range.start.row + 1
-                            local col = origin_node.range.start.column
-
-                            -- NOTE: We need to schedule to ensure the file has loaded
-                            --       into the buffer before we try to move the cursor!
-                            vim.schedule(function()
-                                vim.api.nvim_win_set_cursor(winnr, { row, col })
-                            end)
+                            require("org-roam.utils").goto_node({
+                                node = origin_node,
+                                win = winnr,
+                            })
                         end)
                         :open()
                 end

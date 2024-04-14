@@ -217,6 +217,24 @@ function M.find_id_match(file, id)
     end
 end
 
+---Opens the node in the specified window, defaulting to the current window.
+---@param opts {node:org-roam.core.file.Node, win?:integer}
+function M.goto_node(opts)
+    local node = opts.node
+    local win = opts.win or vim.api.nvim_get_current_win()
+    vim.api.nvim_set_current_win(win)
+    vim.cmd.edit(node.file)
+
+    local row = node.range.start.row + 1
+    local col = node.range.start.column
+
+    -- NOTE: We need to schedule to ensure the file has loaded
+    --       into the buffer before we try to move the cursor!
+    vim.schedule(function()
+        vim.api.nvim_win_set_cursor(win, { row, col })
+    end)
+end
+
 ---@class org-roam.utils.Range
 ---@field start_row integer #starting row (one-indexed, inclusive)
 ---@field start_col integer #starting column (one-indexed, inclusive)

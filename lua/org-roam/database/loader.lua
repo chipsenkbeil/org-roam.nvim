@@ -318,7 +318,9 @@ function M:load_file(opts)
 
             return {
                 file = file,
-                nodes = db:find_by_index(schema.FILE, file.filename),
+                nodes = vim.tbl_values(
+                    db:get_many(db:find_by_index(schema.FILE, file.filename))
+                ),
             }
         end)
     end)

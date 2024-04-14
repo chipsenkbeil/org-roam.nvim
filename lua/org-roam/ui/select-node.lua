@@ -9,7 +9,7 @@ local Select = require("org-roam.core.ui.select")
 
 ---Opens up a selection dialog populated with nodes (titles and aliases).
 ---@overload fun(cb:fun(selection:{id:org-roam.core.database.Id|nil, label:string}))
----@param opts {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], init_input?:string}
+---@param opts {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
 ---@param cb fun(selection:{id:org-roam.core.database.Id|nil, label:string})
 return function(opts, cb)
     if type(opts) == "function" then
@@ -24,7 +24,7 @@ return function(opts, cb)
     --       and by aliases to get candidate ids.
     ---@type {id:org-roam.core.database.Id, label:string}
     local items = {}
-    for _, id in ipairs(db:ids()) do
+    for _, id in ipairs(opts.include or db:ids()) do
         local skip = false
 
         -- If we were given an exclusion list, check if the id is in that list
