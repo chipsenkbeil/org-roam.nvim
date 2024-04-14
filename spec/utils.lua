@@ -3,11 +3,14 @@ local OrgFiles = require("orgmode.files")
 local io = require("org-roam.core.utils.io")
 local path = require("org-roam.core.utils.path")
 local unpack = require("org-roam.core.utils.table").unpack
+local uuid_v4 = require("org-roam.core.utils.random").uuid_v4
 
 local ORG_FILES_DIR = (function()
     local str = debug.getinfo(2, "S").source:sub(2)
     return path.join(vim.fs.dirname(str:match("(.*/)")), "files")
 end)()
+
+local VIM_CMD = vim.cmd
 
 ---@class spec.utils
 local M = {}
@@ -110,6 +113,20 @@ function M.make_temp_directory()
     return root_dir
 end
 
+---@param opts? {dir?:string, ext?:string}
+---@return string
+function M.make_temp_filename(opts)
+    opts = opts or {}
+    local filename = uuid_v4()
+    if opts.dir then
+        filename = M.join_path(opts.dir, filename)
+    end
+    if opts.ext then
+        filename = filename .. "." .. opts.ext
+    end
+    return filename
+end
+
 ---@param ... string
 ---@return string
 function M.join_path(...)
@@ -188,6 +205,11 @@ function M.patch_vim_cmd()
             return t[command]
         end,
     })
+end
+
+---Removes patch from `vim.cmd`.
+function M.unpatch_vim_cmd()
+    vim.cmd = VIM_CMD
 end
 
 return M
