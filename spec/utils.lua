@@ -127,6 +127,11 @@ function M.make_temp_filename(opts)
     return filename
 end
 
+---@return string
+function M.random_id()
+    return uuid_v4()
+end
+
 ---@param ... string
 ---@return string
 function M.join_path(...)

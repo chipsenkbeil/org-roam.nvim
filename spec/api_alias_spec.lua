@@ -31,10 +31,12 @@ describe("org-roam.api.alias", function()
     end)
 
     it("should be able to add the first alias to the node under cursor", function()
+        local id = utils.random_id()
+
         -- Create our test file
         utils.write_to(test_org_file_path, {
             ":PROPERTIES:",
-            ":ID: 1234",
+            ":ID: " .. id,
             ":END:",
             "#+TITLE: Test",
         })
@@ -52,7 +54,7 @@ describe("org-roam.api.alias", function()
         -- Review that buffer was updated
         assert.are.same({
             ":PROPERTIES:",
-            ":ID: 1234",
+            ":ID: " .. id,
             ":ROAM_ALIASES: \"other test\"",
             ":END:",
             "#+TITLE: Test",
@@ -60,10 +62,12 @@ describe("org-roam.api.alias", function()
     end)
 
     it("should be able to add a second alias to the node under cursor", function()
+        local id = utils.random_id()
+
         -- Create our test file
         utils.write_to(test_org_file_path, {
             ":PROPERTIES:",
-            ":ID: 1234",
+            ":ID: " .. id,
             ":ROAM_ALIASES: something",
             ":END:",
             "#+TITLE: Test",
@@ -82,7 +86,7 @@ describe("org-roam.api.alias", function()
         -- Review that buffer was updated
         assert.are.same({
             ":PROPERTIES:",
-            ":ID: 1234",
+            ":ID: " .. id,
             ":ROAM_ALIASES: something \"other test\"",
             ":END:",
             "#+TITLE: Test",

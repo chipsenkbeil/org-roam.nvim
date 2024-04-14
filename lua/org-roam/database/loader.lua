@@ -331,7 +331,7 @@ function M:load_file(opts)
                 })
 
                 return file
-            end)
+            end):catch(reject)
         end)
     end)
 end
