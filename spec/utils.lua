@@ -11,6 +11,8 @@ local ORG_FILES_DIR = (function()
 end)()
 
 local VIM_CMD = vim.cmd
+local VIM_FN_GETCHAR = vim.fn.getchar
+local VIM_FN_CONFIRM = vim.fn.confirm
 local SELECT_NEW = Select.new
 
 ---@class spec.utils
@@ -203,6 +205,33 @@ end
 ---Unmocks core.ui.Select such that future creations are real.
 function M.unmock_select()
     Select.new = SELECT_NEW
+end
+
+---@class spec.utils.MockVimInputsOpts
+---@field confirm number|nil|(fun(msg:any, choices?:any, default?:any, type?:any):number)
+---@field getchar number|nil|(fun(expr?:any):number)
+---@field input string|nil|(fun(opts:string|table<string, any>):string)
+
+---Mocks zero or more forms of neovim inputs.
+---@param opts? spec.utils.MockVimInputsOpts
+function M.mock_vim_inputs(opts)
+    opts = opts or {}
+    local function set_value(tbl, key, value)
+        if type(value) == "function" then
+            tbl[key] = value
+        elseif type(value) ~= "nil" then
+            tbl[key] = function() return value end
+        end
+    end
+
+    set_value(vim.fn, "confirm", opts.confirm)
+    set_value(vim.fn, "getchar", opts.getchar)
+    set_value(vim.fn, "input", opts.getchar)
+end
+
+function M.unmock_vim_inputs()
+    vim.fn.getchar = VIM_FN_GETCHAR
+    vim.fn.confirm = VIM_FN_CONFIRM
 end
 
 ---Creates a new database and swaps out the global database with it.
