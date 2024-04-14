@@ -1,4 +1,4 @@
-*org-roam.txt*            For NVIM v0.9.2           Last change: 2024 April 13
+*org-roam.txt*            For NVIM v0.9.2           Last change: 2024 April 14
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -19,13 +19,17 @@ Table of Contents                                 *org-roam-table-of-contents*
   - Org Roam Buffer                  |org-roam-user-interface-org-roam-buffer|
 5. API                                                          |org-roam-api|
   - Add Alias                                         |org-roam-api-add-alias|
+  - Add Origin                                       |org-roam-api-add-origin|
   - Capture Node                                   |org-roam-api-capture-node|
   - Complete Node                                 |org-roam-api-complete-node|
   - Find Node                                         |org-roam-api-find-node|
+  - Goto Next Node                               |org-roam-api-goto-next-node|
+  - Goto Prev Node                               |org-roam-api-goto-prev-node|
   - Insert Node                                     |org-roam-api-insert-node|
   - Open Node Buffer                           |org-roam-api-open-node-buffer|
   - Open Quickfix List                       |org-roam-api-open-quickfix-list|
   - Remove Alias                                   |org-roam-api-remove-alias|
+  - Remove Origin                                 |org-roam-api-remove-origin|
 6. Database                                                |org-roam-database|
   - Files                                            |org-roam-database-files|
   - Files Path                                  |org-roam-database-files-path|
@@ -145,8 +149,23 @@ Takes a string representing the keybinding. Defaults to `<Leader>naa`.
 
 >lua
     require("org-roam"):setup({
-      add_alias = {
-        capture = "<LocalLeader>naa",
+      bindings = {
+        add_alias = "<LocalLeader>naa",
+      },
+    })
+<
+
+
+ADD ORIGIN ~
+
+Adds an origin to the node under cursor.
+
+Takes a string representing the keybinding. Defaults to `<Leader>noa`.
+
+>lua
+    require("org-roam"):setup({
+      bindings = {
+        add_origin = "<LocalLeader>noa",
       },
     })
 <
@@ -197,6 +216,40 @@ Takes a string representing the keybinding. Defaults to `<Leader>nf`.
     require("org-roam"):setup({
       bindings = {
         find_node = "<LocalLeader>nf",
+      },
+    })
+<
+
+
+GOTO NEXT NODE ~
+
+Goes to the next node sequentially based on origin of the node under cursor.
+
+If more than one node has the node under cursor as its origin, a selection
+dialog is displayed to choose the node.
+
+Takes a string representing the keybinding. Defaults to `<Leader>nn`.
+
+>lua
+    require("org-roam"):setup({
+      bindings = {
+        goto_next_node = "<LocalLeader>nn",
+      },
+    })
+<
+
+
+GOTO PREV NODE ~
+
+Goes to the previous node sequentially based on origin of the node under
+cursor.
+
+Takes a string representing the keybinding. Defaults to `<Leader>np`.
+
+>lua
+    require("org-roam"):setup({
+      bindings = {
+        goto_prev_node = "<LocalLeader>np",
       },
     })
 <
@@ -260,8 +313,23 @@ Takes a string representing the keybinding. Defaults to `<Leader>nar`.
 
 >lua
     require("org-roam"):setup({
-      remove_alias = {
-        capture = "<LocalLeader>nar",
+      bindings = {
+        remove_alias = "<LocalLeader>nar",
+      },
+    })
+<
+
+
+REMOVE ORIGIN ~
+
+Removes the origin from the node under cursor.
+
+Takes a string representing the keybinding. Defaults to `<Leader>nor`.
+
+>lua
+    require("org-roam"):setup({
+      bindings = {
+        remove_origin = "<LocalLeader>nor",
       },
     })
 <
@@ -453,7 +521,33 @@ Takes a boolean. Defaults to `true`.
 <
 
 
-2. show keybindings
+2. open
+
+Configuration to open the node view window.
+
+Takes a string or a function that returns a window handle. Defaults to
+`botright vsplit | vertical resize 50`.
+
+>lua
+    require("org-roam"):setup({
+      ui = {
+        node_view = {
+          open = function()
+            return vim.api.nvim_open_win(0, false, {
+              relative = "editor",
+              row = 0,
+              col = 0,
+              width = 50,
+              height = 20,
+            })
+          end,
+        },
+      },
+    })
+<
+
+
+3. show keybindings
 
 If true, will include a section covering available keybindings.
 
@@ -470,7 +564,7 @@ Takes a boolean. Defaults to `true`.
 <
 
 
-3. unique
+4. unique
 
 If true, shows a single link (backlink/citation/unlinked reference) per node
 instead of all links.
@@ -494,15 +588,19 @@ Takes a boolean. Defaults to `false`.
 3. Bindings                                                *org-roam-bindings*
 
   Name                       Keybinding    Description
-  -------------------------- ------------- -------------------------------------------------------------------------
+  -------------------------- ------------- ---------------------------------------------------------------------------
   add_(alias)                <Leader>naa   Adds an alias to the node under cursor.
+  add_(origin)               <Leader>noa   Adds an origin to the node under cursor.
   capture                    <Leader>nc    Opens org-roam capture window.
   complete_(atpoint)         <Leader>n.    Completes the node under cursor.
   find_(node)                <Leader>nf    Finds node and moves to it, creating it if it does not exist.
+  goto_(nextnode)            <Leader>nn    Goes to the next node in sequence (via origin) for the node under cursor.
+  goto_(prevnode)            <Leader>np    Goes to the prev node in sequence (via origin) for the node under cursor.
   insert_(node)              <Leader>ni    Inserts node at cursor position, creating it if it does not exist.
   insert_(nodeimmediate)     <Leader>nm    Same as insert_node, but skips opening capture buffer.
   quickfix_(backlinks)       <Leader>nq    Opens the quickfix menu for backlinks to the current node under cursor.
   remove_(alias)             <Leader>nar   Removes an alias from the node under cursor.
+  remove_(origin)            <Leader>nor   Removes the origin from the node under cursor.
   toggle_(roambuffer)        <Leader>nl    Toggles the org-roam node-view buffer for the node under cursor.
   toggle_(roambufferfixed)   <Leader>nb    Toggles a fixed org-roam node-view buffer for a selected node.
 
@@ -539,13 +637,17 @@ Here is a recommended setup you can use to leverage `C-c`
     require("org-roam"):setup({
       bindings = {
         add_alias                = "<C-c>naa",
+        add_origin               = "<C-c>noa",
         capture                  = "<C-c>nc",
         complete_at_point        = "<M-/>",
         find_node                = "<C-c>nf",
+        goto_next_node           = "<C-c>nn",
+        goto_prev_node           = "<C-c>np",
         insert_node              = "<C-c>ni",
         insert_node_immediate    = "<C-c>nm",
         quickfix_backlinks       = "<C-c>nq",
         remove_alias             = "<C-c>nar",
+        remove_origin            = "<C-c>nor",
         toggle_roam_buffer       = "<C-c>nl",
         toggle_roam_buffer_fixed = "<C-c>nb",
       },
@@ -608,6 +710,30 @@ Example:
 <
 
 
+ADD ORIGIN                                           *org-roam-api-add-origin*
+
+roam.api.add_origin({opts})
+
+Description:
+
+Adds an origin to the node under cursor. Will replace the existing origin.
+
+If no `origin` is specified, a prompt is provided.
+
+Parameters:
+
+- {opts} optional table.
+    - origin: optional, if provided, added to the node under cursor, otherwise
+        prompts for an origin to add to the node under cursor.
+
+Example:
+
+>lua
+    local roam = require("org-roam")
+    roam.api.add_origin({ origin = "1234" })
+<
+
+
 CAPTURE NODE                                       *org-roam-api-capture-node*
 
 roam.api.capture_node({opts}, {cb})
@@ -620,11 +746,12 @@ restores the current window configuration upon completion.
 Parameters:
 
 - {opts} optional table.
-    - title: optional, seeds the capture dialog with the title string.
     - immediate: optional, if true, skips displaying the capture buffer and
         instead populates a file using the immediate configuration.
         If title is also provided, it is used as the title of the
         created node.
+    - origin: optional, id of node acting as origin of this node.
+    - title: optional, seeds the capture dialog with the title string.
 - {cb} optional callback when finished. Is passed the id
     of the created node, or nil if capture was canceled.
 
@@ -676,6 +803,7 @@ window.
 Parameters:
 
 - {opts} optional table.
+    - origin: optional, id of node acting as origin of this node (creation-only).
     - title: optional, seeds the select dialog with the title string.
 
 Example:
@@ -683,6 +811,52 @@ Example:
 >lua
     local roam = require("org-roam")
     roam.api.find_node({ title = "Some Node" })
+<
+
+
+GOTO NEXT NODE                                   *org-roam-api-goto-next-node*
+
+roam.api.goto_nextnode({opts})
+
+Description:
+
+Goes to the next node in sequence for the node under cursor.
+
+Leverages a lookup of nodes whose origin match the node under cursor.
+
+Parameters:
+
+- {opts} optional table.
+    - in: optional, id of window where buffer will be loaded.
+
+Example:
+
+>lua
+    local roam = require("org-roam")
+    roam.api.goto_next_node({ win = 123 })
+<
+
+
+GOTO PREV NODE                                   *org-roam-api-goto-prev-node*
+
+roam.api.goto_prevnode({opts})
+
+Description:
+
+Goes to the previous node in sequence for the node under cursor.
+
+Leverages a lookup of the node using the origin of the node under cursor.
+
+Parameters:
+
+- {opts} optional table.
+    - in: optional, id of window where buffer will be loaded.
+
+Example:
+
+>lua
+    local roam = require("org-roam")
+    roam.api.goto_prev_node({ win = 123 })
 <
 
 
@@ -709,6 +883,7 @@ Parameters:
         instead populates a file using the immediate configuration.
         If title is also provided, it is used as the title of the
         created node.
+    - origin: optional, id of node acting as origin of this node (creation-only).
     - title: optional, seeds the select dialog with the title string.
     - ranges: optional, list of ranges to replace. Each range is comprised of
         the following fields:
@@ -804,6 +979,22 @@ Example:
 >lua
     local roam = require("org-roam")
     roam.api.remove_alias({ all = true })
+<
+
+
+REMOVE ORIGIN                                     *org-roam-api-remove-origin*
+
+roam.api.remove_origin()
+
+Description:
+
+Removes the origin from the node under cursor.
+
+Example:
+
+>lua
+    local roam = require("org-roam")
+    roam.api.remove_origin()
 <
 
 
