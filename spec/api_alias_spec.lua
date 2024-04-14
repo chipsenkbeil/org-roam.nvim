@@ -147,26 +147,22 @@ describe("org-roam.api.alias", function()
         -- NOTE: Because removing an alias that's not there will trigger
         --       the selection dialog, we need to mock it to cancel as
         --       soon as it opens.
-        utils.mock_select({
-            mock = function(opts, new)
-                local instance = new(opts)
+        utils.mock_select(function(opts, new)
+            local instance = new(opts)
+            local on_cancel
 
-                ---@type fun()
-                local on_cancel
-
-                ---@diagnostic disable-next-line:duplicate-set-field
-                instance.on_cancel = function(this, cb)
-                    on_cancel = cb
-                    return this
-                end
-
-                -- Override open to trigger cancel.
-                ---@diagnostic disable-next-line:duplicate-set-field
-                instance.open = function() on_cancel() end
-
-                return instance
+            ---@diagnostic disable-next-line:duplicate-set-field
+            instance.on_cancel = function(this, cb)
+                on_cancel = cb
+                return this
             end
-        })
+
+            -- Override open to trigger cancel.
+            ---@diagnostic disable-next-line:duplicate-set-field
+            instance.open = function() on_cancel() end
+
+            return instance
+        end)
 
         -- Remove the alias from the file in the buffer
         local ok = api.remove_alias({ alias = "not there" }):wait()

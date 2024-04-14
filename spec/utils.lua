@@ -147,15 +147,15 @@ end
 ---| fun(opts?:org-roam.core.ui.select.Opts, new:fun(opts?:org-roam.core.ui.select.Opts):org-roam.core.ui.Select):org-roam.core.ui.Select
 
 ---Mocks core.ui.Select such that future creations use return from `f`.
----@param opts? {mock?:spec.utils.MockSelect, stub?:boolean}
-function M.mock_select(opts)
+---@param mock? spec.utils.MockSelect
+---@param opts? {stub?:boolean}
+function M.mock_select(mock, opts)
     opts = opts or {}
 
     ---@diagnostic disable-next-line:duplicate-set-field
     Select.new = function(sopts)
         local instance = {}
 
-        local mock = opts.mock
         if type(mock) == "function" then
             instance = mock(sopts, SELECT_NEW)
         elseif type(mock) == "table" then
