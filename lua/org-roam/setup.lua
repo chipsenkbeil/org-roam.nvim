@@ -277,6 +277,18 @@ local function define_keybindings(config)
     )
 
     assign(
+        bindings.goto_prev_node,
+        "Goes to the previous node sequentially based on origin of the node under cursor",
+        require("org-roam.api").goto_prev_node
+    )
+
+    assign(
+        bindings.goto_next_node,
+        "Goes to the next node sequentially based on origin of the node under cursor",
+        require("org-roam.api").goto_next_node
+    )
+
+    assign(
         bindings.quickfix_backlinks,
         "Open quickfix of backlinks for org-roam node under cursor",
         function()
