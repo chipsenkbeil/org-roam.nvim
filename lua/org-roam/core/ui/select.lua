@@ -24,6 +24,9 @@ local EVENTS = {
     ---Internal, mapping between choices and cancellation.
     INTERNAL_MULTIPLEX = "internal:select:multiplex",
 
+    ---Selection dialog is ready (fully rendered for the first time).
+    READY = "select:ready",
+
     ---Selection has been changed.
     SELECT_CHANGE = "select:select_change",
 
@@ -86,7 +89,7 @@ local init_highlights = (function()
 end)()
 
 ---@class (exact) org-roam.core.ui.select.View
----@field filtered_items {[1]:integer, [2]:string}[] #list of tuples representing indexes of items and labels to display
+---@field filtered_items {[1]:integer, [2]:any}[] #list of tuples representing indexes of items and items
 ---@field start integer #position within filtered items where items will be collected to show (up to max)
 ---@field selected integer #position of selected item within viewed items
 ---@field max_rows integer #maximum rows of viewed items to display
@@ -228,6 +231,14 @@ function M:new(opts)
     return instance
 end
 
+---Register callback when the selection dialog is ready.
+---@param f fun()
+---@return org-roam.core.ui.Select
+function M:on_ready(f)
+    self.__state.emitter:on(EVENTS.READY, f)
+    return self
+end
+
 ---Register callback when the selection dialog is canceled.
 ---@param f fun()
 ---@return org-roam.core.ui.Select
@@ -317,6 +328,9 @@ function M:open()
 
                 -- Mark ready so we don't reset the cursor again
                 ready = true
+
+                -- Report that we're now ready after the first render
+                self.__state.emitter:emit(EVENTS.READY)
             end
         end)
 
@@ -448,6 +462,41 @@ function M:update_items(items)
     self:__render()
 end
 
+---Returns the current list of filtered choices available from the selection dialog.
+---@return {item:any, label:string, idx:integer}[]
+function M:filtered_choices()
+    local choices = {}
+    for i, fitem in ipairs(self:__update_filtered_items()) do
+        local item = fitem[2]
+        local label = self.__params.format(fitem[2])
+        table.insert(choices, { item = item, label = label, idx = i })
+    end
+    return choices
+end
+
+---Choose an item (including its position in the filtered selection),
+---or custom input text that is not an item.
+---@param opts {text:string}|{item:any, idx:integer}
+function M:choose(opts)
+    if opts.text then
+        self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
+            type = EVENTS.CHOICE_INPUT,
+            text = opts.text,
+        })
+    elseif opts.idx then
+        self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
+            type = EVENTS.CHOICE,
+            item = opts.item,
+            idx = opts.idx,
+        })
+    end
+end
+
+---Cancel the selection, closing the dialog.
+function M:cancel()
+    self:close()
+end
+
 ---@private
 function M:__select_move_down()
     local cnt = #self.__view.filtered_items
@@ -530,10 +579,7 @@ function M:__trigger_selection()
     local item = self.__view.filtered_items[idx]
     if not item then
         if self.__params.allow_select_missing then
-            self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
-                type = EVENTS.CHOICE_INPUT,
-                text = self:__get_input(),
-            })
+            self:choose({ text = self:__get_input() })
         end
 
         return
@@ -546,11 +592,7 @@ function M:__trigger_selection()
     item = self.__params.items[idx]
 
     if item then
-        self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
-            type = EVENTS.CHOICE,
-            item = item,
-            idx = idx,
-        })
+        self:choose({ item = item, idx = idx })
     end
 end
 
@@ -558,10 +600,7 @@ end
 function M:__trigger_input_selection()
     local text = self:__get_input()
     if text ~= "" then
-        self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
-            type = EVENTS.CHOICE_INPUT,
-            text = text,
-        })
+        self:choose({ text = text })
     end
 end
 
@@ -625,7 +664,9 @@ function M:__get_input()
 end
 
 ---@private
----@return {[1]:integer, [2]:any}
+---Updates list of filtered items, returning the updated list of tuples
+---representing the position of the item in the main list and the item itself.
+---@return {[1]:integer, [2]:any}[]
 function M:__update_filtered_items()
     local input = self:__get_input()
 
@@ -639,7 +680,7 @@ function M:__update_filtered_items()
     self.__view.selected = 1
     self.__view.start = 1
 
-    ---@type {[1]:integer, [2]:any, [3]:number|nil}
+    ---@type {[1]:integer, [2]:any, [3]:number|nil}[]
     local filtered = {}
     local rank = self.__params.rank
 
@@ -723,6 +764,15 @@ function M:__render()
 end
 
 ---@private
+---@return integer
+function M:__view_end()
+    return math.min(
+        self.__view.start + self.__view.max_rows - 1,
+        #self.__view.filtered_items
+    )
+end
+
+---@private
 ---@return org-roam.core.ui.Line[]
 function M:__render_component()
     local window = self.__state.window
@@ -741,10 +791,7 @@ function M:__render_component()
 
     local input = self:__get_input()
     local start = self.__view.start
-    local end_ = math.min(
-        self.__view.start + self.__view.max_rows - 1,
-        #self.__view.filtered_items
-    )
+    local end_ = self:__view_end()
 
     -- Loop through filtered items, beginning at the start position
     -- and continuing through max rows

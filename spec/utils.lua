@@ -153,11 +153,13 @@ function M.mock_select(mock, opts)
     opts = opts or {}
 
     ---@diagnostic disable-next-line:duplicate-set-field
-    Select.new = function(sopts)
+    Select.new = function(this, sopts)
         local instance = {}
 
         if type(mock) == "function" then
-            instance = mock(sopts, SELECT_NEW)
+            instance = mock(sopts, function(...)
+                return SELECT_NEW(this, ...)
+            end)
         elseif type(mock) == "table" then
             instance = mock
         end
@@ -177,6 +179,27 @@ function M.mock_select(mock, opts)
     end
 end
 
+---Mocks core.ui.Select to intercept the list of choices and pick a specific
+---choice or cancel.
+---@param f fun(choices:{item:any, label:string, idx:integer}[], this:org-roam.core.ui.Select):({item:any, label:string, idx:integer}|nil)
+function M.mock_select_pick(f)
+    M.mock_select(function(opts, new)
+        local instance = new(opts)
+
+        -- When ready, get choices to make a decision
+        instance:on_ready(function()
+            local choice = f(instance:filtered_choices(), instance)
+            if choice then
+                instance:choose({ item = choice.item, idx = choice.idx })
+            else
+                instance:cancel()
+            end
+        end)
+
+        return instance
+    end)
+end
+
 ---Unmocks core.ui.Select such that future creations are real.
 function M.unmock_select()
     Select.new = SELECT_NEW
@@ -190,6 +213,7 @@ function M.make_db(opts)
     local db = require("org-roam.database")
 
     -- Create a new temporary database
+    ---@diagnostic disable-next-line:param-type-mismatch
     local tmp = db:new(opts)
 
     -- Swap out values from temporary into global

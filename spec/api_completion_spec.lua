@@ -132,25 +132,13 @@ describe("org-roam.api.completion", function()
         -- Move our cursor down to the expression
         vim.api.nvim_win_set_cursor(0, { 5, 0 })
 
-        -- Mock the selection dialog since we know it will pop up
-        utils.mock_select(function(opts, new)
-            local instance = new(opts)
-            ---@type fun(item:{id:string|nil, label:string}, idx:integer)
-            local on_choice
-
-            ---@diagnostic disable-next-line:duplicate-set-field
-            instance.on_choice = function(this, cb)
-                on_choice = cb
-                return this
+        -- Pick two as the choice
+        utils.mock_select_pick(function(choices)
+            for _, choice in ipairs(choices) do
+                if choice.label == "two" then
+                    return choice
+                end
             end
-
-            -- Override open to trigger specific choice.
-            ---@diagnostic disable-next-line:duplicate-set-field
-            instance.open = function()
-                on_choice({ id = "2", label = "two" }, 2)
-            end
-
-            return instance
         end)
 
         -- Try to complete
