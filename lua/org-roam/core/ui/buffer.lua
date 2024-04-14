@@ -534,6 +534,16 @@ function M:__clear(opts)
     end
 
     -- Clear highlights and contents of the buffer
+    --
+    -- NOTE: It appears in our tests, specifically api-completion for
+    --       exactly one match, we hit an internal error:
+    --       "Vim:E315: ml_get: invalid lnum: 2" for the call to
+    --       nvim_buf_set_lines.
+    --
+    --       I tried to add a check earlier to see if the buffer was loaded,
+    --       but it didn't do anything to help. So for now we're ignoring
+    --       this as this seems to happen in the test only and does not stop
+    --       the test from completing successfull.
     vim.api.nvim_buf_clear_namespace(self.__bufnr, self.__namespace, self.__offset, -1)
     vim.api.nvim_buf_set_lines(self.__bufnr, self.__offset, -1, true, {})
 
