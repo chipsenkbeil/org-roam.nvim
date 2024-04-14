@@ -413,7 +413,7 @@ local function modify_orgmode_plugin(config)
             log.fmt_debug("Detected node %s under at (%d,%d)",
                 node.id, row, col)
             local winnr = vim.api.nvim_get_current_win()
-            vim.cmd.edit(node.file)
+            vim.cmd("e " .. node.file)
 
             -- NOTE: Schedule so we have time to process loading the buffer first!
             vim.schedule(function()

@@ -102,10 +102,28 @@ function M.make_temp_org_files_directory()
     return root_dir
 end
 
+---Creates a new temporary directory.
+---@return string
+function M.make_temp_directory()
+    local root_dir = vim.fn.tempname() .. "_test_dir"
+    assert(vim.fn.mkdir(root_dir, "p") == 1, "failed to create test directory")
+    return root_dir
+end
+
 ---@param ... string
 ---@return string
 function M.join_path(...)
     return path.join(...)
+end
+
+---@param path string
+---@param ... string|string[]
+function M.write_to(path, ...)
+    local lines = vim.tbl_flatten({ ... })
+    local content = table.concat(lines, "\n")
+
+    local err = io.write_file_sync(path, content)
+    assert(not err, err)
 end
 
 ---@param path string
@@ -120,6 +138,12 @@ function M.append_to(path, ...)
     ---@cast data -nil
     err = io.write_file_sync(path, data .. content)
     assert(not err, err)
+end
+
+---@param buf? integer
+---@return string[]
+function M.read_buffer(buf)
+    return vim.api.nvim_buf_get_lines(buf or 0, 0, -1, true)
 end
 
 return M

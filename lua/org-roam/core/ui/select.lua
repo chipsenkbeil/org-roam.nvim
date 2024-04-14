@@ -339,7 +339,7 @@ function M:open()
                 self:close()
 
                 if is_normal then
-                    vim.cmd.stopinsert()
+                    vim.cmd("stopinsert")
                 end
             end)
         end)

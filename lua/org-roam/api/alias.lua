@@ -17,7 +17,7 @@ local M = {}
 ---
 ---If no `alias` is specified, a prompt is provided.
 ---
----@param opts? {alias?:string}
+---@param opts? {alias?:string, win?:integer}
 function M.add_alias(opts)
     opts = opts or {}
     utils.node_under_cursor(function(node)
@@ -56,7 +56,7 @@ function M.add_alias(opts)
 
             return file
         end)
-    end)
+    end, { win = opts.win })
 end
 
 ---Removes an alias from the node under cursor.
@@ -64,7 +64,7 @@ end
 ---If no `alias` is specified, selection dialog of aliases is provided.
 ---If `all` is true, will remove all aliases instead of one.
 ---
----@param opts? {alias?:string, all?:boolean}
+---@param opts? {alias?:string, all?:boolean, win?:integer}
 function M.remove_alias(opts)
     opts = opts or {}
     utils.node_under_cursor(function(node)
@@ -127,7 +127,7 @@ function M.remove_alias(opts)
 
             return file
         end)
-    end)
+    end, { win = opts.win })
 end
 
 return M
