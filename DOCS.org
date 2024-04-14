@@ -656,7 +656,7 @@
 
 ** Complete Node
 
-   roam.api.complete_node()
+   roam.api.complete_node({opts})
 
    Description:
 
@@ -668,11 +668,16 @@
    This implements the functionality of both =org-roam-complete-link-at-point=
    and =org-roam-complete-everywhere=.
 
+   Parameters:
+
+   - {opts} optional table.
+     - win: optional, id of window where the node link will be completed (default = 0).
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.complete_node()
+   roam.api.complete_node({ win = 123 })
    #+end_src
 
 ** Find Node
@@ -710,7 +715,7 @@
    Parameters:
 
    - {opts} optional table.
-     - in: optional, id of window where buffer will be loaded.
+     - win: optional, id of window where buffer will be loaded (default = 0).
 
    Example:
 
@@ -732,7 +737,7 @@
    Parameters:
 
    - {opts} optional table.
-     - in: optional, id of window where buffer will be loaded.
+     - win: optional, id of window where buffer will be loaded (default = 0).
 
    Example:
 

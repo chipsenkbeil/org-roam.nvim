@@ -18,9 +18,11 @@ local M = {}
 ---
 ---* `org-roam-complete-link-at-point`
 ---* `org-roam-complete-everywhere`
-function M.complete_node_under_cursor()
-    local winnr = vim.api.nvim_get_current_win()
-    local bufnr = vim.api.nvim_get_current_buf()
+---@param opts? {win?:integer}
+function M.complete_node_under_cursor(opts)
+    opts = opts or {}
+    local winnr = opts.win or vim.api.nvim_get_current_win()
+    local bufnr = vim.api.nvim_win_get_buf(winnr)
 
     -- Figure out our selection range and input
     -- to feed into our dialog based on whether
@@ -30,7 +32,7 @@ function M.complete_node_under_cursor()
     ---@type string|nil
     local input
 
-    local link = utils.link_under_cursor()
+    local link = utils.link_under_cursor({ win = winnr })
     if link then
         local cursor = vim.api.nvim_win_get_cursor(winnr)
         local row = cursor[1] - 1 -- make zero-indexed
