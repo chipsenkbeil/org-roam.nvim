@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 local db = require("org-roam.database")
+local Promise = require("orgmode.utils.promise")
 local utils = require("org-roam.utils")
 
 local M = {}
@@ -19,6 +20,7 @@ local M = {}
 ---* `org-roam-complete-link-at-point`
 ---* `org-roam-complete-everywhere`
 ---@param opts? {win?:integer}
+---@return OrgPromise<boolean>
 function M.complete_node_under_cursor(opts)
     opts = opts or {}
     local winnr = opts.win or vim.api.nvim_get_current_win()
@@ -51,17 +53,20 @@ function M.complete_node_under_cursor(opts)
             input = string.sub(input, 4)
         end
     else
-        selection = utils.expr_under_cursor()
+        selection = utils.expr_under_cursor({ win = winnr })
         input = selection
     end
 
-    require("org-roam.ui.select-node")({
-        auto_select = true,
-        init_input = input,
-    }, function(choice)
-        local node = db:get_sync(choice.id)
+    return Promise.new(function(resolve)
+        require("org-roam.ui.select-node")({
+            auto_select = true,
+            init_input = input,
+        }, function(choice)
+            local node = db:get_sync(choice.id)
+            if not node then
+                return resolve(false)
+            end
 
-        if node then
             -- Get our cursor position
             local cursor = vim.api.nvim_win_get_cursor(winnr)
 
@@ -88,16 +93,24 @@ function M.complete_node_under_cursor(opts)
             end
 
             -- Insert text representing the new link only if we found a match
-            if i ~= nil then
-                -- Replace the text (this will place us into insert mode)
-                vim.api.nvim_buf_set_text(bufnr, row, col, row, col + #selection, {
-                    string.format("[[id:%s][%s]]", node.id, choice.label)
-                })
-
-                -- Force ourselves back into normal mode
-                vim.cmd.stopinsert()
+            if i == nil then
+                resolve(false)
+                return
             end
-        end
+
+            -- Replace the text (this will place us into insert mode)
+            vim.api.nvim_buf_set_text(bufnr, row, col, row, col + #selection, {
+                string.format("[[id:%s][%s]]", node.id, choice.label)
+            })
+
+            -- Force ourselves back into normal mode
+            vim.cmd.stopinsert()
+
+            -- Mark as successful
+            resolve(true)
+        end, function()
+            resolve(false)
+        end)
     end)
 end
 

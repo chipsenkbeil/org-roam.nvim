@@ -11,12 +11,16 @@ local Select = require("org-roam.core.ui.select")
 ---@overload fun(cb:fun(selection:{id:org-roam.core.database.Id|nil, label:string}))
 ---@param opts {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
 ---@param cb fun(selection:{id:org-roam.core.database.Id|nil, label:string})
-return function(opts, cb)
+---@param cancel_cb? fun()
+return function(opts, cb, cancel_cb)
     if type(opts) == "function" then
         cb = opts
         opts = {}
     end
     opts = opts or {}
+    if type(cancel_cb) ~= "function" then
+        cancel_cb = function() end
+    end
 
     -- TODO: Make this more optimal. Probably involves supporting
     --       an async function to return items instead of an
@@ -38,7 +42,10 @@ return function(opts, cb)
             if node then
                 table.insert(items, { id = id, label = node.title })
                 for _, alias in ipairs(node.aliases) do
-                    table.insert(items, { id = id, label = alias })
+                    -- Avoid repeat of alias that is same as title
+                    if alias ~= node.title then
+                        table.insert(items, { id = id, label = alias })
+                    end
                 end
             end
         end
@@ -57,10 +64,12 @@ return function(opts, cb)
         prompt = prompt,
         ---@param item {id:org-roam.core.database.Id, label:string}
         format = function(item) return item.label end,
+        cancel_on_no_init_matches = true,
     }, opts or {})
 
     Select:new(select_opts)
         :on_choice(cb)
         :on_choice_missing(function(label) cb({ id = nil, label = label }) end)
+        :on_cancel(cancel_cb)
         :open()
 end

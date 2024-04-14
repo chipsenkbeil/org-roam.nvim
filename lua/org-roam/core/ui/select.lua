@@ -104,6 +104,7 @@ end)()
 ---@field init_input string #initial text to supply at the beginning
 ---@field auto_select boolean #if true, will select automatically if only one item (filtered) based on init_input
 ---@field allow_select_missing boolean #if true, enables selecting non-existent items
+---@field cancel_on_no_init_matches boolean #if true, cancels if input provided and no matches found
 ---@field bindings org-roam.core.ui.select.Bindings #bindings associated with the window
 ---@field format fun(item:any):string #converts item into displayed text
 ---@field match fun(item:any, input:string):{[1]:integer, [2]:integer}[] #returns ranges (start/end col) of matches (one-indexed, inclusive)
@@ -129,6 +130,7 @@ M.__index = M
 ---@field init_input? string
 ---@field auto_select? boolean
 ---@field allow_select_missing? boolean
+---@field cancel_on_no_init_matches? boolean
 ---@field bindings? {down?:string|string[], up?:string|string[], select?:string|string[], select_missing?:string|string[]}
 ---@field format? fun(item:any):string
 ---@field match? fun(item:any, input:string):{[1]:integer, [2]:integer}[]
@@ -144,6 +146,7 @@ function M:new(opts)
     setmetatable(instance, M)
 
     local allow_select_missing = opts.allow_select_missing or false
+    local cancel_on_no_init_matches = opts.cancel_on_no_init_matches or false
     local default_bindings = {
         down = { "<C-n>", "<Down>" },
         up = { "<C-p>", "<Up>" },
@@ -192,6 +195,7 @@ function M:new(opts)
         init_input = opts.init_input or "",
         auto_select = opts.auto_select or false,
         allow_select_missing = allow_select_missing,
+        cancel_on_no_init_matches = cancel_on_no_init_matches,
         bindings = vim.tbl_deep_extend("keep", bindings, default_bindings),
         format = format,
         match = match,
@@ -585,6 +589,20 @@ function M:__refresh_filter()
             and #self.__view.filtered_items == 0
         if is_nonempty and is_initial_input and (has_one_item or use_missing) then
             self:__trigger_selection()
+        end
+    end
+
+    -- If we got no matches with our initial filter and we have cancel
+    -- enabled for mo matches, then do a cancellation
+    if self.__params.cancel_on_no_init_matches then
+        local is_initial_input = text == self.__params.init_input
+        local is_nonempty = vim.trim(text) ~= ""
+        local has_zero_items = #self.__view.filtered_items == 0
+
+        -- If non-empty input led to zero items, trigger a close, which
+        -- in turn should submit a cancellation event
+        if is_nonempty and is_initial_input and has_zero_items then
+            self:close()
         end
     end
 end

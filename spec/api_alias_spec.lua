@@ -16,7 +16,7 @@ describe("org-roam.api.alias", function()
             ext = "org",
         })
 
-        db = require("org-roam.database"):new({
+        db = utils.make_db({
             db_path = vim.fn.tempname() .. "-test-db",
             directory = dir,
         })
