@@ -402,7 +402,7 @@ function M.insert(opts)
         })
 
         -- Force ourselves back into normal mode
-        vim.cmd("stopinsert")
+        vim.cmd.stopinsert()
     end
 
     select_node({
@@ -451,7 +451,7 @@ function M.find(opts)
         vim.cmd("edit! " .. node.file)
 
         -- Force ourselves back into normal mode
-        vim.cmd("stopinsert")
+        vim.cmd.stopinsert()
     end
 
     select_node({

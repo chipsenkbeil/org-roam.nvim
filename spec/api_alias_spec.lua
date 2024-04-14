@@ -2,6 +2,9 @@ describe("org-roam.api.alias", function()
     local api = require("org-roam.api")
     local utils = require("spec.utils")
 
+    -- Patch `vim.cmd` so we can run tests here
+    utils.patch_vim_cmd()
+
     ---Database populated before each test.
     ---@type org-roam.Database
     local db
@@ -30,7 +33,7 @@ describe("org-roam.api.alias", function()
         db:load():wait()
 
         -- Load the file into the buffer
-        vim.cmd("e " .. test_file_path)
+        vim.cmd.edit(test_file_path)
 
         -- Add the alias to the file in the buffer
         api.add_alias({ alias = "other test" })

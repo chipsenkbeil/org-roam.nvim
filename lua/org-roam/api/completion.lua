@@ -93,7 +93,7 @@ function M.complete_node_under_cursor()
                 })
 
                 -- Force ourselves back into normal mode
-                vim.cmd("stopinsert")
+                vim.cmd.stopinsert()
             end
         end
     end)

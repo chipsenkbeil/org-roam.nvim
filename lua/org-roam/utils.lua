@@ -223,7 +223,7 @@ function M.goto_node(opts)
     local node = opts.node
     local win = opts.win or vim.api.nvim_get_current_win()
     vim.api.nvim_set_current_win(win)
-    vim.cmd("e " .. node.file)
+    vim.cmd.edit(node.file)
 
     local row = node.range.start.row + 1
     local col = node.range.start.column

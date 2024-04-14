@@ -146,4 +146,48 @@ function M.read_buffer(buf)
     return vim.api.nvim_buf_get_lines(buf or 0, 0, -1, true)
 end
 
+---Applies a patch to `vim.cmd` to support `vim.cmd.XYZ()`.
+---Taken from neovim 0.10 source code.
+---
+---Needed until the following is resolved:
+---https://github.com/nvim-lua/plenary.nvim/issues/453
+function M.patch_vim_cmd()
+    local VIM_CMD_ARG_MAX = 20
+    vim.cmd = setmetatable({}, {
+        __call = function(_, command)
+            if type(command) == "table" then
+                return vim.api.nvim_cmd(command, {})
+            else
+                vim.api.nvim_exec2(command, {})
+                return ""
+            end
+        end,
+        __index = function(t, command)
+            t[command] = function(...)
+                local opts
+                if select("#", ...) == 1 and type(select(1, ...)) == "table" then
+                    opts = select(1, ...)
+
+                    -- Move indexed positions in opts to opt.args
+                    if opts[1] and not opts.args then
+                        opts.args = {}
+                        for i = 1, VIM_CMD_ARG_MAX do
+                            if not opts[i] then
+                                break
+                            end
+                            opts.args[i] = opts[i]
+                            opts[i] = nil
+                        end
+                    end
+                else
+                    opts = { args = { ... } }
+                end
+                opts.cmd = command
+                return vim.api.nvim_cmd(opts, {})
+            end
+            return t[command]
+        end,
+    })
+end
+
 return M
