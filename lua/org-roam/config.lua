@@ -94,6 +94,15 @@ local config = setmetatable({
         toggle_roam_buffer_fixed = "<Leader>nb",
     },
 
+    ---Settings associated with org-roam capture logic.
+    ---@class org-roam.config.Capture
+    capture = {
+        ---If true, will include the origin in the capture buffer if the
+        ---capture originated from an org-roam node.
+        ---@type boolean
+        include_origin = true,
+    },
+
     ---Settings associated with org-roam's database.
     ---@class org-roam.config.Database
     database = {

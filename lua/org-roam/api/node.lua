@@ -10,6 +10,7 @@ local io = require("org-roam.core.utils.io")
 local log = require("org-roam.core.log")
 local notify = require("org-roam.core.ui.notify")
 local path_utils = require("org-roam.core.utils.path")
+local Promise = require("orgmode.utils.promise")
 local select_node = require("org-roam.ui.select-node")
 local utils = require("org-roam.utils")
 
@@ -55,6 +56,27 @@ local function string_contains_one_of(s, ...)
         end
     end
     return false
+end
+
+---Retrieves the id of the noude under cursor.
+---@param opts? {win?:integer}
+---@return OrgPromise<string|nil>
+local function node_id_under_cursor(opts)
+    opts = opts or {}
+
+    return Promise.new(function(resolve)
+        utils.node_under_cursor(function(node)
+            resolve(node and node.id)
+        end, { win = opts.win })
+    end)
+end
+
+---Retrieves the id of the noude under cursor.
+---@param opts? {timeout?:integer, win?:integer}
+---@return string|nil
+local function node_id_under_cursor_sync(opts)
+    opts = opts or {}
+    return node_id_under_cursor(opts):wait(opts.timeout)
 end
 
 ---@param file? OrgFile
@@ -240,6 +262,10 @@ function M.capture(opts, cb)
     opts = opts or {}
     cb = cb or function() end
 
+    if CONFIG.capture.include_origin and not opts.origin then
+        opts.origin = node_id_under_cursor_sync()
+    end
+
     if opts.immediate then
         M.__capture_immediate(opts, cb)
     else
@@ -389,6 +415,10 @@ function M.insert(opts)
             return
         end
 
+        if CONFIG.capture.include_origin and not opts.origin then
+            opts.origin = node_id_under_cursor_sync({ win = winnr })
+        end
+
         M.capture({
             immediate = opts.immediate,
             origin = opts.origin,
@@ -431,6 +461,10 @@ function M.find(opts)
         if node.id then
             visit_node(node.id)
             return
+        end
+
+        if CONFIG.capture.include_origin and not opts.origin then
+            opts.origin = node_id_under_cursor_sync({ win = winnr })
         end
 
         M.capture({ origin = opts.origin, title = node.label }, function(id)
