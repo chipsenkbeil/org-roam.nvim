@@ -1,7 +1,7 @@
 local OrgFile = require("orgmode.files.file")
-local OrgFiles = require("orgmode.files")
 local io = require("org-roam.core.utils.io")
 local path = require("org-roam.core.utils.path")
+local Select = require("org-roam.core.ui.select")
 local unpack = require("org-roam.core.utils.table").unpack
 local uuid_v4 = require("org-roam.core.utils.random").uuid_v4
 
@@ -11,6 +11,7 @@ local ORG_FILES_DIR = (function()
 end)()
 
 local VIM_CMD = vim.cmd
+local SELECT_NEW = Select.new
 
 ---@class spec.utils
 local M = {}
@@ -54,33 +55,6 @@ function M.org_file(content)
     file:parse()
 
     return file
-end
-
----@param ... OrgFile|OrgFile[]
----@return OrgFiles
-function M.org_files(...)
-    local root_dir = vim.fn.tempname()
-    assert(vim.fn.mkdir(root_dir, "p") == 1, "failed to create org directory")
-
-    -- Store org files into directory
-    ---@type OrgFile[]
-    local files = vim.tbl_flatten({ ... })
-    for _, file in ipairs(files) do
-        local handle = assert(
-            io.open(file.filename, "w"),
-            "failed to create " .. file.filename
-        )
-        assert(
-            handle:write(file.content),
-            "failed to write to " .. file.filename
-        )
-        handle:close()
-    end
-
-    return OrgFiles
-        :new({ paths = path.join(root_dir, "**", "*.org") })
-        :load()
-        :wait()
 end
 
 ---Creates a new temporary directory, copies the org files
@@ -166,6 +140,46 @@ end
 ---@return string[]
 function M.read_buffer(buf)
     return vim.api.nvim_buf_get_lines(buf or 0, 0, -1, true)
+end
+
+---@alias spec.utils.MockSelect
+---| org-roam.core.ui.Select
+---| fun(opts?:org-roam.core.ui.select.Opts, new:fun(opts?:org-roam.core.ui.select.Opts):org-roam.core.ui.Select):org-roam.core.ui.Select
+
+---Mocks core.ui.Select such that future creations use return from `f`.
+---@param opts? {mock?:spec.utils.MockSelect, stub?:boolean}
+function M.mock_select(opts)
+    opts = opts or {}
+
+    ---@diagnostic disable-next-line:duplicate-set-field
+    Select.new = function(sopts)
+        local instance = {}
+
+        local mock = opts.mock
+        if type(mock) == "function" then
+            instance = mock(sopts, SELECT_NEW)
+        elseif type(mock) == "table" then
+            instance = mock
+        end
+
+        -- Populate any missing methods with stubs that fail with an error
+        for k, v in pairs(Select) do
+            if type(v) == "function" and type(instance[k]) ~= "function" then
+                instance[k] = function()
+                    if not opts.stub then
+                        error("unmocked: " .. tostring(k))
+                    end
+                end
+            end
+        end
+
+        return instance
+    end
+end
+
+---Unmocks core.ui.Select such that future creations are real.
+function M.unmock_select()
+    Select.new = SELECT_NEW
 end
 
 ---Applies a patch to `vim.cmd` to support `vim.cmd.XYZ()`.

@@ -96,6 +96,7 @@ end)()
 ---@class (exact) org-roam.core.ui.select.State
 ---@field prompt_id integer|nil #id of the virtual text prompt
 ---@field emitter org-roam.core.utils.Emitter #event manager
+---@field last_win integer|nil #id of last window before opened selection
 ---@field window org-roam.core.ui.Window|nil #internal window
 
 ---@class (exact) org-roam.core.ui.select.Params
@@ -199,6 +200,7 @@ function M:new(opts)
 
     instance.__state = {
         emitter = Emitter:new(),
+        last_win = nil,
         prompt_id = nil,
         window = nil,
     }
@@ -403,6 +405,7 @@ function M:open()
         self.__state.window = window
     end
 
+    self.__state.last_win = vim.api.nvim_get_current_win()
     self.__state.window:open()
     self:__render()
 end

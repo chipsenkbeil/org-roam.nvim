@@ -109,6 +109,12 @@ function M.remove_alias(opts)
                 elseif entry then
                     local aliases = entry:get_property(ALIASES_PROP_NAME) or ""
 
+                    -- If we have nothing to remove, exit successfully
+                    if vim.trim(aliases) == "" then
+                        resolve(true)
+                        return file
+                    end
+
                     local function on_cancel()
                         notify.echo_info("canceled removing alias")
 
