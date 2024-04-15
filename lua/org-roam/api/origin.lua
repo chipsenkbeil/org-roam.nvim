@@ -54,7 +54,7 @@ function M.add_origin(opts)
                 end
 
                 return file
-            end)
+            end):catch(function() resolve(false) end)
         end)
     end)
 end
@@ -77,7 +77,9 @@ function M.goto_prev_node(opts)
 
         utils.node_under_cursor(function(node)
             if not node or not node.origin then return resolve(false) end
-            db:get(node.origin):next(goto_node)
+            db:get(node.origin)
+                :next(goto_node)
+                :catch(function() resolve(false) end)
         end, { win = winnr })
     end)
 end
@@ -116,7 +118,9 @@ function M.goto_next_node(opts)
 
                 select_node({ include = ids }, function(selection)
                     if selection.id then
-                        db:get(selection.id):next(goto_node)
+                        db:get(selection.id)
+                            :next(goto_node)
+                            :catch(function() resolve(false) end)
                     else
                         resolve(false)
                     end
@@ -152,7 +156,7 @@ function M.remove_origin()
                 end
 
                 return file
-            end)
+            end):catch(function() resolve(false) end)
         end)
     end)
 end
