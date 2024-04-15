@@ -353,10 +353,20 @@ end
 ---versus inserting at point.
 ---where everything uses 1-based indexing and inclusive.
 ---@param opts? {immediate?:boolean, origin?:string, title?:string, ranges?:org-roam.utils.Range[]}
-function M.insert(opts)
+---@param cb? fun(id:org-roam.core.database.Id|nil)
+function M.insert(opts, cb)
     opts = opts or {}
     local winnr = vim.api.nvim_get_current_win()
     local cursor = vim.api.nvim_win_get_cursor(winnr)
+
+    ---@param id org-roam.core.database.Id|nil
+    local function do_cb(id)
+        if type(cb) == "function" then
+            vim.schedule(function()
+                cb(id)
+            end)
+        end
+    end
 
     ---@param id org-roam.core.database.Id
     local function insert_link(id)
@@ -412,6 +422,7 @@ function M.insert(opts)
     }, function(node)
         if node.id then
             insert_link(node.id)
+            do_cb(node.id)
             return
         end
 
@@ -424,6 +435,7 @@ function M.insert(opts)
             origin = opts.origin,
             title = node.label,
         }, function(id)
+            do_cb(id)
             if id then
                 insert_link(id)
                 return
@@ -434,9 +446,19 @@ end
 
 ---Creates a node if it does not exist, and visits the node.
 ---@param opts? {origin?:string, title?:string}
-function M.find(opts)
+---@param cb? fun(id:org-roam.core.database.Id|nil)
+function M.find(opts, cb)
     opts = opts or {}
     local winnr = vim.api.nvim_get_current_win()
+
+    ---@param id org-roam.core.database.Id|nil
+    local function do_cb(id)
+        if type(cb) == "function" then
+            vim.schedule(function()
+                cb(id)
+            end)
+        end
+    end
 
     ---@param id org-roam.core.database.Id
     local function visit_node(id)
@@ -460,6 +482,7 @@ function M.find(opts)
     }, function(node)
         if node.id then
             visit_node(node.id)
+            do_cb(node.id)
             return
         end
 
@@ -468,6 +491,7 @@ function M.find(opts)
         end
 
         M.capture({ origin = opts.origin, title = node.label }, function(id)
+            do_cb(id)
             if id then
                 visit_node(id)
                 return

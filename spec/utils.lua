@@ -194,7 +194,7 @@ end
 
 ---Mocks core.ui.Select to intercept the list of choices and pick a specific
 ---choice or cancel.
----@param f fun(choices:{item:any, label:string, idx:integer}[], this:org-roam.core.ui.Select):({item:any, label:string, idx:integer}|nil)
+---@param f fun(choices:{item:any, label:string, idx:integer}[], this:org-roam.core.ui.Select):({item:any, label:string, idx:integer}|string|nil)
 function M.mock_select_pick(f)
     M.mock_select(function(opts, new)
         local instance = new(opts)
@@ -202,8 +202,10 @@ function M.mock_select_pick(f)
         -- When ready, get choices to make a decision
         instance:on_ready(function()
             local choice = f(instance:filtered_choices(), instance)
-            if choice then
+            if type(choice) == "table" then
                 instance:choose({ item = choice.item, idx = choice.idx })
+            elseif type(choice) == "string" then
+                instance:choose({ text = choice })
             else
                 instance:cancel()
             end
