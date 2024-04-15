@@ -13,6 +13,7 @@ end)()
 local VIM_CMD = vim.cmd
 local VIM_FN_GETCHAR = vim.fn.getchar
 local VIM_FN_CONFIRM = vim.fn.confirm
+local VIM_FN_ORGMODE_INPUT = vim.fn.OrgmodeInput
 local SELECT_NEW = Select.new
 
 ---@class spec.utils
@@ -138,6 +139,16 @@ function M.append_to(path, ...)
     assert(not err, err)
 end
 
+---@param path string
+---@return string[]
+function M.read_from(path)
+    local err, data = io.read_file_sync(path)
+    assert(not err, err)
+
+    ---@cast data -nil
+    return vim.split(data, "\n", { plain = true })
+end
+
 ---@param buf? integer
 ---@return string[]
 function M.read_buffer(buf)
@@ -211,6 +222,7 @@ end
 ---@field confirm number|nil|(fun(msg:any, choices?:any, default?:any, type?:any):number)
 ---@field getchar number|nil|(fun(expr?:any):number)
 ---@field input string|nil|(fun(opts:string|table<string, any>):string)
+---@field OrgmodeInput string|nil|(fun(opts:string|table<string, any>):string)
 
 ---Mocks zero or more forms of neovim inputs.
 ---@param opts? spec.utils.MockVimInputsOpts
@@ -226,7 +238,8 @@ function M.mock_vim_inputs(opts)
 
     set_value(vim.fn, "confirm", opts.confirm)
     set_value(vim.fn, "getchar", opts.getchar)
-    set_value(vim.fn, "input", opts.getchar)
+    set_value(vim.fn, "input", opts.input)
+    set_value(vim.fn, "OrgmodeInput", opts.OrgmodeInput)
 end
 
 function M.unmock_vim_inputs()
