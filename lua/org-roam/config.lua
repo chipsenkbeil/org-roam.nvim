@@ -10,37 +10,8 @@ local path = require("org-roam.core.utils.path")
 ---@type string
 local BASE_PATH = path.join(vim.fn.stdpath("data"), "org-roam.nvim")
 
----Overwrites configuration options with those specified.
----@param tbl org-roam.Config
----@param opts org-roam.Config
-local function replace(tbl, opts)
-    if type(opts) ~= "table" then
-        return
-    end
-
-    -- Create a new config based on old config, ovewriting
-    -- with supplied options
-    local config = vim.tbl_deep_extend("force", tbl, opts)
-
-    -- Replace all top-level keys of old config with new
-    ---@diagnostic disable-next-line:no-unknown
-    for key, value in pairs(config) do
-        -- Special case for templates, as we don't want to merge
-        -- old and new, but rather replace old with new, to avoid
-        -- issue where it's impossible to remove the old template
-        if key == "templates" and type(opts[key]) == "table" then
-            tbl[key] = vim.deepcopy(opts[key])
-        else
-            ---@diagnostic disable-next-line:no-unknown
-            tbl[key] = value
-        end
-    end
-end
-
----Global configuration settings leveraged through org-roam.
----@class org-roam.Config
----@overload fun(config:org-roam.Config)
-local config = setmetatable({
+---@class org-roam.config.Data
+local DEFAULT_CONFIG = {
     ---Path to the directory containing org files for use with org-roam.
     ---@type string
     directory = "",
@@ -174,6 +145,54 @@ local config = setmetatable({
             unique = false,
         },
     },
-}, { __call = replace })
+}
 
-return config
+---Global configuration settings leveraged through org-roam.
+---@class org-roam.Config: org-roam.config.Data
+local M = {}
+M.__index = M
+
+---Creates a new instance of the config.
+---
+---If `data` provided, extends config with it.
+---@param data? org-roam.config.Data
+---@return org-roam.Config
+function M:new(data)
+    local instance = vim.deepcopy(DEFAULT_CONFIG)
+    setmetatable(instance, M)
+
+    if data then
+        instance:replace(data)
+    end
+
+    ---@cast instance org-roam.Config
+    return instance
+end
+
+---Overwrites configuration options with those specified.
+---@param data org-roam.config.Data
+function M:replace(data)
+    if type(data) ~= "table" then
+        return
+    end
+
+    -- Create a new config based on old config, ovewriting
+    -- with supplied options
+    local config = vim.tbl_deep_extend("force", self, data)
+
+    -- Replace all top-level keys of old config with new
+    ---@diagnostic disable-next-line:no-unknown
+    for key, value in pairs(config) do
+        -- Special case for templates, as we don't want to merge
+        -- old and new, but rather replace old with new, to avoid
+        -- issue where it's impossible to remove the old template
+        if key == "templates" and type(data[key]) == "table" then
+            self[key] = vim.deepcopy(data[key])
+        else
+            ---@diagnostic disable-next-line:no-unknown
+            self[key] = value
+        end
+    end
+end
+
+return M

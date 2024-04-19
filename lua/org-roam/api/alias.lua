@@ -4,7 +4,6 @@
 -- Contains functionality tied to the roam alias api.
 -------------------------------------------------------------------------------
 
-local db = require("org-roam.database")
 local notify = require("org-roam.core.ui.notify")
 local Select = require("org-roam.core.ui.select")
 local Promise = require("orgmode.utils.promise")
@@ -12,17 +11,10 @@ local utils = require("org-roam.utils")
 
 local ALIASES_PROP_NAME = "ROAM_ALIASES"
 
-local M = {}
-
----Adds an alias to the node under cursor.
----
----If no `alias` is specified, a prompt is provided.
----
----Returns a promise indicating whether or not the alias was added.
----
+---@param roam OrgRoam
 ---@param opts? {alias?:string, win?:integer}
 ---@return OrgPromise<boolean>
-function M.add_alias(opts)
+local function roam_add_alias(roam, opts)
     opts = opts or {}
 
     return Promise.new(function(resolve, reject)
@@ -30,7 +22,7 @@ function M.add_alias(opts)
             -- Mark unsuccessful and exit
             if not node then return resolve(false) end
 
-            db:load_file({ path = node.file }):next(function(results)
+            roam.db:load_file({ path = node.file }):next(function(results)
                 -- Get the OrgFile instance
                 local file = results.file
 
@@ -78,23 +70,17 @@ function M.add_alias(opts)
     end)
 end
 
----Removes an alias from the node under cursor.
----
----If no `alias` is specified, selection dialog of aliases is provided.
----If `all` is true, will remove all aliases instead of one.
----
----Returns a promise indicating whether or not the alias(es) was/were removed.
----
+---@param roam OrgRoam
 ---@param opts? {alias?:string, all?:boolean, win?:integer}
 ---@return OrgPromise<boolean>
-function M.remove_alias(opts)
+local function roam_remove_alias(roam, opts)
     opts = opts or {}
     return Promise.new(function(resolve, reject)
         utils.node_under_cursor(function(node)
             -- Mark unsuccessful and exit
             if not node then return resolve(false) end
 
-            db:load_file({ path = node.file }):next(function(results)
+            roam.db:load_file({ path = node.file }):next(function(results)
                 -- Get the OrgFile instance
                 local file = results.file
 
@@ -173,4 +159,36 @@ function M.remove_alias(opts)
     end)
 end
 
-return M
+---@param roam OrgRoam
+---@return org-roam.api.AliasApi
+return function(roam)
+    ---@class org-roam.api.AliasApi
+    local M = {}
+
+    ---Adds an alias to the node under cursor.
+    ---
+    ---If no `alias` is specified, a prompt is provided.
+    ---
+    ---Returns a promise indicating whether or not the alias was added.
+    ---
+    ---@param opts? {alias?:string, win?:integer}
+    ---@return OrgPromise<boolean>
+    function M.add_alias(opts)
+        return roam_add_alias(roam, opts)
+    end
+
+    ---Removes an alias from the node under cursor.
+    ---
+    ---If no `alias` is specified, selection dialog of aliases is provided.
+    ---If `all` is true, will remove all aliases instead of one.
+    ---
+    ---Returns a promise indicating whether or not the alias(es) was/were removed.
+    ---
+    ---@param opts? {alias?:string, all?:boolean, win?:integer}
+    ---@return OrgPromise<boolean>
+    function M.remove_alias(opts)
+        return roam_remove_alias(roam, opts)
+    end
+
+    return M
+end

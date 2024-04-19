@@ -4,7 +4,6 @@
 -- Opens a quickfix list for org-roam.
 -------------------------------------------------------------------------------
 
-local db = require("org-roam.database")
 local io = require("org-roam.core.utils.io")
 local utils = require("org-roam.utils")
 
@@ -15,15 +14,16 @@ local utils = require("org-roam.utils")
 ---@field col? integer
 ---@field text? string
 
+---@param roam OrgRoam
 ---@param id org-roam.core.database.Id
 ---@return org-roam.ui.quickfix.Item[]
-local function get_links_as_quickfix_items(id)
+local function roam_get_links_as_quickfix_items(roam, id)
     ---@type org-roam.core.database.Id[]
-    local ids = vim.tbl_keys(db:get_links(id))
+    local ids = vim.tbl_keys(roam.db:get_links(id))
 
     local items = {}
     for _, link_id in ipairs(ids) do
-        local node = db:get_sync(link_id)
+        local node = roam.db:get_sync(link_id)
         if node then
             table.insert(items, {
                 filename = node.file,
@@ -35,18 +35,19 @@ local function get_links_as_quickfix_items(id)
     return items
 end
 
+---@param roam OrgRoam
 ---@param id org-roam.core.database.Id
 ---@param opts? {show_preview?:boolean}
 ---@return org-roam.ui.quickfix.Item[]
-local function get_backlinks_as_quickfix_items(id, opts)
+local function roam_get_backlinks_as_quickfix_items(roam, id, opts)
     opts = opts or {}
 
     ---@type org-roam.core.database.Id[]
-    local ids = vim.tbl_keys(db:get_backlinks(id))
+    local ids = vim.tbl_keys(roam.db:get_backlinks(id))
 
     local items = {}
     for _, backlink_id in ipairs(ids) do
-        local node = db:get_sync(backlink_id)
+        local node = roam.db:get_sync(backlink_id)
 
         if node then
             -- If showing preview of the link, we load the
@@ -78,13 +79,14 @@ end
 ---Opens the quickfix list.
 ---
 ---NOTE: Cannot be called from a lua loop callback!
+---@param roam OrgRoam
 ---@param id org-roam.core.database.Id
 ---@param opts? {backlinks?:boolean, links?:boolean, show_preview?:boolean}
-local function open(id, opts)
+local function roam_open(roam, id, opts)
     opts = opts or {}
 
     local title = (function()
-        local node = db:get_sync(id)
+        local node = roam.db:get_sync(id)
         return node and node.title
     end)()
 
@@ -103,7 +105,7 @@ local function open(id, opts)
 
     -- Build up our quickfix list items based on links
     if opts.links then
-        local qfitems = get_links_as_quickfix_items(id)
+        local qfitems = roam_get_links_as_quickfix_items(roam, id)
 
         if prefix_module then
             ---@param item org-roam.ui.quickfix.Item
@@ -118,7 +120,7 @@ local function open(id, opts)
 
     -- Build up our quickfix list items based on backlinks
     if opts.backlinks then
-        local qfitems = get_backlinks_as_quickfix_items(id, opts)
+        local qfitems = roam_get_backlinks_as_quickfix_items(roam, id, opts)
 
         if prefix_module then
             ---@param item org-roam.ui.quickfix.Item
@@ -146,30 +148,39 @@ local function open(id, opts)
     vim.cmd("copen")
 end
 
----@class org-roam.ui.quickfix.Opts
----@field id? org-roam.core.database.Id #target id, or opens select ui if not provided
----@field backlinks? boolean #if true, shows backlinks
----@field links? boolean #if true, shows links
----@field show_preview? boolean #if true, loads preview of linked content
+---@param roam OrgRoam
+---@return org-roam.ui.QuickfixApi
+return function(roam)
+    ---@class org-roam.ui.QuickfixApi
+    local M = {}
 
----Creates and opens a new quickfix list.
----
----* `id`: id of node, or opens a selection dialog to pick a node
----* `backlinks`: if true, shows node's backlinks
----* `links`: if true, shows node's links
----* `show_preview`: if true, loads preview of each link's content
----
----@param opts? org-roam.ui.quickfix.Opts
-return function(opts)
-    opts = opts or {}
+    ---@class org-roam.ui.quickfix.Opts
+    ---@field id? org-roam.core.database.Id #target id, or opens select ui if not provided
+    ---@field backlinks? boolean #if true, shows backlinks
+    ---@field links? boolean #if true, shows links
+    ---@field show_preview? boolean #if true, loads preview of linked content
 
-    if opts.id then
-        open(opts.id, opts)
-    else
-        utils.node_under_cursor(function(node)
-            if node then
-                open(node.id, opts)
-            end
-        end)
+    ---Creates and opens a new quickfix list.
+    ---
+    ---* `id`: id of node, or opens a selection dialog to pick a node
+    ---* `backlinks`: if true, shows node's backlinks
+    ---* `links`: if true, shows node's links
+    ---* `show_preview`: if true, loads preview of each link's content
+    ---
+    ---@param opts? org-roam.ui.quickfix.Opts
+    function M.open_qflist(opts)
+        opts = opts or {}
+
+        if opts.id then
+            roam_open(roam, opts.id, opts)
+        else
+            utils.node_under_cursor(function(node)
+                if node then
+                    roam_open(roam, node.id, opts)
+                end
+            end)
+        end
     end
+
+    return M
 end

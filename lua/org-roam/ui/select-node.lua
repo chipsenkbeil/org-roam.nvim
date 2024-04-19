@@ -4,31 +4,20 @@
 -- Opens a dialog to select a node, returning its id.
 -------------------------------------------------------------------------------
 
-local db = require("org-roam.database")
 local Select = require("org-roam.core.ui.select")
 
----Opens up a selection dialog populated with nodes (titles and aliases).
----@overload fun(cb:fun(selection:{id:org-roam.core.database.Id|nil, label:string}))
+---@param roam OrgRoam
 ---@param opts {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
 ---@param cb fun(selection:{id:org-roam.core.database.Id|nil, label:string})
----@param cancel_cb? fun()
-return function(opts, cb, cancel_cb)
-    if type(opts) == "function" then
-        cb = opts
-        opts = {}
-    end
-    opts = opts or {}
-    if type(cancel_cb) ~= "function" then
-        cancel_cb = function() end
-    end
-
+---@param cancel_cb fun()
+local function roam_select_node(roam, opts, cb, cancel_cb)
     -- TODO: Make this more optimal. Probably involves supporting
     --       an async function to return items instead of an
     --       item list so we can query the database by name
     --       and by aliases to get candidate ids.
     ---@type {id:org-roam.core.database.Id, label:string}
     local items = {}
-    for _, id in ipairs(opts.include or db:ids()) do
+    for _, id in ipairs(opts.include or roam.db:ids()) do
         local skip = false
 
         -- If we were given an exclusion list, check if the id is in that list
@@ -38,7 +27,7 @@ return function(opts, cb, cancel_cb)
         end
 
         if not skip then
-            local node = db:get_sync(id)
+            local node = roam.db:get_sync(id)
             if node then
                 table.insert(items, { id = id, label = node.title })
                 for _, alias in ipairs(node.aliases) do
@@ -72,4 +61,30 @@ return function(opts, cb, cancel_cb)
         :on_choice_missing(function(label) cb({ id = nil, label = label }) end)
         :on_cancel(cancel_cb)
         :open()
+end
+
+---@param roam OrgRoam
+---@return org-roam.ui.SelectNodeApi
+return function(roam)
+    ---@class org-roam.ui.SelectNodeApi
+    local M = {}
+
+    ---Opens up a selection dialog populated with nodes (titles and aliases).
+    ---@overload fun(cb:fun(selection:{id:org-roam.core.database.Id|nil, label:string}))
+    ---@param opts {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
+    ---@param cb fun(selection:{id:org-roam.core.database.Id|nil, label:string})
+    ---@param cancel_cb? fun()
+    function M.select_node(opts, cb, cancel_cb)
+        if type(opts) == "function" then
+            cb = opts
+            opts = {}
+        end
+        opts = opts or {}
+        if type(cancel_cb) ~= "function" then
+            cancel_cb = function() end
+        end
+        roam_select_node(roam, opts, cb, cancel_cb)
+    end
+
+    return M
 end

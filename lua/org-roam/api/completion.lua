@@ -4,24 +4,13 @@
 -- Contains functionality tied to roam completion api.
 -------------------------------------------------------------------------------
 
-local db = require("org-roam.database")
 local Promise = require("orgmode.utils.promise")
 local utils = require("org-roam.utils")
 
-local M = {}
-
----Opens a dialog to select a node based on the expression under the cursor
----and replace the expression with a link to the selected node. If there is
----only one choice, this will automatically inject the link without bringing
----up the selection dialog.
----
----This implements the functionality of both:
----
----* `org-roam-complete-link-at-point`
----* `org-roam-complete-everywhere`
+---@param roam OrgRoam
 ---@param opts? {win?:integer}
 ---@return OrgPromise<boolean>
-function M.complete_node_under_cursor(opts)
+local function roam_complete_node_under_cursor(roam, opts)
     opts = opts or {}
     local winnr = opts.win or vim.api.nvim_get_current_win()
     local bufnr = vim.api.nvim_win_get_buf(winnr)
@@ -58,11 +47,11 @@ function M.complete_node_under_cursor(opts)
     end
 
     return Promise.new(function(resolve)
-        require("org-roam.ui.select-node")({
+        roam.ui.select_node({
             auto_select = true,
             init_input = input,
         }, function(choice)
-            local node = db:get_sync(choice.id)
+            local node = roam.db:get_sync(choice.id)
             if not node then
                 return resolve(false)
             end
@@ -114,4 +103,26 @@ function M.complete_node_under_cursor(opts)
     end)
 end
 
-return M
+---@param roam OrgRoam
+---@return org-roam.api.CompletionApi
+return function(roam)
+    ---@class org-roam.api.CompletionApi
+    local M = {}
+
+    ---Opens a dialog to select a node based on the expression under the cursor
+    ---and replace the expression with a link to the selected node. If there is
+    ---only one choice, this will automatically inject the link without bringing
+    ---up the selection dialog.
+    ---
+    ---This implements the functionality of both:
+    ---
+    ---* `org-roam-complete-link-at-point`
+    ---* `org-roam-complete-everywhere`
+    ---@param opts? {win?:integer}
+    ---@return OrgPromise<boolean>
+    function M.complete_node_under_cursor(opts)
+        return roam_complete_node_under_cursor(roam, opts)
+    end
+
+    return M
+end

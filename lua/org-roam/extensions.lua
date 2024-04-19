@@ -6,5 +6,11 @@
 -- See https://www.orgroam.com/manual.html#Extensions
 -------------------------------------------------------------------------------
 
----@class org-roam.Extensions
-return {}
+---@param roam OrgRoam
+---@return org-roam.Extensions
+return function(roam)
+    ---@class org-roam.Extensions
+    local M = {}
+
+    return M
+end
