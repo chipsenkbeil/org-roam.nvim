@@ -791,7 +791,7 @@
 
 ** Open Node Buffer
 
-   roam.api.open_node_buffer({opts})
+   roam.ui.open_node_buffer({opts})
 
    Description:
 
@@ -812,12 +812,12 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.open_node_buffer({ fixed = "1234" })
+   roam.ui.open_node_buffer({ fixed = "1234" })
    #+end_src
 
 ** Open Quickfix List
 
-   roam.api.open_quickfix_list({opts})
+   roam.ui.open_quickfix_list({opts})
 
    Description:
 
@@ -839,7 +839,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.open_quickfix_list({ id = "1234", backlinks = true })
+   roam.ui.open_quickfix_list({ id = "1234", backlinks = true })
    #+end_src
 
 ** Remove Alias
