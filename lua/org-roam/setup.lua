@@ -41,8 +41,7 @@ local function define_autocmds(roam)
         group = AUGROUP,
         pattern = "*.org",
         callback = function()
-            local utils = require("org-roam.utils")
-            utils.node_under_cursor(function(node)
+            roam.utils.node_under_cursor(function(node)
                 -- If the node has changed (event getting cleared),
                 -- we want to emit the event
                 if last_node ~= node then
@@ -208,8 +207,7 @@ local function define_keybindings(roam)
         -- Handle visual mode and linewise visual mode
         -- (ignore blockwise-visual mode)
         if mode == "v" or mode == "V" then
-            local utils = require("org-roam.utils")
-            local lines, ranges = utils.get_visual_selection({ single_line = true })
+            local lines, ranges = roam.utils.get_visual_selection({ single_line = true })
             local title = lines[1] or ""
 
             return { title = title, ranges = ranges }
