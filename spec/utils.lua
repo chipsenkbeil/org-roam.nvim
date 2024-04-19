@@ -249,25 +249,6 @@ function M.unmock_vim_inputs()
     vim.fn.confirm = VIM_FN_CONFIRM
 end
 
----Creates a new database and swaps out the global database with it.
----@param opts? {db_path?:string, directory?:string}
----@return org-roam.Database
-function M.make_db(opts)
-    -- Get the global database
-    local db = require("org-roam.database")
-
-    -- Create a new temporary database
-    ---@diagnostic disable-next-line:param-type-mismatch
-    local tmp = db:new(opts)
-
-    -- Swap out values from temporary into global
-    for key, value in pairs(tmp) do
-        db[key] = value
-    end
-
-    return db
-end
-
 ---Applies a patch to `vim.cmd` to support `vim.cmd.XYZ()`.
 ---Taken from neovim 0.10 source code.
 ---
