@@ -28,7 +28,7 @@ local function toggle_node_view(roam)
         or false
 
     if not CURSOR_NODE_VIEW or invalid_window then
-        CURSOR_NODE_VIEW = Window:new({
+        CURSOR_NODE_VIEW = Window:new(roam, {
             open = roam.config.ui.node_view.open,
         })
 
@@ -69,7 +69,7 @@ local function toggle_fixed_node_view(roam, id)
     local function toggle_view(id)
         if id then
             if not NODE_VIEW[id] then
-                NODE_VIEW[id] = Window:new({
+                NODE_VIEW[id] = Window:new(roam, {
                     id = id,
                     open = roam.config.ui.node_view.open,
                 })

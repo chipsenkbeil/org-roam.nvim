@@ -24,6 +24,7 @@ local CACHE = {}
 ---Escape key used for `nvim_feedkeys()`.
 local ESC_FEEDKEY = vim.api.nvim_replace_termcodes("<ESC>", true, false, true)
 
+---@class org-roam.Utils
 local M = {}
 
 ---@param bufnr integer

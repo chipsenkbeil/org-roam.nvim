@@ -16,6 +16,7 @@ end
 ---@field evt org-roam.Events
 ---@field ext org-roam.Extensions
 ---@field ui org-roam.UserInterface
+---@field utils org-roam.Utils
 local M = {}
 M.__index = M
 
@@ -41,6 +42,7 @@ function M:new(config)
     instance.evt    = require("org-roam.events")(instance)
     instance.ext    = require("org-roam.extensions")(instance)
     instance.ui     = require("org-roam.ui")(instance)
+    instance.utils  = require("org-roam.utils")
 
     return instance
 end
