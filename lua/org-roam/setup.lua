@@ -395,7 +395,7 @@ local function modify_orgmode_plugin(roam)
         local row, col = vim.fn.getline("."), vim.fn.col(".") or 0
         local link = require("orgmode.org.hyperlinks.link").at_pos(row, col)
         local id = link and link.url:get_id()
-        local node = id and require("org-roam.database"):get_sync(id)
+        local node = id and roam.db:get_sync(id)
 
         -- If we found a node, open the file at the start of the node
         if node then
