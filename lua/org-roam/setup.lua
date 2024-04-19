@@ -428,6 +428,12 @@ end
 local function initialize_database(roam)
     local Promise = require("orgmode.utils.promise")
 
+    -- Swap out the database for one configured properly
+    roam.db = roam.db:new({
+        db_path = roam.config.database.path,
+        directory = roam.config.directory,
+    })
+
     -- Load the database asynchronously
     roam.db:load():next(function()
         -- If we are persisting to disk, do so now as the database may
