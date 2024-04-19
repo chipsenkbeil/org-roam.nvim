@@ -103,14 +103,11 @@ local function define_commands(roam)
         local profiler = Profiler:new()
         profiler:start()
 
-        roam.db
-            :save()
-            :next(function(...)
-                local tt = profiler:stop():time_taken_as_string()
-                notify.info("Saved database [took " .. tt .. "]")
-                return ...
-            end)
-            :catch(notify.error)
+        roam.db:save():next(function(...)
+            local tt = profiler:stop():time_taken_as_string()
+            notify.info("Saved database [took " .. tt .. "]")
+            return ...
+        end):catch(notify.error)
     end, { bang = true, desc = "Saves the roam database" })
 
     vim.api.nvim_create_user_command("RoamUpdate", function(opts)
@@ -121,15 +118,29 @@ local function define_commands(roam)
         profiler:start()
 
         log.fmt_debug("Updating database (force = %s)", force)
-        roam.db
-            :load({ force = force })
-            :next(function(...)
-                local tt = profiler:stop():time_taken_as_string()
-                notify.info("Updated database [took " .. tt .. "]")
-                return ...
-            end)
-            :catch(notify.error)
+        roam.db:load({ force = force }):next(function(...)
+            local tt = profiler:stop():time_taken_as_string()
+            notify.info("Updated database [took " .. tt .. "]")
+            return ...
+        end):catch(notify.error)
     end, { bang = true, desc = "Updates the roam database" })
+
+    vim.api.nvim_create_user_command("RoamDatabaseReset", function()
+        log.debug("Resetting database")
+        roam.db = roam.db:new({
+            db_path = roam.db:path(),
+            directory = roam.db:files_path(),
+        })
+
+        -- Start profiling so we can report the time taken
+        local profiler = Profiler:new()
+        profiler:start()
+        roam.db:load():next(function(...)
+            local tt = profiler:stop():time_taken_as_string()
+            notify.info("Loaded database [took " .. tt .. "]")
+            return ...
+        end):catch(notify.error)
+    end, { desc = "Completely wipes the roam database" })
 
     vim.api.nvim_create_user_command("RoamAddAlias", function(opts)
         ---@type string|nil
