@@ -1,10 +1,6 @@
 describe("org-roam.api.alias", function()
-    local api = require("org-roam.api")
+    local roam = require("org-roam")
     local utils = require("spec.utils")
-
-    ---Database populated before each test.
-    ---@type org-roam.Database
-    local db
 
     ---@type string
     local test_org_file_path
@@ -16,7 +12,7 @@ describe("org-roam.api.alias", function()
             ext = "org",
         })
 
-        db = utils.make_db({
+        roam.db = roam.db:new({
             db_path = vim.fn.tempname() .. "-test-db",
             directory = dir,
         })
@@ -45,13 +41,13 @@ describe("org-roam.api.alias", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
         -- Add the alias to the file in the buffer
-        local ok = api.add_alias({ alias = "other test" }):wait()
+        local ok = roam.api.add_alias({ alias = "other test" }):wait()
         assert.is_true(ok)
 
         -- Review that buffer was updated
@@ -77,13 +73,13 @@ describe("org-roam.api.alias", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
         -- Add the alias to the file in the buffer
-        local ok = api.add_alias({ alias = "other test" }):wait()
+        local ok = roam.api.add_alias({ alias = "other test" }):wait()
         assert.is_true(ok)
 
         -- Review that buffer was updated
@@ -108,13 +104,13 @@ describe("org-roam.api.alias", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
         -- Remove the alias from the file in the buffer
-        local ok = api.remove_alias({ alias = "not there" }):wait()
+        local ok = roam.api.remove_alias({ alias = "not there" }):wait()
         assert.is_true(ok)
 
         -- Review that buffer was updated
@@ -139,7 +135,7 @@ describe("org-roam.api.alias", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
@@ -147,12 +143,12 @@ describe("org-roam.api.alias", function()
         -- NOTE: Because removing an alias that's not there will trigger
         --       the selection dialog, we need to mock it to cancel as
         --       soon as it opens.
-        utils.mock_select_pick(function(choices)
+        utils.mock_select_pick(function()
             return nil
         end)
 
         -- Remove the alias from the file in the buffer
-        local ok = api.remove_alias({ alias = "not there" }):wait()
+        local ok = roam.api.remove_alias({ alias = "not there" }):wait()
         assert.is_false(ok)
 
         -- Review that buffer was updated
@@ -178,13 +174,13 @@ describe("org-roam.api.alias", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
         -- Remove the alias from the file in the buffer
-        local ok = api.remove_alias({ alias = "something" }):wait()
+        local ok = roam.api.remove_alias({ alias = "something" }):wait()
         assert.is_true(ok)
 
         -- Review that buffer was updated
@@ -210,13 +206,13 @@ describe("org-roam.api.alias", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
         -- Remove the aliases from the file in the buffer
-        local ok = api.remove_alias({ all = true }):wait()
+        local ok = roam.api.remove_alias({ all = true }):wait()
         assert.is_true(ok)
 
         -- Review that buffer was updated

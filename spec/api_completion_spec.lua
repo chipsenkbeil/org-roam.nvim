@@ -1,10 +1,6 @@
 describe("org-roam.api.completion", function()
-    local api = require("org-roam.api")
+    local roam = require("org-roam")
     local utils = require("spec.utils")
-
-    ---Database populated before each test.
-    ---@type org-roam.Database
-    local db
 
     ---@type string
     local test_dir
@@ -12,7 +8,7 @@ describe("org-roam.api.completion", function()
     before_each(function()
         test_dir = utils.make_temp_org_files_directory()
 
-        db = utils.make_db({
+        roam.db = roam.db:new({
             db_path = vim.fn.tempname() .. "-test-db",
             directory = test_dir,
         })
@@ -46,7 +42,7 @@ describe("org-roam.api.completion", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Open our test file into a buffer
         vim.cmd.edit(test_path)
@@ -55,7 +51,7 @@ describe("org-roam.api.completion", function()
         vim.api.nvim_win_set_cursor(0, { 5, 0 })
 
         -- Try to complete
-        local ok = api.complete_node():wait()
+        local ok = roam.api.complete_node():wait()
         assert.is_false(ok)
 
         -- Review that buffer was not updated
@@ -85,7 +81,7 @@ describe("org-roam.api.completion", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Open our test file into a buffer
         vim.cmd.edit(test_path)
@@ -94,7 +90,7 @@ describe("org-roam.api.completion", function()
         vim.api.nvim_win_set_cursor(0, { 5, 0 })
 
         -- Try to complete
-        local ok = api.complete_node():wait()
+        local ok = roam.api.complete_node():wait()
         assert.is_true(ok)
 
         -- Review that buffer was not updated
@@ -124,7 +120,7 @@ describe("org-roam.api.completion", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Open our test file into a buffer
         vim.cmd.edit(test_path)
@@ -142,7 +138,7 @@ describe("org-roam.api.completion", function()
         end)
 
         -- Try to complete
-        local ok = api.complete_node():wait()
+        local ok = roam.api.complete_node():wait()
         assert.is_true(ok)
 
         -- Review that buffer was not updated

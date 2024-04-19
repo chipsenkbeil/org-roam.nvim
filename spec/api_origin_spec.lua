@@ -1,11 +1,6 @@
 describe("org-roam.api.origin", function()
-    local api = require("org-roam.api")
-    local CONFIG = require("org-roam.config")
+    local roam = require("org-roam")
     local utils = require("spec.utils")
-
-    ---Database populated before each test.
-    ---@type org-roam.Database
-    local db
 
     ---@type string, string, string
     local test_dir, test_org_file_path, one_path
@@ -18,14 +13,14 @@ describe("org-roam.api.origin", function()
         })
 
         -- Overwrite the configuration roam directory
-        CONFIG({ directory = test_dir })
+        roam.config.directory = test_dir
 
-        db = utils.make_db({
+        roam.db = roam.db:new({
             db_path = vim.fn.tempname() .. "-test-db",
             directory = test_dir,
         })
 
-        one_path = utils.join_path(db:files_path(), "one.org")
+        one_path = utils.join_path(roam.db:files_path(), "one.org")
 
         -- Patch `vim.cmd` so we can run tests here
         utils.patch_vim_cmd()
@@ -51,13 +46,13 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
         -- Add the origin to the file in the buffer
-        local ok = api.add_origin({ origin = "other test" }):wait()
+        local ok = roam.api.add_origin({ origin = "other test" }):wait()
         assert.is_true(ok)
 
         -- Review that buffer was updated
@@ -83,13 +78,13 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
         -- Add the origin to the file in the buffer
-        local ok = api.add_origin({ origin = "other test" }):wait()
+        local ok = roam.api.add_origin({ origin = "other test" }):wait()
         assert.is_true(ok)
 
         -- Review that buffer was updated
@@ -114,13 +109,13 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
         -- Remove the origin from the file in the buffer
-        local ok = api.remove_origin():wait()
+        local ok = roam.api.remove_origin():wait()
         assert.is_true(ok)
 
         -- Review that buffer was updated
@@ -145,13 +140,13 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
         -- Remove the origin from the file in the buffer
-        local ok = api.remove_origin():wait()
+        local ok = roam.api.remove_origin():wait()
         assert.is_true(ok)
 
         -- Review that buffer was updated
@@ -176,13 +171,13 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
         -- Navigate to the previous node, which is the origin
-        local ok = api.goto_prev_node():wait()
+        local ok = roam.api.goto_prev_node():wait()
         assert.is_true(ok)
 
         -- Review that we moved to the origin
@@ -209,13 +204,13 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
         -- Try to navigate to the previous node, which does nothing
-        local ok = api.goto_prev_node():wait()
+        local ok = roam.api.goto_prev_node():wait()
         assert.is_false(ok)
 
         -- Review that we did not move
@@ -229,13 +224,13 @@ describe("org-roam.api.origin", function()
 
     it("should be able to go to the next node automatically if current node is used as origin in one place", function()
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load a file used as an origin into the buffer
         vim.cmd.edit(one_path)
 
         -- Navigate to the next node, which is done automatically
-        local ok = api.goto_next_node():wait()
+        local ok = roam.api.goto_next_node():wait()
         assert.is_true(ok)
 
         -- Review that we moved to the next node
@@ -283,7 +278,7 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the base file
         vim.cmd.edit(path_3)
@@ -298,7 +293,7 @@ describe("org-roam.api.origin", function()
         end)
 
         -- Navigate to the next node, which triggers a selection dialog
-        local ok = api.goto_next_node():wait()
+        local ok = roam.api.goto_next_node():wait()
         assert.is_true(ok)
 
         -- Review that we moved to the next node
@@ -323,13 +318,13 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        db:load():wait()
+        roam.db:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
         -- Try to navigate to the next node, which does nothing
-        local ok = api.goto_next_node():wait()
+        local ok = roam.api.goto_next_node():wait()
         assert.is_false(ok)
 
         -- Review that we did not move

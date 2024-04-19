@@ -26,9 +26,18 @@ function M:new(config)
     local instance = {}
     setmetatable(instance, M)
 
+    local Config    = require("org-roam.config")
+    local Database  = require("org-roam.database")
+
+    -- Use the supplied config, or leverage the default
+    config          = config or Config:new()
+
     instance.api    = require("org-roam.api")(instance)
-    instance.config = config or require("org-roam.config")(instance)
-    instance.db     = require("org-roam.database")(instance)
+    instance.config = config or Config:new()
+    instance.db     = Database:new({
+        db_path = config.database.path,
+        directory = config.directory,
+    })
     instance.evt    = require("org-roam.events")(instance)
     instance.ext    = require("org-roam.extensions")(instance)
     instance.ui     = require("org-roam.ui")(instance)

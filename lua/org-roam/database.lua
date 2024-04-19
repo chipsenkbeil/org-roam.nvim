@@ -4,8 +4,6 @@
 -- Contains global database logic used by the plugin.
 -------------------------------------------------------------------------------
 
-local CONFIG = require("org-roam.config")
-
 local Loader = require("org-roam.database.loader")
 local log = require("org-roam.core.log")
 local Profiler = require("org-roam.core.utils.profiler")
@@ -20,16 +18,15 @@ local schema = require("org-roam.database.schema")
 local M = {}
 
 ---Creates a new, unloaded instance of the database.
----@param opts? {db_path?:string, directory?:string}
+---@param opts {db_path:string, directory:string}
 ---@return org-roam.Database
 function M:new(opts)
-    opts = opts or {}
     local instance = {}
     setmetatable(instance, M)
     instance.__last_save = -1
     instance.__loader = nil
-    instance.__database_path = opts.db_path or CONFIG.database.path
-    instance.__directory = opts.directory or CONFIG.directory
+    instance.__database_path = opts.db_path
+    instance.__directory = opts.directory
     return instance
 end
 
@@ -397,5 +394,4 @@ function M:get_file_backlinks_sync(file, opts)
     return self:get_file_backlinks(file, opts):wait(opts.timeout)
 end
 
-local INSTANCE = M:new()
-return INSTANCE
+return M
