@@ -121,7 +121,7 @@ local DEFAULT_CONFIG = {
     ui = {
         ---Node view buffer configuration settings.
         ---@class org-roam.config.ui.NodeView
-        node_view = {
+        node_buffer = {
             ---If true, previews will be highlighted as org syntax when expanded.
             ---
             ---NOTE: This can cause flickering on initial expansion, but preview

@@ -158,6 +158,40 @@ function M:lines()
     return vim.api.nvim_buf_get_lines(self.__bufnr, 0, -1, true)
 end
 
+---Returns true if the buffer exists and has not been deleted.
+---@return boolean
+function M:is_valid()
+    return vim.api.nvim_buf_is_valid(self.__bufnr)
+end
+
+---Returns a list of window handles containing this buffer.
+---@return integer[]
+function M:windows()
+    local windows = {}
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+        local bufnr = vim.api.nvim_win_get_buf(win)
+        if bufnr == self.__bufnr then
+            table.insert(windows, win)
+        end
+    end
+    return windows
+end
+
+---Returns a list of window handles within the specified tabpage containing
+---this buffer.
+---@param tabpage integer
+---@return integer[]
+function M:windows_for_tabpage(tabpage)
+    local windows = {}
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tabpage)) do
+        local bufnr = vim.api.nvim_win_get_buf(win)
+        if bufnr == self.__bufnr then
+            table.insert(windows, win)
+        end
+    end
+    return windows
+end
+
 ---Invokes `cb` right before render has started.
 ---@param cb fun()
 function M:on_pre_render(cb)

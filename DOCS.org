@@ -415,7 +415,7 @@
      #+begin_src lua
      require("org-roam"):setup({
        ui = {
-         node_view = {
+         node_buffer = {
            highlight_previews = false,
          },
        },
@@ -432,7 +432,7 @@
      #+begin_src lua
      require("org-roam"):setup({
        ui = {
-         node_view = {
+         node_buffer = {
            open = function()
              return vim.api.nvim_open_win(0, false, {
                relative = "editor",
@@ -456,7 +456,7 @@
      #+begin_src lua
      require("org-roam"):setup({
        ui = {
-         node_view = {
+         node_buffer = {
            show_keybindings = false,
          },
        },
@@ -473,7 +473,7 @@
      #+begin_src lua
      require("org-roam"):setup({
        ui = {
-         node_view = {
+         node_buffer = {
            unique = true,
          },
        },

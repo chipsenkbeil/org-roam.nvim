@@ -1,15 +1,15 @@
 -------------------------------------------------------------------------------
--- WINDOW.LUA
+-- BUFFER.LUA
 --
--- Specialized window representing an org-roam buffer for a particular node.
+-- Specialized buffer representing an org-roam buffer for a particular node.
 -------------------------------------------------------------------------------
 
+local Buffer = require("org-roam.core.ui.buffer")
 local C = require("org-roam.core.ui.component")
 local Emitter = require("org-roam.core.utils.emitter")
 local highlighter = require("org-roam.core.ui.highlighter")
 local notify = require("org-roam.core.ui.notify")
 local tbl_utils = require("org-roam.core.utils.table")
-local Window = require("org-roam.core.ui.window")
 local WindowPicker = require("org-roam.core.ui.window-picker")
 
 local EVENTS = {
@@ -179,7 +179,7 @@ local function load_lines_at_cursor(roam, path, cursor)
     return vim.tbl_map(function(line)
         -- Because this can have a performance hit & flickering, we only
         -- do lazy highlighting as org syntax if enabled
-        if roam.config.ui.node_view.highlight_previews then
+        if roam.config.ui.node_buffer.highlight_previews then
             return C.lazy(line, lazy_highlight_for_org, { global = true })
         else
             return { C.text(line) }
@@ -187,12 +187,12 @@ local function load_lines_at_cursor(roam, path, cursor)
     end, lines)
 end
 
----@class org-roam.ui.window.NodeViewWindowState
+---@class org-roam.ui.NodeBufferState
 ---@field expanded table<org-roam.core.database.Id, table<integer, table<integer, boolean>>> #mapping of id -> zero-indexed row -> col -> boolean
 
 ---Renders a node within an orgmode buffer.
 ---@param roam OrgRoam
----@param this org-roam.ui.window.NodeViewWindow
+---@param this org-roam.ui.NodeBuffer
 ---@param node org-roam.core.file.Node|org-roam.core.database.Id
 ---@param details {fixed:boolean}
 ---@return org-roam.core.ui.Line[] lines
@@ -211,7 +211,7 @@ local function render(roam, this, node, details)
 
     if node then
         -- Insert lines explaining available keys (if enabled)
-        if roam.config.ui.node_view.show_keybindings then
+        if roam.config.ui.node_buffer.show_keybindings then
             -- Get our bindings to display in help, in
             -- a defined and consistent order
             local bindings = vim.tbl_values(KEYBINDINGS)
@@ -325,7 +325,7 @@ local function render(roam, this, node, details)
                 for i, loc in ipairs(locs or {}) do
                     -- Check if we are only showing one link
                     -- per node as per configuration
-                    if i > 1 and roam.config.ui.node_view.unique then
+                    if i > 1 and roam.config.ui.node_buffer.unique then
                         break
                     end
 
@@ -442,22 +442,17 @@ local function render(roam, this, node, details)
     return lines
 end
 
----@class org-roam.ui.window.NodeViewWindow
+---@class org-roam.ui.NodeBuffer
+---@field private __buffer org-roam.core.ui.Buffer
 ---@field private __id org-roam.core.database.Id|nil
----@field private __state org-roam.ui.window.NodeViewWindowState
----@field private __window org-roam.core.ui.Window
+---@field private __state org-roam.ui.NodeBufferState
 local M = {}
 M.__index = M
 
----@class org-roam.ui.window.NodeViewWindowOpts
----@field id? org-roam.core.database.Id
----@field open? string|fun():integer
----@field winopts? table<string, any>
-
----Creates a new node-view window.
+---Creates a new node-view buffer.
 ---@param roam OrgRoam
----@param opts? org-roam.ui.window.NodeViewWindowOpts
----@return org-roam.ui.window.NodeViewWindow
+---@param opts? {id?:org-roam.core.database.Id}
+---@return org-roam.ui.NodeBuffer
 function M:new(roam, opts)
     opts = opts or {}
     local instance = {}
@@ -484,88 +479,42 @@ function M:new(roam, opts)
         end
     end)()
 
-    local window = Window:new(vim.tbl_extend("keep", {
-        bufopts = {
-            filetype = "org-roam-node-view",
-            modifiable = false,
-            buftype = "nofile",
-            swapfile = false,
-        },
-        components = { cached_render },
-    }, opts))
-    instance.__window = window
+    local buffer = Buffer:new({
+        filetype = "org-roam-node-buffer",
+        modifiable = false,
+        buftype = "nofile",
+        swapfile = false,
+    }):add_component(cached_render)
+    instance.__buffer = buffer
 
     -- For this kind of buffer, always force normal mode.
     -- NOTE: This exists because fixed node buffers seem
     --       to start in insert mode.
     vim.api.nvim_create_autocmd("BufEnter", {
-        buffer = window:bufnr(),
+        buffer = buffer:bufnr(),
         callback = function()
             vim.cmd("stopinsert")
         end,
     })
 
     vim.api.nvim_create_autocmd("BufReadCmd", {
-        buffer = window:bufnr(),
+        buffer = buffer:bufnr(),
         callback = function()
             -- NOTE: Perform blocking as we need to populate immediately.
-            window:render({ sync = true })
+            buffer:render({ sync = true })
         end,
     })
-
-    -- When our window first opens, trigger a refresh
-    window:on_open(function()
-        EMITTER:emit(EVENTS.REFRESH)
-    end)
 
     EMITTER:on(EVENTS.REFRESH, function(refresh_opts)
         -- NOTE: We MUST schedule this and not render directly
         --       as that will fail with api calls not allowed
         --       in our fast loop!
         vim.schedule(function()
-            window:render(refresh_opts)
+            buffer:render(refresh_opts)
         end)
     end)
 
     return instance
-end
-
----Opens the window.
----@return integer handle
-function M:open()
-    return self.__window:open()
-end
-
----Closes the window if it is open.
-function M:close()
-    if self.__window then
-        self.__window:close()
-    end
-end
-
----@return boolean
-function M:is_open()
-    if self.__window then
-        return self.__window:is_open()
-    else
-        return false
-    end
-end
-
----@return boolean
-function M:has_original_buffer()
-    if self.__window then
-        return self.__window:has_original_buffer()
-    else
-        return false
-    end
-end
-
----Opens the window if closed, or closes if open.
-function M:toggle()
-    if self.__window then
-        return self.__window:toggle()
-    end
 end
 
 ---@return org-roam.core.database.Id|nil
@@ -582,6 +531,32 @@ function M:set_id(id)
     if is_new_id then
         EMITTER:emit(EVENTS.REFRESH)
     end
+end
+
+---@return integer
+function M:bufnr()
+    return self.__buffer:bufnr()
+end
+
+---@return boolean
+function M:is_valid()
+    return self.__buffer:is_valid()
+end
+
+---@return integer[]
+function M:windows()
+    return self.__buffer:windows()
+end
+
+---@param tabpage integer
+---@return integer[]
+function M:windows_for_tabpage(tabpage)
+    return self.__buffer:windows_for_tabpage(tabpage)
+end
+
+---@return org-roam.core.ui.Buffer
+function M:to_internal_buffer()
+    return self.__buffer
 end
 
 return M
