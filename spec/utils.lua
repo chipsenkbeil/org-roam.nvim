@@ -13,6 +13,7 @@ end)()
 local VIM_CMD = vim.cmd
 local VIM_FN_GETCHAR = vim.fn.getchar
 local VIM_FN_CONFIRM = vim.fn.confirm
+local VIM_FN_INPUT = vim.fn.input
 local VIM_FN_ORGMODE_INPUT = vim.fn.OrgmodeInput
 local SELECT_NEW = Select.new
 
@@ -155,6 +156,108 @@ function M.read_buffer(buf)
     return vim.api.nvim_buf_get_lines(buf or 0, 0, -1, true)
 end
 
+---@return {all_windows:table<integer, integer>, all_buffers:table<integer, string[]>, win:integer, buf:integer, lines:string[], pos:{[1]:integer, [2]:integer}, pos_line:string}
+function M.get_current_status()
+    local win = vim.api.nvim_get_current_win()
+    local buf = vim.api.nvim_get_current_buf()
+    local lines = M.read_buffer(buf)
+    local pos = vim.api.nvim_win_get_cursor(win)
+    local pos_line = lines[pos[1]]
+
+    local all_buffers = {}
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        local lines = M.read_buffer(buf)
+        all_buffers[buf] = lines
+    end
+
+    local all_windows = {}
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+        all_windows[win] = vim.api.nvim_win_get_buf(win)
+    end
+
+    return {
+        all_windows = all_windows,
+        all_buffers = all_buffers,
+        win = win,
+        buf = buf,
+        lines = lines,
+        pos = pos,
+        pos_line = pos_line,
+    }
+end
+
+---Jumps to the line within the window that matches the given function.
+---If no window specified, jumps within the current window.
+---@param win integer
+---@param line integer|fun(buf:integer, lines:string[]):(integer|nil)
+---@overload fun(line:integer|fun(buf:integer, lines:string[]):(integer|nil))
+function M.jump_to_line(win, line)
+    if not line then
+        line = win
+        win = 0
+    end
+
+    if type(line) == "function" then
+        local buf = vim.api.nvim_win_get_buf(win)
+        local lines = M.read_buffer(buf)
+
+        ---@type integer
+        line = assert(line(buf, lines), "no line selected to jump to")
+    end
+    assert(line > 0, "invalid line: " .. vim.inspect(line))
+    vim.api.nvim_win_set_cursor(win, { line, 0 })
+end
+
+---Checks if a global mapping exists. Returns true/false and an array
+---of `maparg()` dictionaries describing the mappings".
+---@param mode org-roam.config.NvimMode
+---@param lhs string
+---@return boolean exists, table|nil mapping
+function M.global_mapping_exists(mode, lhs)
+    local mappings = vim.api.nvim_get_keymap(mode)
+    for _, map in pairs(mappings) do
+        if map.lhs == lhs then
+            return true, map
+        end
+    end
+    return false
+end
+
+---Checks if a buffer-mapping exists. Returns true/false and an array
+---of `maparg()` dictionaries describing the mappings".
+---@param buf integer
+---@param mode org-roam.config.NvimMode
+---@param lhs string
+---@return boolean exists, table|nil mapping
+function M.buffer_local_mapping_exists(buf, mode, lhs)
+    local mappings = vim.api.nvim_buf_get_keymap(buf, mode)
+    for _, map in pairs(mappings) do
+        if map.lhs == lhs then
+            return true, map
+        end
+    end
+    return false
+end
+
+---Clears all windows by closing them forcibly.
+function M.clear_windows()
+    local wins = vim.api.nvim_list_wins()
+
+    -- Because we cannot close the last window, create an empty window that will persist
+    vim.cmd.new()
+
+    for _, win in ipairs(wins) do
+        vim.api.nvim_win_close(win, true)
+    end
+end
+
+---Clears all buffers by deleting them forcibly.
+function M.clear_buffers()
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        vim.api.nvim_buf_delete(buf, { force = true })
+    end
+end
+
 ---@alias spec.utils.MockSelect
 ---| org-roam.core.ui.Select
 ---| fun(opts?:org-roam.core.ui.select.Opts, new:fun(opts?:org-roam.core.ui.select.Opts):org-roam.core.ui.Select):org-roam.core.ui.Select
@@ -247,6 +350,8 @@ end
 function M.unmock_vim_inputs()
     vim.fn.getchar = VIM_FN_GETCHAR
     vim.fn.confirm = VIM_FN_CONFIRM
+    vim.fn.input = VIM_FN_INPUT
+    vim.fn.OrgmodeInput = VIM_FN_ORGMODE_INPUT
 end
 
 ---Applies a patch to `vim.cmd` to support `vim.cmd.XYZ()`.

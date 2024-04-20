@@ -299,15 +299,22 @@ local function define_keybindings(roam)
 
     assign(
         bindings.toggle_roam_buffer,
-        "Opens org-roam buffer for node under cursor",
-        roam.ui.open_node_buffer
+        "Toggles org-roam buffer for node under cursor",
+        function()
+            roam.ui.toggle_node_buffer({
+                focus = roam.config.ui.node_buffer.focus_on_toggle,
+            })
+        end
     )
 
     assign(
         bindings.toggle_roam_buffer_fixed,
-        "Opens org-roam buffer for a specific node, not changing",
+        "Toggles org-roam buffer for a specific node, not changing",
         function()
-            roam.ui.open_node_buffer({ fixed = true })
+            roam.ui.toggle_node_buffer({
+                fixed = true,
+                focus = roam.config.ui.node_buffer.focus_on_toggle,
+            })
         end
     )
 

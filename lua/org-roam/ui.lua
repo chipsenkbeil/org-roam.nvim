@@ -14,8 +14,8 @@ return function(roam)
     ---@class org-roam.UserInterface
     local M              = {}
 
-    M.open_node_buffer   = NodeBufferApi.open_node_buffer
     M.open_quickfix_list = QuickfixApi.open_qflist
+    M.toggle_node_buffer = NodeBufferApi.toggle_node_buffer
     M.select_node        = SelectNodeApi.select_node
 
     return M

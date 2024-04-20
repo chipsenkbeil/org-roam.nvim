@@ -122,6 +122,10 @@ local DEFAULT_CONFIG = {
         ---Node view buffer configuration settings.
         ---@class org-roam.config.ui.NodeView
         node_buffer = {
+            ---If true, switches focus to the node buffer when it opens.
+            ---@type boolean
+            focus_on_toggle = true,
+
             ---If true, previews will be highlighted as org syntax when expanded.
             ---
             ---NOTE: This can cause flickering on initial expansion, but preview

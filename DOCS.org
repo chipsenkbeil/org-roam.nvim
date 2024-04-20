@@ -402,6 +402,22 @@
 
     Bindings tied specifically to the roam buffer.
 
+**** focus on toggle
+     
+     If true, switches focus to the node buffer when opened.
+  
+     Takes a boolean. Defaults to =true=.
+  
+     #+begin_src lua
+     require("org-roam"):setup({
+       ui = {
+         node_buffer = {
+           focus_on_toggle = false,
+         },
+       },
+     })
+     #+end_src
+
 **** highlight previews
      
      If true, previews will be highlighted as org syntax when expanded.
@@ -791,7 +807,7 @@
 
 ** Open Node Buffer
 
-   roam.ui.open_node_buffer({opts})
+   roam.ui.toggle_node_buffer({opts})
 
    Description:
 
@@ -800,6 +816,8 @@
    If =fixed= is true or an string, will load a fixed buffer, otherwise the
    buffer will change based on the node under cursor.
 
+   If =focus= is true, will switch the current window to the node buffer's window.
+
    Parameters:
 
    - {opts} optional table.
@@ -807,12 +825,14 @@
               the node changes under the cursor. Takes the id of a node or
               a boolean value, which if true will leverage the select dialog
               to pick a node.
+     - focus: optional, if true, switches the current window to the newly-created
+              window that contains the node buffer.
 
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.ui.open_node_buffer({ fixed = "1234" })
+   roam.ui.open_node_buffer({ fixed = "1234", focus = true })
    #+end_src
 
 ** Open Quickfix List

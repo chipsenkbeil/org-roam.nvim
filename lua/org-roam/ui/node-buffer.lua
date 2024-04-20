@@ -4,8 +4,9 @@
 -- API to view of a node's backlinks, citations, and unlinked references.
 -------------------------------------------------------------------------------
 
-local utils = require("org-roam.utils")
 local Buffer = require("org-roam.ui.node-buffer.buffer")
+local Promise = require("orgmode.utils.promise")
+local utils = require("org-roam.utils")
 local Window = require("org-roam.core.ui.window")
 
 local STATE = {
@@ -25,6 +26,7 @@ local STATE = {
 ---If one already exists and is visible, closes it.
 ---If one exists and is hidden, open a window and show it.
 ---@param roam OrgRoam
+---@return OrgPromise<integer|nil>
 local function roam_toggle_buffer(roam)
     -- Create our handler for node changes if we haven't done so before
     if not STATE.cursor_update_initialized then
@@ -51,17 +53,23 @@ local function roam_toggle_buffer(roam)
     if #windows == 0 then
         -- Manually trigger a capture of the node under cursor to start
         -- as the event above won't do anything at first
-        utils.node_under_cursor(function(node)
-            buffer:set_id(node and node.id)
-            Window:new({
-                buffer = buffer:to_internal_buffer(),
-                open = roam.config.ui.node_buffer.open,
-            }):open()
+        return Promise.new(function(resolve)
+            utils.node_under_cursor(function(node)
+                buffer:set_id(node and node.id)
+                local win = Window:new({
+                    buffer = buffer:to_internal_buffer(),
+                    open = roam.config.ui.node_buffer.open,
+                }):open()
+
+                resolve(win)
+            end)
         end)
     else
         for _, win in ipairs(windows) do
             vim.api.nvim_win_close(win, true)
         end
+
+        return Promise.resolve(nil)
     end
 end
 
@@ -73,47 +81,56 @@ end
 ---If an `id` is not specified, a prompt will appear to specify the id.
 ---@param roam OrgRoam
 ---@param id? org-roam.core.database.Id
+---@return OrgPromise<integer|nil>
 local function roam_toggle_fixed_buffer(roam, id)
-    ---@param id org-roam.core.database.Id
-    ---@diagnostic disable-next-line:redefined-local
-    local function toggle_node_buffer(id)
-        ---@type org-roam.ui.NodeBuffer|nil
-        local buffer = STATE.fixed_node_buffers[id]
+    return Promise.new(function(resolve)
+        ---@param id org-roam.core.database.Id
+        ---@diagnostic disable-next-line:redefined-local
+        local function toggle_node_buffer(id)
+            ---@type org-roam.ui.NodeBuffer|nil
+            local buffer = STATE.fixed_node_buffers[id]
 
-        -- Create the buffer if it does not exist or is deleted
-        if not buffer or not buffer:is_valid() then
-            buffer = Buffer:new(roam, {
-                id = id,
-            })
+            -- Create the buffer if it does not exist or is deleted
+            if not buffer or not buffer:is_valid() then
+                buffer = Buffer:new(roam, {
+                    id = id,
+                })
 
-            STATE.fixed_node_buffers[id] = buffer
+                STATE.fixed_node_buffers[id] = buffer
+            end
+
+            local windows = buffer:windows_for_tabpage(0)
+
+            -- If we have no window containing the buffer, create one; otherwise,
+            -- close all of the windows containing the buffer
+            if #windows == 0 then
+                local win = Window:new({
+                    buffer = buffer:to_internal_buffer(),
+                    open = roam.config.ui.node_buffer.open,
+                }):open()
+
+                resolve(win)
+            else
+                for _, win in ipairs(windows) do
+                    vim.api.nvim_win_close(win, true)
+                end
+
+                resolve(nil)
+            end
         end
 
-        local windows = buffer:windows_for_tabpage(0)
-
-        -- If we have no window containing the buffer, create one; otherwise,
-        -- close all of the windows containing the buffer
-        if #windows == 0 then
-            Window:new({
-                buffer = buffer:to_internal_buffer(),
-                open = roam.config.ui.node_buffer.open,
-            }):open()
+        if id then
+            toggle_node_buffer(id)
         else
-            for _, win in ipairs(windows) do
-                vim.api.nvim_win_close(win, true)
-            end
+            roam.ui.select_node(function(selection)
+                if selection.id then
+                    toggle_node_buffer(selection.id)
+                else
+                    resolve(nil)
+                end
+            end)
         end
-    end
-
-    if id then
-        toggle_node_buffer(id)
-    else
-        roam.ui.select_node(function(selection)
-            if selection.id then
-                toggle_node_buffer(selection.id)
-            end
-        end)
-    end
+    end)
 end
 
 ---@param roam OrgRoam
@@ -127,18 +144,38 @@ return function(roam)
     ---If `id` is `true` or an string, will load a fixed buffer, otherwise
     ---the buffer will change based on the node under cursor.
     ---
-    ---@param opts? {fixed?:boolean|org-roam.core.database.Id}
-    function M.open_node_buffer(opts)
+    ---Returns a promise containing the handle of the created window or
+    ---nil if windows containing the node buffer were closed instead.
+    ---
+    ---@param opts? {fixed?:boolean|org-roam.core.database.Id, focus?:boolean}
+    ---@return OrgPromise<integer|nil>
+    function M.toggle_node_buffer(opts)
         opts = opts or {}
 
         local fixed = opts.fixed
+
+        ---@type OrgPromise<integer|nil>
+        local promise
         if type(fixed) == "boolean" and fixed then
-            roam_toggle_fixed_buffer(roam)
+            promise = roam_toggle_fixed_buffer(roam)
         elseif type(fixed) == "string" then
-            roam_toggle_fixed_buffer(roam, fixed)
+            promise = roam_toggle_fixed_buffer(roam, fixed)
         else
-            roam_toggle_buffer(roam)
+            promise = roam_toggle_buffer(roam)
         end
+
+        -- If we are to focus on the window, do so post-open
+        if opts.focus then
+            promise = promise:next(function(win)
+                if win then
+                    vim.api.nvim_set_current_win(win)
+                end
+
+                return win
+            end)
+        end
+
+        return promise
     end
 
     return M
