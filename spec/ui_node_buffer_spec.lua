@@ -13,40 +13,30 @@ describe("org-roam.ui.node-buffer", function()
         test_path_two = utils.join_path(test_dir, "two.org")
         test_path_three = utils.join_path(test_dir, "three.org")
 
+        utils.init_before_test()
+
         -- Initialize an entirely new plugin and set it up
         -- so extra features like cursor node tracking works
-        roam = require("org-roam"):new()
-        roam.db = roam.db:new({
-            db_path = vim.fn.tempname() .. "-test-db",
-            directory = test_dir,
+        roam = utils.init_plugin({
+            setup = {
+                directory = test_dir,
+                database = {
+                    path = vim.fn.tempname() .. "-test-db",
+                },
+            },
         })
-        roam.setup({ directory = test_dir })
-
-        -- Patch `vim.cmd` so we can run tests here
-        utils.patch_vim_cmd()
-
-        -- Clear any buffers/windows that carried over from other tests
-        utils.clear_windows()
-        utils.clear_buffers()
     end)
 
     after_each(function()
-        -- Clear any buffers/windows that carried over from this test
-        utils.clear_windows()
-        utils.clear_buffers()
-
-        -- Unpatch `vim.cmd` so we can have tests pass
-        utils.unpatch_vim_cmd()
-
-        -- Restore select in case we mocked it
-        utils.unmock_select()
+        utils.cleanup_after_test()
     end)
 
     it("should display node buffer that follows cursor if no node specified", function()
         roam.db:load():wait()
 
-        -- Load up a test file so we have a node under cursor
-        vim.cmd.edit(test_path_one)
+        -- Load up multiple different files
+        local one_win, two_win = utils.edit_files(test_path_one, test_path_two)
+        vim.api.nvim_set_current_win(one_win)
 
         ---@type integer|nil
         local win = roam.ui.toggle_node_buffer():wait()
@@ -66,14 +56,29 @@ describe("org-roam.ui.node-buffer", function()
             "Backlinks (1)",
             "▶ three @ 8,0",
         }, utils.read_buffer(buf))
+
+        -- Switch back to our node window and change it to move cursor
+        vim.api.nvim_set_current_win(two_win)
+        vim.wait(100)
+
+        assert.are.same({
+            "Press <Enter> to open a link in another window",
+            "Press <Tab> to expand/collapse a link",
+            "Press <S-Tab> to expand/collapse all links",
+            "Press <C-r> to refresh buffer",
+            "",
+            "Node: two",
+            "Origin: one",
+            "",
+            "Backlinks (1)",
+            "▶ one @ 7,0",
+        }, utils.read_buffer(buf))
     end)
 
     it("should include origin of node in the displayed node buffer if it has one", function()
         roam.db:load():wait()
 
-        -- Load up multiple different files
-        local two_win, three_win = utils.edit_files(test_path_two, test_path_three)
-        vim.api.nvim_set_current_win(two_win)
+        vim.cmd.edit(test_path_two)
 
         ---@type integer|nil
         local win = roam.ui.toggle_node_buffer():wait()
@@ -93,23 +98,6 @@ describe("org-roam.ui.node-buffer", function()
             "",
             "Backlinks (1)",
             "▶ one @ 7,0",
-        }, utils.read_buffer(buf))
-
-        -- Switch back to our node window and change it to move cursor
-        vim.api.nvim_set_current_win(three_win)
-        vim.wait(100)
-
-        assert.are.same({
-            "Press <Enter> to open a link in another window",
-            "Press <Tab> to expand/collapse a link",
-            "Press <S-Tab> to expand/collapse all links",
-            "Press <C-r> to refresh buffer",
-            "",
-            "Node: three",
-            "Origin: two",
-            "",
-            "Backlinks (1)",
-            "▶ two @ 8,0",
         }, utils.read_buffer(buf))
     end)
 

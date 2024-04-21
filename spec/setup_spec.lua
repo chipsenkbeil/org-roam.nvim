@@ -1,49 +1,18 @@
 describe("org-roam.setup", function()
     local utils = require("spec.utils")
-    local AUGROUP_NAME = "org-roam.nvim"
-
-    ---@param opts? {setup?:boolean|org-roam.Config}
-    ---@return OrgRoam
-    local function init_roam_plugin(opts)
-        opts = opts or {}
-        -- Initialize an entirely new plugin and set it up
-        -- so extra features like cursor node tracking works
-        local roam = require("org-roam"):new()
-        if opts.setup then
-            local test_dir = utils.make_temp_directory()
-            local config = {
-                directory = test_dir,
-                database = {
-                    path = utils.join_path(test_dir, "db"),
-                },
-            }
-            if type(opts.setup) == "table" then
-                config = vim.tbl_deep_extend("force", config, opts.setup)
-            end
-            roam.setup(config)
-        end
-        return roam
-    end
+    local AUGROUP_NAME = utils.autogroup_name()
 
     before_each(function()
-        -- Patch `vim.cmd` so we can run tests here
-        utils.patch_vim_cmd()
-        utils.clear_windows()
-        utils.clear_buffers()
-        utils.clear_autocmds(AUGROUP_NAME)
+        utils.init_before_test()
     end)
 
     after_each(function()
-        utils.clear_autocmds(AUGROUP_NAME)
-        utils.clear_windows()
-        utils.clear_buffers()
-        utils.unpatch_vim_cmd()
-        utils.unmock_select()
+        utils.cleanup_after_test()
     end)
 
     it("should fail if no directory supplied", function()
         assert.is.error(function()
-            local roam = init_roam_plugin({ setup = false })
+            local roam = utils.init_plugin({ setup = false })
             roam.setup({})
         end)
     end)
@@ -52,7 +21,7 @@ describe("org-roam.setup", function()
         local db_path = vim.fn.tempname() .. "-test-db"
         local directory = utils.make_temp_org_files_directory()
 
-        local roam = init_roam_plugin({ setup = false })
+        local roam = utils.init_plugin({ setup = false })
         roam.setup({
             database = { path = db_path },
             directory = directory,
@@ -67,7 +36,7 @@ describe("org-roam.setup", function()
         local test_path = utils.join_path(directory, "one.org")
 
         -- Configure plugin to update database on write
-        local roam = init_roam_plugin({
+        local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
@@ -102,7 +71,7 @@ describe("org-roam.setup", function()
         local test_path = utils.join_path(directory, "one.org")
 
         -- Configure plugin to update database on write
-        local roam = init_roam_plugin({
+        local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
@@ -134,7 +103,7 @@ describe("org-roam.setup", function()
 
     it("should save database to disk on exit if persist configured", function()
         -- Configure plugin to persist database
-        local roam = init_roam_plugin({
+        local roam = utils.init_plugin({
             setup = {
                 database = {
                     persist = true,
@@ -167,7 +136,7 @@ describe("org-roam.setup", function()
 
     it("should not save database to disk on exit if persist not configured", function()
         -- Configure plugin to not persist database
-        local roam = init_roam_plugin({
+        local _ = utils.init_plugin({
             setup = {
                 database = {
                     persist = false,

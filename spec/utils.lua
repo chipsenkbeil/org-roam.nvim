@@ -10,6 +10,7 @@ local ORG_FILES_DIR = (function()
     return path.join(vim.fs.dirname(str:match("(.*/)")), "files")
 end)()
 
+local AUGROUP_NAME = "org-roam.nvim"
 local VIM_CMD = vim.cmd
 local VIM_FN_GETCHAR = vim.fn.getchar
 local VIM_FN_CONFIRM = vim.fn.confirm
@@ -19,6 +20,11 @@ local SELECT_NEW = Select.new
 
 ---@class spec.utils
 local M = {}
+
+---@return string
+function M.autogroup_name()
+    return AUGROUP_NAME
+end
 
 ---Takes string, splits into lines, and removes common indentation.
 ---@param s string
@@ -284,6 +290,60 @@ function M.buffer_local_mapping_exists(buf, mode, lhs)
         end
     end
     return false
+end
+
+---@param opts? {setup?:boolean|org-roam.Config}
+---@return OrgRoam
+function M.init_plugin(opts)
+    opts = opts or {}
+    -- Initialize an entirely new plugin and set it up
+    -- so extra features like cursor node tracking works
+    local roam = require("org-roam"):new()
+    if opts.setup then
+        local test_dir = M.make_temp_directory()
+        local config = {
+            directory = test_dir,
+            database = {
+                path = M.join_path(test_dir, "db"),
+            },
+        }
+        if type(opts.setup) == "table" then
+            config = vim.tbl_deep_extend("force", config, opts.setup)
+        end
+        roam.setup(config)
+    end
+    return roam
+end
+
+---Performs common setup tasks before a test.
+function M.init_before_test()
+    -- Patch `vim.cmd` to support `vim.cmd.FFF()` as plenary currently
+    -- does not support it and fails within orgmode
+    M.patch_vim_cmd()
+
+    -- Clear any dangling windows/buffers that may be shared
+    M.clear_windows()
+    M.clear_buffers()
+
+    -- Clear any created autocmds tied to our plugin
+    M.clear_autocmds(AUGROUP_NAME)
+end
+
+---Performs common cleanup tasks after a test.
+function M.cleanup_after_test()
+    -- Clear any created autocmds tied to our plugin
+    M.clear_autocmds(AUGROUP_NAME)
+
+    -- Clear any dangling windows/buffers that may be shared
+    M.clear_windows()
+    M.clear_buffers()
+
+    -- Ensure that tests can complete by restoring cmd
+    -- otherwise our tests fail or hang or something
+    M.unpatch_vim_cmd()
+
+    -- If select was mocked, unmock it
+    M.unmock_select()
 end
 
 ---Deletes all autocmds tied to the specified group.
