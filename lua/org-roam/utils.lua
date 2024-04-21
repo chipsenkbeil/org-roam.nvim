@@ -28,9 +28,17 @@ local ESC_FEEDKEY = vim.api.nvim_replace_termcodes("<ESC>", true, false, true)
 local M = {}
 
 ---@param bufnr integer
----@return org-roam.utils.BufferCache
+---@return org-roam.utils.BufferCache|nil
 local function get_buffer_cache(bufnr)
+    -- If accessing a buffer that is no longer valid, clear the cache
+    -- return nothing to indicate there is no cache
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+        CACHE[bufnr] = nil
+        return
+    end
+
     local cache = CACHE[bufnr]
+
     ---@type integer
     local tick = vim.b[bufnr].changedtick
 

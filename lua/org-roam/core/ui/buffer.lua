@@ -251,7 +251,7 @@ end
 ---NOTE: Once destroyed, the buffer should not be used again.
 function M:destroy()
     vim.schedule(function()
-        if vim.api.nvim_buf_is_valid(self.__bufnr) then
+        if self:is_valid() then
             vim.api.nvim_buf_delete(self.__bufnr, { force = true })
         end
     end)
@@ -274,6 +274,12 @@ function M:render(opts)
     local function do_render()
         -- If buffer not in scheduled state (e.g. paused), exit without rendering
         if self.__state ~= STATE.SCHEDULED then
+            return
+        end
+
+        -- If buffer is no longer valid at this point, skip rendering
+        if not self:is_valid() then
+            self.__state = STATE.IDLE
             return
         end
 
