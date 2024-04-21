@@ -85,7 +85,10 @@ local function define_autocmds(roam)
             group = AUGROUP,
             pattern = "*",
             callback = function()
-                roam.db:save():catch(notify.error)
+                -- Block, don't be async, as neovim could exit during async
+                -- and cause issues with corrupt databases
+                log.fmt_debug("Persisting database to disk: %s", roam.db:path())
+                roam.db:save():catch(log.error):wait()
             end,
         })
     end
