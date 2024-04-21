@@ -201,6 +201,33 @@ function M.edit_files(...)
     return unpack(windows)
 end
 
+---Triggers the specified mapping.
+---
+---If `buf` provided, triggers the buffer-local mapping.
+---If `wait` provided, schedules mapping and waits N milliseconds.
+---@param mode org-roam.config.NvimMode
+---@param lhs string
+---@param opts? {buf?:integer, wait?:integer}
+function M.trigger_mapping(mode, lhs, opts)
+    opts = opts or {}
+
+    local exists, mapping
+    if opts.buf then
+        exists, mapping = M.buffer_local_mapping_exists(opts.buf, mode, lhs)
+        assert(exists, "missing buffer-local mapping " .. lhs) --[[ @cast mapping -nil ]]
+    else
+        exists, mapping = M.global_mapping_exists(mode, lhs)
+        assert(exists, "missing global mapping " .. lhs) --[[ @cast mapping -nil ]]
+    end
+
+    if opts.wait then
+        vim.schedule(mapping.callback)
+        vim.wait(opts.wait)
+    else
+        mapping.callback()
+    end
+end
+
 ---Jumps to the line within the window that matches the given function.
 ---If no window specified, jumps within the current window.
 ---@param win integer

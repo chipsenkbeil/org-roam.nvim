@@ -7,29 +7,6 @@ describe("org-roam.ui.node-buffer", function()
     ---@type string, string, string, string
     local test_dir, test_path_one, test_path_two, test_path_three
 
-    ---@param mode org-roam.config.NvimMode
-    ---@param lhs string
-    ---@param opts? {buf?:integer, wait?:integer}
-    local function trigger_mapping(mode, lhs, opts)
-        opts = opts or {}
-
-        local exists, mapping
-        if opts.buf then
-            exists, mapping = utils.buffer_local_mapping_exists(opts.buf, mode, lhs)
-            assert(exists, "missing buffer-local mapping " .. lhs) --[[ @cast mapping -nil ]]
-        else
-            exists, mapping = utils.global_mapping_exists(mode, lhs)
-            assert(exists, "missing global mapping " .. lhs) --[[ @cast mapping -nil ]]
-        end
-
-        if opts.wait then
-            vim.schedule(mapping.callback)
-            vim.wait(opts.wait)
-        else
-            mapping.callback()
-        end
-    end
-
     before_each(function()
         test_dir = utils.make_temp_org_files_directory()
         test_path_one = utils.join_path(test_dir, "one.org")
@@ -159,7 +136,7 @@ describe("org-roam.ui.node-buffer", function()
         end)
 
         -- Trigger our buffer-local mapping, waiting a bit for the node to load
-        trigger_mapping("n", "<CR>", { buf = 0, wait = 100 })
+        utils.trigger_mapping("n", "<CR>", { buf = 0, wait = 100 })
 
         -- Load the non-node buffer that is visible
         local buf = vim.api.nvim_win_get_buf(node_win)
