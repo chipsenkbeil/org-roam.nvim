@@ -403,6 +403,7 @@ function M:files(opts)
 
     -- If not skipping, perform loading/reloading of org files
     if not opts.skip then
+        print("LOAD FILES")
         return files:load(opts.force)
     else
         return Promise.resolve(files)

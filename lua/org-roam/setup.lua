@@ -110,7 +110,7 @@ local function define_commands(roam)
             notify.info("Saved database [took " .. tt .. "]")
             return ...
         end):catch(notify.error)
-    end, { bang = true, desc = "Saves the roam database" })
+    end, { bang = true, desc = "Saves the roam database to disk" })
 
     vim.api.nvim_create_user_command("RoamUpdate", function(opts)
         local force = opts.bang or false
