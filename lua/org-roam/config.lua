@@ -175,9 +175,10 @@ end
 
 ---Overwrites configuration options with those specified.
 ---@param data org-roam.config.Data
+---@return org-roam.Config
 function M:replace(data)
     if type(data) ~= "table" then
-        return
+        return self
     end
 
     -- Create a new config based on old config, ovewriting
@@ -197,6 +198,8 @@ function M:replace(data)
             self[key] = value
         end
     end
+
+    return self
 end
 
 return M

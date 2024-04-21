@@ -20,7 +20,7 @@
         },
       },
       config = function()
-        require("org-roam"):setup({
+        require("org-roam").setup({
           directory = "~/orgfiles",
         })
       end
@@ -39,7 +39,7 @@
         },
       },
       config = function()
-        require("org-roam"):setup({
+        require("org-roam").setup({
           directory = "~/orgfiles",
         })
       end
@@ -56,7 +56,7 @@
    can contain =~= that will expand to your home directory.
 
    #+begin_src lua
-   require("org-roam"):setup({
+   require("org-roam").setup({
      directory = "~/orgfiles",
    })
    #+end_src
@@ -72,7 +72,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>naa=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         add_alias = "<LocalLeader>naa",
       },
@@ -86,7 +86,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>noa=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         add_origin = "<LocalLeader>noa",
       },
@@ -100,7 +100,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>nc=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         capture = "<LocalLeader>nc",
       },
@@ -116,7 +116,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>n.=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         complete_at_point = "<LocalLeader>n.",
       },
@@ -133,7 +133,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>nf=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         find_node = "<LocalLeader>nf",
       },
@@ -150,7 +150,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>nn=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         goto_next_node = "<LocalLeader>nn",
       },
@@ -164,7 +164,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>np=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         goto_prev_node = "<LocalLeader>np",
       },
@@ -181,7 +181,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>ni=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         insert_node = "<LocalLeader>ni",
       },
@@ -196,7 +196,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>nm=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         insert_node_immediate = "<LocalLeader>nm",
       },
@@ -211,7 +211,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>nq=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         quickfix_backlinks = "<LocalLeader>nq",
       },
@@ -225,7 +225,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>nar=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         remove_alias = "<LocalLeader>nar",
       },
@@ -239,7 +239,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>nor=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         remove_origin = "<LocalLeader>nor",
       },
@@ -255,7 +255,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>nl=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         toggle_roam_buffer = "<LocalLeader>nl",
       },
@@ -271,7 +271,7 @@
     Takes a string representing the keybinding. Defaults to =<Leader>nb=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       bindings = {
         toggle_roam_buffer_fixed = "<LocalLeader>nb",
       },
@@ -291,7 +291,7 @@
     For example, =~/.local/share/nvim/org-roam.nvim/db=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       database = {
         path = "~/some/path/to/db",
       },
@@ -307,7 +307,7 @@
     Takes a boolean. Defaults to =true=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       database = {
         persist = false,
       },
@@ -323,7 +323,7 @@
     Takes a boolean. Defaults to =true=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       database = {
         update_on_save = false,
       },
@@ -341,7 +341,7 @@
     Takes a string. Defaults to =%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org=.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       immediate = {
         target = "%r%[sep]%[slug].org",
       },
@@ -355,7 +355,7 @@
     Takes a string. Defaults to ==.
 
     #+begin_src lua
-    require("org-roam"):setup({
+    require("org-roam").setup({
       immediate = {
         template = "The date is %<%Y%m%d>!",
       },
@@ -372,7 +372,7 @@
    Defaults to the following:
 
    #+begin_src lua
-   require("org-roam"):setup({
+   require("org-roam").setup({
      templates = {
        d = {
          description = "default",
@@ -409,7 +409,7 @@
      Takes a boolean. Defaults to =true=.
   
      #+begin_src lua
-     require("org-roam"):setup({
+     require("org-roam").setup({
        ui = {
          node_buffer = {
            focus_on_toggle = false,
@@ -429,7 +429,7 @@
      Takes a boolean. Defaults to =true=.
   
      #+begin_src lua
-     require("org-roam"):setup({
+     require("org-roam").setup({
        ui = {
          node_buffer = {
            highlight_previews = false,
@@ -446,7 +446,7 @@
      Defaults to =botright vsplit | vertical resize 50=.
 
      #+begin_src lua
-     require("org-roam"):setup({
+     require("org-roam").setup({
        ui = {
          node_buffer = {
            open = function()
@@ -470,7 +470,7 @@
      Takes a boolean. Defaults to =true=.
   
      #+begin_src lua
-     require("org-roam"):setup({
+     require("org-roam").setup({
        ui = {
          node_buffer = {
            show_keybindings = false,
@@ -487,7 +487,7 @@
      Takes a boolean. Defaults to =false=.
   
      #+begin_src lua
-     require("org-roam"):setup({
+     require("org-roam").setup({
        ui = {
          node_buffer = {
            unique = true,
@@ -520,7 +520,7 @@
   Bindings can be changed during configuration by overwriting them within the =bindings= table:
 
   #+begin_src lua
-  require("org-roam"):setup({
+  require("org-roam").setup({
     -- ...
     bindings = {
       capture = "<LocalLeader>nc",
@@ -531,7 +531,7 @@
   To disable all bindings, set the =bindings= field to =false=:
 
   #+begin_src lua
-  require("org-roam"):setup({
+  require("org-roam").setup({
     -- ...
     bindings = false,
   })
@@ -543,7 +543,7 @@
    Here is a recommended setup you can use to leverage =C-c=
 
    #+begin_src lua
-   require("org-roam"):setup({
+   require("org-roam").setup({
      bindings = {
        add_alias                = "<C-c>naa",
        add_origin               = "<C-c>noa",

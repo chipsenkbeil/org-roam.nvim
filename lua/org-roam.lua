@@ -15,6 +15,7 @@ end
 ---@field db org-roam.Database
 ---@field evt org-roam.Events
 ---@field ext org-roam.Extensions
+---@field setup org-roam.Setup
 ---@field ui org-roam.UserInterface
 ---@field utils org-roam.Utils
 local M = {}
@@ -34,23 +35,18 @@ function M:new(config)
     config          = config or Config:new()
 
     instance.api    = require("org-roam.api")(instance)
-    instance.config = config or Config:new()
+    instance.config = Config:new():replace(config or {})
     instance.db     = Database:new({
-        db_path = config.database.path,
-        directory = config.directory,
+        db_path = instance.config.database.path,
+        directory = instance.config.directory,
     })
     instance.evt    = require("org-roam.events")(instance)
     instance.ext    = require("org-roam.extensions")(instance)
+    instance.setup  = require("org-roam.setup")(instance)
     instance.ui     = require("org-roam.ui")(instance)
     instance.utils  = require("org-roam.utils")
 
     return instance
-end
-
----Initializes the plugin.
----@param config org-roam.Config
-function M:setup(config)
-    require("org-roam.setup")(self, config)
 end
 
 local INSTANCE = M:new()

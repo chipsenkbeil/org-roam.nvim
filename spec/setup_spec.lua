@@ -11,7 +11,7 @@ describe("org-roam.setup", function()
 
     it("should fail of no directory supplied", function()
         assert.is.error(function()
-            roam:setup({})
+            roam.setup({})
         end)
     end)
 
@@ -19,7 +19,7 @@ describe("org-roam.setup", function()
         local db_path = vim.fn.tempname() .. "-test-db"
         local directory = utils.make_temp_org_files_directory()
 
-        roam:setup({
+        roam.setup({
             database = { path = db_path },
             directory = directory,
         })

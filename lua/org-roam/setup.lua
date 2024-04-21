@@ -462,14 +462,75 @@ local function initialize_database(roam)
     end):catch(notify.error)
 end
 
----Initializes the plugin.
 ---@param roam OrgRoam
----@param config org-roam.Config
-return function(roam, config)
-    merge_config(roam, config)
-    define_autocmds(roam)
-    define_commands(roam)
-    define_keybindings(roam)
-    modify_orgmode_plugin(roam)
-    initialize_database(roam)
+---@return org-roam.Setup
+return function(roam)
+    ---@class org-roam.Setup
+    ---@operator call(org-roam.Config):nil
+    local M = setmetatable({}, {
+        __call = function(this, config)
+            this.call(config)
+        end
+    })
+
+    ---Calls the setup function to initialize the plugin.
+    ---@param config org-roam.Config|nil
+    function M.call(config)
+        M.__merge_config(config or {})
+        M.__define_autocmds()
+        M.__define_commands()
+        M.__define_keybindings()
+        M.__modify_orgmode_plugin()
+        M.__initialize_database()
+    end
+
+    ---@private
+    function M.__merge_config(config)
+        if not M.__merge_config_done then
+            merge_config(roam, config)
+            M.__merge_config_done = true
+        end
+    end
+
+    ---@private
+    function M.__define_autocmds()
+        if not M.__define_autocmds_done then
+            define_autocmds(roam)
+            M.__define_autocmds_done = true
+        end
+    end
+
+    ---@private
+    function M.__define_commands()
+        if not M.__define_commands_done then
+            define_commands(roam)
+            M.__define_commands_done = true
+        end
+    end
+
+    ---@private
+    function M.__define_keybindings()
+        if not M.__define_keybindings_done then
+            define_keybindings(roam)
+            M.__define_keybindings_done = true
+        end
+    end
+
+    ---@private
+    function M.__modify_orgmode_plugin()
+        if not M.__modify_orgmode_plugin_done then
+            modify_orgmode_plugin(roam)
+            M.__modify_orgmode_plugin_done = true
+        end
+    end
+
+    ---@private
+    function M.__initialize_database()
+        if not M.__initialize_database_done then
+            initialize_database(roam)
+            M.__initialize_database_done = true
+        end
+    end
+
+    return M
 end

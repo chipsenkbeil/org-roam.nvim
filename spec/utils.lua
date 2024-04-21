@@ -186,6 +186,21 @@ function M.get_current_status()
     }
 end
 
+---Creates N new windows containing the contents of the provided files.
+---@param ... string
+---@return integer ...
+function M.edit_files(...)
+    local windows = {}
+    for _, file in ipairs({ ... }) do
+        vim.cmd.new()
+        vim.cmd.edit(file)
+
+        local win = vim.api.nvim_get_current_win()
+        table.insert(windows, win)
+    end
+    return unpack(windows)
+end
+
 ---Jumps to the line within the window that matches the given function.
 ---If no window specified, jumps within the current window.
 ---@param win integer
