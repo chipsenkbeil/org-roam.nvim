@@ -805,7 +805,34 @@
    })
    #+end_src
 
-** Open Node Buffer
+** Open Quickfix List
+
+   roam.ui.open_quickfix_list({opts})
+
+   Description:
+
+   Creates and opens a new quickfix list, populated with various links
+   tied to a roam node.
+
+   Parameters:
+
+   - {opts} optional table.
+     - id: optional, string id of the node whose information will populate
+           the list. If not provided, will open a selection dialog to pick
+           a node.
+     - backlinks: optional, if true, show's the selected node's backlinks.
+     - links: optional, if true, show's the selected node's links.
+     - show_preview: optional, if true, loads a preview of content for each
+                     list item.
+
+   Example:
+
+   #+begin_src lua
+   local roam = require("org-roam")
+   roam.ui.open_quickfix_list({ id = "1234", backlinks = true })
+   #+end_src
+
+** Toggle Node Buffer
 
    roam.ui.toggle_node_buffer({opts})
 
@@ -833,33 +860,6 @@
    #+begin_src lua
    local roam = require("org-roam")
    roam.ui.open_node_buffer({ fixed = "1234", focus = true })
-   #+end_src
-
-** Open Quickfix List
-
-   roam.ui.open_quickfix_list({opts})
-
-   Description:
-
-   Creates and opens a new quickfix list, populated with various links
-   tied to a roam node.
-
-   Parameters:
-
-   - {opts} optional table.
-     - id: optional, string id of the node whose information will populate
-           the list. If not provided, will open a selection dialog to pick
-           a node.
-     - backlinks: optional, if true, show's the selected node's backlinks.
-     - links: optional, if true, show's the selected node's links.
-     - show_preview: optional, if true, loads a preview of content for each
-                     list item.
-
-   Example:
-
-   #+begin_src lua
-   local roam = require("org-roam")
-   roam.ui.open_quickfix_list({ id = "1234", backlinks = true })
    #+end_src
 
 ** Remove Alias
