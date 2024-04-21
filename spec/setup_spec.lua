@@ -9,7 +9,7 @@ describe("org-roam.setup", function()
         })
     end)
 
-    it("should fail of no directory supplied", function()
+    it("should fail if no directory supplied", function()
         assert.is.error(function()
             roam.setup({})
         end)

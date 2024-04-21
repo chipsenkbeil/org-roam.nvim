@@ -356,10 +356,16 @@ function M:database()
 
             Database:load_from_disk(self.path.database, function(err, db)
                 if err then
-                    -- NOTE: Scheduling to avoid textlock issues in promise
-                    --       resolution
+                    -- NOTE: Scheduling to avoid textlock issues
                     return vim.schedule(function()
-                        reject(err)
+                        log.fmt_error("Failed to load database: %s", err)
+
+                        -- Set up database with a clean slate instead
+                        db = Database:new()
+                        schema:update(db)
+                        self.__db = db
+
+                        resolve(db)
                     end)
                 end
 

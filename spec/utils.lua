@@ -46,10 +46,15 @@ end
 
 ---Creates a new orgfile, stripping common indentation.
 ---@param content string
+---@param opts? {path?:string}
 ---@return OrgFile
-function M.org_file(content)
+function M.org_file(content, opts)
+    opts = opts or {}
     local lines = vim.split(M.indent(content), "\n")
-    local filename = vim.fn.tempname() .. ".org"
+    local filename = opts.path or vim.fn.tempname()
+    if not vim.endswith(filename, ".org") then
+        filename = filename .. ".org"
+    end
 
     ---@type OrgFile
     local file = OrgFile:new({

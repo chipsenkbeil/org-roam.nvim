@@ -31,7 +31,7 @@ local function roam_toggle_buffer(roam)
     -- Create our handler for node changes if we haven't done so before
     if not STATE.cursor_update_initialized then
         STATE.cursor_update_initialized = true
-        roam.evt.on_cursor_node_changed(function(node)
+        roam.events.on_cursor_node_changed(function(node)
             local buffer = STATE.cursor_node_buffer
             if node and buffer then
                 buffer:set_id(node.id)

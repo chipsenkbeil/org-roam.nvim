@@ -37,7 +37,7 @@ end
 local function define_autocmds(roam)
     -- Watch as cursor moves around so we can support node changes
     local last_node = nil
-    vim.api.nvim_create_autocmd("CursorMoved", {
+    vim.api.nvim_create_autocmd({ "BufEnter", "CursorMoved" }, {
         group = AUGROUP,
         pattern = "*.org",
         callback = function()
@@ -49,7 +49,7 @@ local function define_autocmds(roam)
                         log.fmt_debug("New node under cursor: %s", node.id)
                     end
 
-                    roam.evt.emit(roam.evt.KIND.CURSOR_NODE_CHANGED, node)
+                    roam.events.emit(roam.events.KIND.CURSOR_NODE_CHANGED, node)
                 end
 
                 last_node = node

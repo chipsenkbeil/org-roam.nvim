@@ -1443,7 +1443,7 @@
 
 ** On Cursor Node Changed
 
-   roam.evts.on_cursor_node_changed({cb})
+   roam.events.on_cursor_node_changed({cb})
 
    Description:
 
@@ -1460,7 +1460,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.evts.on_cursor_node_changed(function(node)
+   roam.events.on_cursor_node_changed(function(node)
      if node then
        print("Node under cursor is " .. node.id)
      end

@@ -115,11 +115,15 @@ function M:load_from_disk(path, cb)
         assert(data, "impossible: data nil")
 
         -- Decode the data into Lua and set it as the nodes
-        ---@type table|nil
-        local __data = vim.mpack.decode(data)
+        ---@type boolean, table|nil
+        local success, __data = pcall(vim.mpack.decode, data)
 
-        if not __data then
-            cb("Failed to decode database")
+        if not success or not __data then
+            local errmsg = "Failed to decode database"
+            if __data then
+                errmsg = errmsg .. ": " .. vim.inspect(__data)
+            end
+            vim.schedule(function() cb(errmsg) end)
             return
         end
 
@@ -134,7 +138,7 @@ function M:load_from_disk(path, cb)
         ---@diagnostic disable-next-line:invisible
         db.__indexes = __data.indexes
 
-        cb(nil, db)
+        vim.schedule(function() cb(nil, db) end)
     end)
 end
 
@@ -170,16 +174,20 @@ end
 ---@param path string where to store the database
 ---@param cb fun(err:string|nil)
 function M:write_to_disk(path, cb)
-    ---@type string|nil
-    local data = vim.mpack.encode({
+    ---@type boolean, string|nil
+    local success, data = pcall(vim.mpack.encode, {
         nodes = self.__nodes,
         inbound = self.__inbound,
         outbound = self.__outbound,
         indexes = self.__indexes,
     })
 
-    if not data then
-        cb("Failed to encode database")
+    if not success or not data then
+        local errmsg = "Failed to encode database"
+        if data then
+            errmsg = errmsg .. ": " .. vim.inspect(data)
+        end
+        cb(errmsg)
         return
     end
 

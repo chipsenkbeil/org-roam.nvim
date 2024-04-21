@@ -13,7 +13,7 @@ end
 ---@field api org-roam.Api
 ---@field config org-roam.Config
 ---@field db org-roam.Database
----@field evt org-roam.Events
+---@field events org-roam.Events
 ---@field ext org-roam.Extensions
 ---@field setup org-roam.Setup
 ---@field ui org-roam.UserInterface
@@ -40,7 +40,7 @@ function M:new(config)
         db_path = instance.config.database.path,
         directory = instance.config.directory,
     })
-    instance.evt    = require("org-roam.events")(instance)
+    instance.events = require("org-roam.events")(instance)
     instance.ext    = require("org-roam.extensions")(instance)
     instance.setup  = require("org-roam.setup")(instance)
     instance.ui     = require("org-roam.ui")(instance)
