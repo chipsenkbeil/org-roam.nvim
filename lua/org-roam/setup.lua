@@ -126,19 +126,23 @@ local function define_commands(roam)
 
     vim.api.nvim_create_user_command("RoamDatabaseReset", function()
         log.debug("Resetting database")
-        roam.db = roam.db:new({
-            db_path = roam.db:path(),
-            directory = roam.db:files_path(),
-        })
+        roam.db:delete_disk_cache():next(function(success)
+            roam.db = roam.db:new({
+                db_path = roam.db:path(),
+                directory = roam.db:files_path(),
+            })
 
-        -- Start profiling so we can report the time taken
-        local profiler = Profiler:new()
-        profiler:start()
-        roam.db:load():next(function(...)
-            local tt = profiler:stop():time_taken_as_string()
-            notify.info("Loaded database [took " .. tt .. "]")
-            return ...
-        end):catch(notify.error)
+            -- Start profiling so we can report the time taken
+            local profiler = Profiler:new()
+            profiler:start()
+            roam.db:load():next(function(...)
+                local tt = profiler:stop():time_taken_as_string()
+                notify.info("Loaded database [took " .. tt .. "]")
+                return ...
+            end):catch(notify.error)
+
+            return success
+        end)
     end, { desc = "Completely wipes the roam database" })
 
     vim.api.nvim_create_user_command("RoamAddAlias", function(opts)

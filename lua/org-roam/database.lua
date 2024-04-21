@@ -4,6 +4,7 @@
 -- Contains global database logic used by the plugin.
 -------------------------------------------------------------------------------
 
+local io = require("org-roam.core.utils.io")
 local Loader = require("org-roam.database.loader")
 local log = require("org-roam.core.log")
 local Profiler = require("org-roam.core.utils.profiler")
@@ -156,6 +157,32 @@ function M:save(opts)
                         self.__last_save = db:changed_tick()
                         resolve(nil)
                     end)
+                end)
+            end)
+        end)
+    end)
+end
+
+---Deletes the database cache from disk.
+---@return OrgPromise<boolean>
+function M:delete_disk_cache()
+    return Promise.new(function(resolve, reject)
+        io.stat(self.__database_path, function(err, stat)
+            if err or not stat then
+                return vim.schedule(function()
+                    resolve(false)
+                end)
+            end
+
+            io.unlink(self.__database_path, function(err, success)
+                if err then
+                    return vim.schedule(function()
+                        reject(err)
+                    end)
+                end
+
+                return vim.schedule(function()
+                    resolve(success or false)
                 end)
             end)
         end)
