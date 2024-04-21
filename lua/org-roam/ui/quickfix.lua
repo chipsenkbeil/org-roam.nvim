@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 local io = require("org-roam.core.utils.io")
+local Promise = require("orgmode.utils.promise")
 local utils = require("org-roam.utils")
 
 ---@class org-roam.ui.quickfix.Item
@@ -168,18 +169,25 @@ return function(roam)
     ---* `show_preview`: if true, loads preview of each link's content
     ---
     ---@param opts? org-roam.ui.quickfix.Opts
+    ---@return OrgPromise<boolean>
     function M.open_qflist(opts)
         opts = opts or {}
 
-        if opts.id then
-            roam_open(roam, opts.id, opts)
-        else
-            utils.node_under_cursor(function(node)
-                if node then
-                    roam_open(roam, node.id, opts)
-                end
-            end)
-        end
+        return Promise.new(function(resolve)
+            if opts.id then
+                roam_open(roam, opts.id, opts)
+                resolve(true)
+            else
+                utils.node_under_cursor(function(node)
+                    if node then
+                        roam_open(roam, node.id, opts)
+                        resolve(true)
+                    else
+                        resolve(false)
+                    end
+                end)
+            end
+        end)
     end
 
     return M
