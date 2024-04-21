@@ -289,14 +289,18 @@ function M.clear_windows()
     vim.cmd.new()
 
     for _, win in ipairs(wins) do
-        vim.api.nvim_win_close(win, true)
+        if vim.api.nvim_win_is_valid(win) then
+            vim.api.nvim_win_close(win, true)
+        end
     end
 end
 
 ---Clears all buffers by deleting them forcibly.
 function M.clear_buffers()
     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-        vim.api.nvim_buf_delete(buf, { force = true })
+        if vim.api.nvim_buf_is_valid(buf) then
+            vim.api.nvim_buf_delete(buf, { force = true })
+        end
     end
 end
 

@@ -10,6 +10,7 @@ local Select = require("org-roam.core.ui.select")
 ---@param opts {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
 ---@param cb fun(selection:{id:org-roam.core.database.Id|nil, label:string})
 ---@param cancel_cb fun()
+---@return integer win
 local function roam_select_node(roam, opts, cb, cancel_cb)
     -- TODO: Make this more optimal. Probably involves supporting
     --       an async function to return items instead of an
@@ -56,7 +57,7 @@ local function roam_select_node(roam, opts, cb, cancel_cb)
         cancel_on_no_init_matches = true,
     }, opts or {})
 
-    Select:new(select_opts)
+    return Select:new(select_opts)
         :on_choice(cb)
         :on_choice_missing(function(label) cb({ id = nil, label = label }) end)
         :on_cancel(cancel_cb)
@@ -74,6 +75,7 @@ return function(roam)
     ---@param opts {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
     ---@param cb fun(selection:{id:org-roam.core.database.Id|nil, label:string})
     ---@param cancel_cb? fun()
+    ---@return integer win
     function M.select_node(opts, cb, cancel_cb)
         if type(opts) == "function" then
             cb = opts
@@ -83,7 +85,7 @@ return function(roam)
         if type(cancel_cb) ~= "function" then
             cancel_cb = function() end
         end
-        roam_select_node(roam, opts, cb, cancel_cb)
+        return roam_select_node(roam, opts, cb, cancel_cb)
     end
 
     return M

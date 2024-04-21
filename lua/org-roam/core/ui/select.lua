@@ -286,6 +286,7 @@ function M:on_choice_missing(f)
 end
 
 ---Opens the selection dialog.
+---@return integer win
 function M:open()
     if not self.__state.window then
         init_highlights()
@@ -322,7 +323,7 @@ function M:open()
 
                 -- Reset to insert mode again, and start insert with ! to place at end
                 -- of the prompt line while within insert mode
-                vim.api.nvim_buf_call(window:bufnr(), function()
+                vim.api.nvim_win_call(winnr, function()
                     vim.cmd("startinsert!")
                 end)
 
@@ -424,8 +425,9 @@ function M:open()
     end
 
     self.__state.last_win = vim.api.nvim_get_current_win()
-    self.__state.window:open()
+    local win = self.__state.window:open()
     self:__render()
+    return win
 end
 
 ---Closes the selection dialog, canceling the choice.
