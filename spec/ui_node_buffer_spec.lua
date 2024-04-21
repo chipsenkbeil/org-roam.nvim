@@ -247,7 +247,9 @@ describe("org-roam.ui.node-buffer", function()
         assert(buf ~= 0, "failed to retrieve node buffer handle")
 
         -- Trigger our buffer-local mapping, waiting a bit for the preview
-        utils.trigger_mapping("n", "<S-Tab>", { buf = 0, wait = 100 })
+        -- NOTE: With a wait of 100, sometimes hasn't loaded preview yet;
+        --       so, we're using a longer wait time to give it a better chance.
+        utils.trigger_mapping("n", "<S-Tab>", { buf = 0, wait = 500 })
 
         assert.are.same({
             "Press <Enter> to open a link in another window",

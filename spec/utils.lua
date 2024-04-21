@@ -286,6 +286,21 @@ function M.buffer_local_mapping_exists(buf, mode, lhs)
     return false
 end
 
+---Deletes all autocmds tied to the specified group.
+---@param group integer|string
+function M.clear_autocmds(group)
+    local success, cmds = pcall(vim.api.nvim_get_autocmds, {
+        group = group,
+    })
+    if not success then return end
+    for _, cmd in ipairs(cmds or {}) do
+        local id = cmd.id
+        if id then
+            vim.api.nvim_del_autocmd(id)
+        end
+    end
+end
+
 ---Clears all windows by closing them forcibly.
 function M.clear_windows()
     local wins = vim.api.nvim_list_wins()

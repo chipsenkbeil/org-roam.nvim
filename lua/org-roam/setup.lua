@@ -72,7 +72,7 @@ local function define_autocmds(roam)
 
                 if is_roam_file then
                     log.fmt_debug("Updating on save: %s", path)
-                    roam.db:load_file({ path = path }):catch(notify.error)
+                    roam.db:load_file({ path = path }):catch(log.error)
                 end
             end,
         })
