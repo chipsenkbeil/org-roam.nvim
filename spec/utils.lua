@@ -30,7 +30,33 @@ end
 ---This can be adjusted for CI usage.
 ---@param time? integer
 function M.wait(time)
-    vim.wait(time or 300)
+    vim.wait(time or M.wait_time())
+end
+
+---@type integer|nil
+local __wait_time
+
+---Returns the standard wait time used across tests.
+---@return integer
+function M.wait_time()
+    -- Calculate our wait time the first time we are executed
+    if not __wait_time then
+        local stime = vim.env.ROAM_WAIT_TIME
+
+        -- If we were given `ROAM_WAIT_TIME`, try to parse it as milliseconds
+        if type(stime) == "string" then
+            stime = tonumber(stime)
+        end
+
+        -- If no explicit time set, but we are in a CI, use bigger number
+        if not stime and vim.env.CI == "true" then
+            stime = 500
+        end
+
+        __wait_time = type(stime) == "number" and stime or 100
+    end
+
+    return __wait_time
 end
 
 ---Takes string, splits into lines, and removes common indentation.

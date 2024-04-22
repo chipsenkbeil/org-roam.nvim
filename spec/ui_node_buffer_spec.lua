@@ -59,7 +59,7 @@ describe("org-roam.ui.node-buffer", function()
 
         -- Switch back to our node window and change it to move cursor
         vim.api.nvim_set_current_win(two_win)
-        vim.wait(100)
+        utils.wait()
 
         assert.are.same({
             "Press <Enter> to open a link in another window",
@@ -282,7 +282,7 @@ describe("org-roam.ui.node-buffer", function()
 
         -- Switch back to our node window and change it to move cursor
         vim.api.nvim_set_current_win(two_win)
-        vim.wait(100)
+        utils.wait()
 
         -- Verify it is unchanged despite cursor moving
         assert.are.same({

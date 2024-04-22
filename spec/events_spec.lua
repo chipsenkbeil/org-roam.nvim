@@ -71,7 +71,7 @@ describe("org-roam.events", function()
         vim.cmd.edit(test_path_one)
 
         -- Wait a moment for async events to process
-        vim.wait(1)
+        utils.wait()
 
         assert.are.same({ "1", "2", "", "3", "1" }, nodes)
     end)
@@ -116,7 +116,7 @@ describe("org-roam.events", function()
         move_cursor_to_line(7)
 
         -- Wait a moment for async events to process
-        vim.wait(1)
+        utils.wait()
 
         assert.are.same({ "1234", "5678", "1234" }, nodes)
     end)

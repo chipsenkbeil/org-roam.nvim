@@ -37,7 +37,7 @@ describe("org-roam.setup.autocmds", function()
         vim.cmd.write()
 
         -- Wait a bit to have the changes apply
-        vim.wait(100)
+        utils.wait()
 
         -- Verify that the database reflects the change
         ids = roam.db:ids()
@@ -72,7 +72,7 @@ describe("org-roam.setup.autocmds", function()
         vim.cmd.write()
 
         -- Wait a bit to have the changes apply
-        vim.wait(100)
+        utils.wait()
 
         -- Verify that the database does not reflect change
         ids = roam.db:ids()

@@ -29,7 +29,7 @@ describe("org-roam.setup.commands", function()
 
         -- Trigger the command and wait a bit
         vim.cmd("RoamSave")
-        vim.wait(100)
+        utils.wait()
 
         -- Verify the database file exists again
         assert.are.equal(1, vim.fn.filereadable(roam.config.database.path))
@@ -60,7 +60,7 @@ describe("org-roam.setup.commands", function()
 
         -- Trigger the command and wait a bit
         vim.cmd("RoamUpdate")
-        vim.wait(100)
+        utils.wait()
 
         -- Verify the existing file was updated
         local ids = roam.db:ids()
@@ -93,7 +93,7 @@ describe("org-roam.setup.commands", function()
 
         -- Trigger the command and wait a bit
         vim.cmd("RoamUpdate!")
-        vim.wait(100)
+        utils.wait()
 
         -- Verify the new file was loaded
         local ids = roam.db:ids()
@@ -134,7 +134,7 @@ describe("org-roam.setup.commands", function()
 
         -- Trigger the command and wait a bit
         vim.cmd("RoamDatabaseReset")
-        vim.wait(100)
+        utils.wait()
 
         -- Verify database has latest status
         ids = roam.db:ids()
@@ -177,7 +177,7 @@ describe("org-roam.setup.commands", function()
 
         -- Trigger the command and wait a bit
         vim.cmd("RoamAddAlias some alias")
-        vim.wait(100)
+        utils.wait()
 
         assert.are.same({
             ":PROPERTIES:",
@@ -222,7 +222,7 @@ describe("org-roam.setup.commands", function()
 
         -- Trigger the command and wait a bit
         vim.cmd("RoamRemoveAlias one")
-        vim.wait(100)
+        utils.wait()
 
         assert.are.same({
             ":PROPERTIES:",
@@ -266,7 +266,7 @@ describe("org-roam.setup.commands", function()
 
         -- Trigger the command and wait a bit
         vim.cmd("RoamAddOrigin node origin")
-        vim.wait(100)
+        utils.wait()
 
         assert.are.same({
             ":PROPERTIES:",
@@ -313,7 +313,7 @@ describe("org-roam.setup.commands", function()
 
         -- Trigger the command and wait a bit
         vim.cmd("RoamRemoveOrigin")
-        vim.wait(100)
+        utils.wait()
 
         assert.are.same({
             ":PROPERTIES:",

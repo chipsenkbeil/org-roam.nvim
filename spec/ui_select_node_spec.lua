@@ -35,7 +35,7 @@ describe("org-roam.ui.select-node", function()
         vim.api.nvim_buf_set_lines(buf, 0, 1, true, { text })
         vim.api.nvim_exec_autocmds("TextChangedI", { buffer = buf })
 
-        local wait = opts.wait or 100
+        local wait = opts.wait or utils.wait_time()
         if wait > 0 then
             vim.wait(wait)
         end
@@ -78,7 +78,7 @@ describe("org-roam.ui.select-node", function()
 
         -- Load up the selection interface for all nodes
         roam.ui.select_node(function() end)
-        vim.wait(100)
+        utils.wait()
 
         -- Grab lines from current buffer
         local lines = read_trimmed_sorted_buf_lines()
@@ -99,7 +99,7 @@ describe("org-roam.ui.select-node", function()
 
         -- Load up the selection interface for nodes 2 and 3
         roam.ui.select_node({ include = { "2", "3" } }, function() end)
-        vim.wait(100)
+        utils.wait()
 
         -- Grab lines from current buffer
         local lines = read_trimmed_sorted_buf_lines()
@@ -119,7 +119,7 @@ describe("org-roam.ui.select-node", function()
 
         -- Load up the selection interface for all nodes except 1
         roam.ui.select_node({ exclude = { "1" } }, function() end)
-        vim.wait(100)
+        utils.wait()
 
         -- Grab lines from current buffer
         local lines = read_trimmed_sorted_buf_lines()
@@ -139,7 +139,7 @@ describe("org-roam.ui.select-node", function()
 
         -- Load up the selection interface for all nodes that contain "o"
         roam.ui.select_node({ init_input = "o" }, function() end)
-        vim.wait(100)
+        utils.wait()
 
         -- Grab lines from current buffer
         local lines = read_trimmed_sorted_buf_lines()
@@ -165,7 +165,7 @@ describe("org-roam.ui.select-node", function()
             id = node.id
             selected = true
         end)
-        vim.wait(100)
+        utils.wait()
 
         -- Verify we're on the original window
         assert.are.equal(win, vim.api.nvim_get_current_win())
@@ -186,7 +186,7 @@ describe("org-roam.ui.select-node", function()
         roam.ui.select_node({ auto_select = true, init_input = "o" }, function()
             selected = true
         end)
-        vim.wait(100)
+        utils.wait()
 
         -- Grab lines from current buffer
         local lines = read_trimmed_sorted_buf_lines()
@@ -215,7 +215,7 @@ describe("org-roam.ui.select-node", function()
         end, function()
             canceled = true
         end)
-        vim.wait(100)
+        utils.wait()
 
         -- Should be at original window with no modifications
         assert.are.equal(win, vim.api.nvim_get_current_win())
@@ -237,7 +237,7 @@ describe("org-roam.ui.select-node", function()
             label = node.label
             selected = true
         end)
-        vim.wait(100)
+        utils.wait()
 
         -- Verify that we're at the selection dialog
         assert.are_not.equal(win, vim.api.nvim_get_current_win())
@@ -277,7 +277,7 @@ describe("org-roam.ui.select-node", function()
             label = node.label
             selected = true
         end)
-        vim.wait(100)
+        utils.wait()
 
         -- Verify that we're at the selection dialog
         assert.are_not.equal(win, vim.api.nvim_get_current_win())

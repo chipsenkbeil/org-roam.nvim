@@ -535,7 +535,7 @@ describe("org-roam.setup.keybindings", function()
         -- NOTE: We do this before any tests as any failure before capture
         --       buffer is closed can cause issues.
         vim.cmd("wq")
-        vim.wait(100)
+        utils.wait()
 
         -- Verify we have switched to the appropriate buffer, stubbing out
         -- the randomly-generated id
@@ -598,7 +598,7 @@ describe("org-roam.setup.keybindings", function()
         -- NOTE: We do this before any tests as any failure before capture
         --       buffer is closed can cause issues.
         vim.cmd("wq")
-        vim.wait(100)
+        utils.wait()
 
         -- Verify we have switched to the appropriate buffer, stubbing out
         -- the randomly-generated id

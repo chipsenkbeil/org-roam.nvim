@@ -58,7 +58,7 @@ describe("org-roam.ui.quickfix", function()
 
         -- Trigger a quickfix error navigation
         vim.cmd([[cc]])
-        vim.wait(100)
+        utils.wait()
 
         -- Verify position and contents
         local pos = vim.api.nvim_win_get_cursor(0)
@@ -91,7 +91,7 @@ describe("org-roam.ui.quickfix", function()
 
         -- Trigger a quickfix error navigation
         vim.cmd([[cc]])
-        vim.wait(100)
+        utils.wait()
 
         -- Verify position and contents
         local pos = vim.api.nvim_win_get_cursor(0)
@@ -148,7 +148,7 @@ describe("org-roam.ui.quickfix", function()
 
         -- Trigger a quickfix error navigation
         vim.cmd([[cc]])
-        vim.wait(100)
+        utils.wait()
 
         assert.are.same({
             ":PROPERTIES:",
