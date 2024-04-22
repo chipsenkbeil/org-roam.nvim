@@ -24,6 +24,9 @@ local EVENTS = {
     ---Internal, mapping between choices and cancellation.
     INTERNAL_MULTIPLEX = "internal:select:multiplex",
 
+    ---Selection dialog is ready (fully rendered for the first time).
+    READY = "select:ready",
+
     ---Selection has been changed.
     SELECT_CHANGE = "select:select_change",
 
@@ -39,9 +42,9 @@ local HIGHLIGHTS = {
     ---Highlight group whose foreground color is used for matches
     MATCHED_FG = "WarningMsg",
     ---Highlight group for unselected, matched text
-    MATCHED = "@org-roam.core.ui.select.matched",
+    MATCHED = "RoamCoreUiMatched",
     ---Highlight group for selected, matched text
-    SELECTED_MATCHED = "@org-roam.core.ui.select.selected-matched",
+    SELECTED_MATCHED = "RoamCoreUiSelectedMatched",
 }
 
 ---Initializes highlights globally for the select ui.
@@ -86,7 +89,7 @@ local init_highlights = (function()
 end)()
 
 ---@class (exact) org-roam.core.ui.select.View
----@field filtered_items {[1]:integer, [2]:string}[] #list of tuples representing indexes of items and labels to display
+---@field filtered_items {[1]:integer, [2]:any}[] #list of tuples representing indexes of items and items
 ---@field start integer #position within filtered items where items will be collected to show (up to max)
 ---@field selected integer #position of selected item within viewed items
 ---@field max_rows integer #maximum rows of viewed items to display
@@ -96,6 +99,7 @@ end)()
 ---@class (exact) org-roam.core.ui.select.State
 ---@field prompt_id integer|nil #id of the virtual text prompt
 ---@field emitter org-roam.core.utils.Emitter #event manager
+---@field last_win integer|nil #id of last window before opened selection
 ---@field window org-roam.core.ui.Window|nil #internal window
 
 ---@class (exact) org-roam.core.ui.select.Params
@@ -103,6 +107,7 @@ end)()
 ---@field init_input string #initial text to supply at the beginning
 ---@field auto_select boolean #if true, will select automatically if only one item (filtered) based on init_input
 ---@field allow_select_missing boolean #if true, enables selecting non-existent items
+---@field cancel_on_no_init_matches boolean #if true, cancels if input provided and no matches found
 ---@field bindings org-roam.core.ui.select.Bindings #bindings associated with the window
 ---@field format fun(item:any):string #converts item into displayed text
 ---@field match fun(item:any, input:string):{[1]:integer, [2]:integer}[] #returns ranges (start/end col) of matches (one-indexed, inclusive)
@@ -128,6 +133,7 @@ M.__index = M
 ---@field init_input? string
 ---@field auto_select? boolean
 ---@field allow_select_missing? boolean
+---@field cancel_on_no_init_matches? boolean
 ---@field bindings? {down?:string|string[], up?:string|string[], select?:string|string[], select_missing?:string|string[]}
 ---@field format? fun(item:any):string
 ---@field match? fun(item:any, input:string):{[1]:integer, [2]:integer}[]
@@ -143,6 +149,7 @@ function M:new(opts)
     setmetatable(instance, M)
 
     local allow_select_missing = opts.allow_select_missing or false
+    local cancel_on_no_init_matches = opts.cancel_on_no_init_matches or false
     local default_bindings = {
         down = { "<C-n>", "<Down>" },
         up = { "<C-p>", "<Up>" },
@@ -191,6 +198,7 @@ function M:new(opts)
         init_input = opts.init_input or "",
         auto_select = opts.auto_select or false,
         allow_select_missing = allow_select_missing,
+        cancel_on_no_init_matches = cancel_on_no_init_matches,
         bindings = vim.tbl_deep_extend("keep", bindings, default_bindings),
         format = format,
         match = match,
@@ -199,6 +207,7 @@ function M:new(opts)
 
     instance.__state = {
         emitter = Emitter:new(),
+        last_win = nil,
         prompt_id = nil,
         window = nil,
     }
@@ -220,6 +229,14 @@ function M:new(opts)
     }
 
     return instance
+end
+
+---Register callback when the selection dialog is ready.
+---@param f fun()
+---@return org-roam.core.ui.Select
+function M:on_ready(f)
+    self.__state.emitter:on(EVENTS.READY, f)
+    return self
 end
 
 ---Register callback when the selection dialog is canceled.
@@ -269,6 +286,7 @@ function M:on_choice_missing(f)
 end
 
 ---Opens the selection dialog.
+---@return integer win
 function M:open()
     if not self.__state.window then
         init_highlights()
@@ -305,12 +323,15 @@ function M:open()
 
                 -- Reset to insert mode again, and start insert with ! to place at end
                 -- of the prompt line while within insert mode
-                vim.api.nvim_buf_call(window:bufnr(), function()
+                vim.api.nvim_win_call(winnr, function()
                     vim.cmd("startinsert!")
                 end)
 
                 -- Mark ready so we don't reset the cursor again
                 ready = true
+
+                -- Report that we're now ready after the first render
+                self.__state.emitter:emit(EVENTS.READY)
             end
         end)
 
@@ -339,7 +360,7 @@ function M:open()
                 self:close()
 
                 if is_normal then
-                    vim.cmd.stopinsert()
+                    vim.cmd("stopinsert")
                 end
             end)
         end)
@@ -403,8 +424,10 @@ function M:open()
         self.__state.window = window
     end
 
-    self.__state.window:open()
+    self.__state.last_win = vim.api.nvim_get_current_win()
+    local win = self.__state.window:open()
     self:__render()
+    return win
 end
 
 ---Closes the selection dialog, canceling the choice.
@@ -439,6 +462,41 @@ function M:update_items(items)
 
     -- Schedule an update of the view
     self:__render()
+end
+
+---Returns the current list of filtered choices available from the selection dialog.
+---@return {item:any, label:string, idx:integer}[]
+function M:filtered_choices()
+    local choices = {}
+    for i, fitem in ipairs(self:__update_filtered_items()) do
+        local item = fitem[2]
+        local label = self.__params.format(fitem[2])
+        table.insert(choices, { item = item, label = label, idx = i })
+    end
+    return choices
+end
+
+---Choose an item (including its position in the filtered selection),
+---or custom input text that is not an item.
+---@param opts {text:string}|{item:any, idx:integer}
+function M:choose(opts)
+    if opts.text then
+        self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
+            type = EVENTS.CHOICE_INPUT,
+            text = opts.text,
+        })
+    elseif opts.idx then
+        self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
+            type = EVENTS.CHOICE,
+            item = opts.item,
+            idx = opts.idx,
+        })
+    end
+end
+
+---Cancel the selection, closing the dialog.
+function M:cancel()
+    self:close()
 end
 
 ---@private
@@ -523,10 +581,7 @@ function M:__trigger_selection()
     local item = self.__view.filtered_items[idx]
     if not item then
         if self.__params.allow_select_missing then
-            self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
-                type = EVENTS.CHOICE_INPUT,
-                text = self:__get_input(),
-            })
+            self:choose({ text = self:__get_input() })
         end
 
         return
@@ -539,11 +594,7 @@ function M:__trigger_selection()
     item = self.__params.items[idx]
 
     if item then
-        self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
-            type = EVENTS.CHOICE,
-            item = item,
-            idx = idx,
-        })
+        self:choose({ item = item, idx = idx })
     end
 end
 
@@ -551,10 +602,7 @@ end
 function M:__trigger_input_selection()
     local text = self:__get_input()
     if text ~= "" then
-        self.__state.emitter:emit(EVENTS.INTERNAL_MULTIPLEX, {
-            type = EVENTS.CHOICE_INPUT,
-            text = text,
-        })
+        self:choose({ text = text })
     end
 end
 
@@ -584,6 +632,26 @@ function M:__refresh_filter()
             self:__trigger_selection()
         end
     end
+
+    -- If we got no matches with our initial filter and we have cancel
+    -- enabled for mo matches, then do a cancellation
+    if self.__params.cancel_on_no_init_matches then
+        local is_initial_input = text == self.__params.init_input
+        local is_nonempty = vim.trim(text) ~= ""
+        local has_zero_items = #self.__view.filtered_items == 0
+
+        -- If non-empty input led to zero items, trigger a close, which
+        -- in turn should submit a cancellation event
+        if is_nonempty and is_initial_input and has_zero_items then
+            self:close()
+        end
+    end
+end
+
+---Returns the current input fed into the selection dialog.
+---@return string
+function M:input()
+    return self:__get_input()
 end
 
 ---@private
@@ -604,7 +672,9 @@ function M:__get_input()
 end
 
 ---@private
----@return {[1]:integer, [2]:any}
+---Updates list of filtered items, returning the updated list of tuples
+---representing the position of the item in the main list and the item itself.
+---@return {[1]:integer, [2]:any}[]
 function M:__update_filtered_items()
     local input = self:__get_input()
 
@@ -618,7 +688,7 @@ function M:__update_filtered_items()
     self.__view.selected = 1
     self.__view.start = 1
 
-    ---@type {[1]:integer, [2]:any, [3]:number|nil}
+    ---@type {[1]:integer, [2]:any, [3]:number|nil}[]
     local filtered = {}
     local rank = self.__params.rank
 
@@ -702,6 +772,15 @@ function M:__render()
 end
 
 ---@private
+---@return integer
+function M:__view_end()
+    return math.min(
+        self.__view.start + self.__view.max_rows - 1,
+        #self.__view.filtered_items
+    )
+end
+
+---@private
 ---@return org-roam.core.ui.Line[]
 function M:__render_component()
     local window = self.__state.window
@@ -720,10 +799,7 @@ function M:__render_component()
 
     local input = self:__get_input()
     local start = self.__view.start
-    local end_ = math.min(
-        self.__view.start + self.__view.max_rows - 1,
-        #self.__view.filtered_items
-    )
+    local end_ = self:__view_end()
 
     -- Loop through filtered items, beginning at the start position
     -- and continuing through max rows

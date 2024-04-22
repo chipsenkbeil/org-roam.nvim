@@ -4,11 +4,10 @@
 -- Contains logic to initialize the plugin.
 -------------------------------------------------------------------------------
 
-local CONFIG = require("org-roam.config")
-local EVENTS = require("org-roam.events")
 local AUGROUP = vim.api.nvim_create_augroup("org-roam.nvim", {})
 
 local log = require("org-roam.core.log")
+local notify = require("org-roam.core.ui.notify")
 
 ---@alias org-roam.config.NvimMode
 ---| "n"
@@ -21,9 +20,9 @@ local log = require("org-roam.core.log")
 ---| "c"
 ---| "t"
 
+---@param roam OrgRoam
 ---@param config org-roam.Config
----@return org-roam.Config
-local function merge_config(config)
+local function merge_config(roam, config)
     assert(config.directory, "missing org-roam directory")
 
     -- Normalize the roam directory before storing it
@@ -31,22 +30,18 @@ local function merge_config(config)
     config.directory = vim.fs.normalize(config.directory)
 
     -- Merge our configuration options into our global config
-    CONFIG(config)
-
-    ---@type org-roam.Config
-    return CONFIG
+    roam.config:replace(config)
 end
 
----@param config org-roam.Config
-local function define_autocmds(config)
+---@param roam OrgRoam
+local function define_autocmds(roam)
     -- Watch as cursor moves around so we can support node changes
     local last_node = nil
-    vim.api.nvim_create_autocmd("CursorMoved", {
+    vim.api.nvim_create_autocmd({ "BufEnter", "CursorMoved" }, {
         group = AUGROUP,
         pattern = "*.org",
         callback = function()
-            local utils = require("org-roam.utils")
-            utils.node_under_cursor(function(node)
+            roam.utils.node_under_cursor(function(node)
                 -- If the node has changed (event getting cleared),
                 -- we want to emit the event
                 if last_node ~= node then
@@ -54,7 +49,7 @@ local function define_autocmds(config)
                         log.fmt_debug("New node under cursor: %s", node.id)
                     end
 
-                    EVENTS:emit(EVENTS.KIND.CURSOR_NODE_CHANGED, node)
+                    roam.events.emit(roam.events.KIND.CURSOR_NODE_CHANGED, node)
                 end
 
                 last_node = node
@@ -64,7 +59,7 @@ local function define_autocmds(config)
 
     -- If configured to update on save, listen for buffer writing
     -- and trigger reload if an org-roam buffer
-    if config.database.update_on_save then
+    if roam.config.database.update_on_save then
         vim.api.nvim_create_autocmd({ "BufWritePost", "FileWritePost" }, {
             group = AUGROUP,
             pattern = "*.org",
@@ -73,13 +68,11 @@ local function define_autocmds(config)
                 --       future, this will break. Is there a better way
                 --       to check if a file is an org-roam file?
                 local path = vim.fn.expand("<afile>:p")
-                local is_roam_file = vim.startswith(path, config.directory)
+                local is_roam_file = vim.startswith(path, roam.config.directory)
 
                 if is_roam_file then
                     log.fmt_debug("Updating on save: %s", path)
-                    require("org-roam.database")
-                        :load_file({ path = path })
-                        :catch(require("org-roam.core.ui.notify").error)
+                    roam.db:load_file({ path = path }):catch(log.error)
                 end
             end,
         })
@@ -87,22 +80,22 @@ local function define_autocmds(config)
 
     -- If configured to persist to disk, look for when neovim is exiting
     -- and save an updated version of the database
-    if config.database.persist then
+    if roam.config.database.persist then
         vim.api.nvim_create_autocmd("VimLeavePre", {
             group = AUGROUP,
             pattern = "*",
             callback = function()
-                require("org-roam.database")
-                    :save()
-                    :catch(require("org-roam.core.ui.notify").error)
+                -- Block, don't be async, as neovim could exit during async
+                -- and cause issues with corrupt databases
+                log.fmt_debug("Persisting database to disk: %s", roam.db:path())
+                roam.db:save():catch(log.error):wait()
             end,
         })
     end
 end
 
----@param config org-roam.Config
-local function define_commands(config)
-    local notify = require("org-roam.core.ui.notify")
+---@param roam OrgRoam
+local function define_commands(roam)
     local Profiler = require("org-roam.core.utils.profiler")
 
     vim.api.nvim_create_user_command("RoamSave", function(opts)
@@ -112,15 +105,12 @@ local function define_commands(config)
         local profiler = Profiler:new()
         profiler:start()
 
-        require("org-roam.database")
-            :save()
-            :next(function(...)
-                local tt = profiler:stop():time_taken_as_string()
-                notify.info("Saved database [took " .. tt .. "]")
-                return ...
-            end)
-            :catch(notify.error)
-    end, { bang = true, desc = "Saves the roam database" })
+        roam.db:save():next(function(...)
+            local tt = profiler:stop():time_taken_as_string()
+            notify.info("Saved database [took " .. tt .. "]")
+            return ...
+        end):catch(notify.error)
+    end, { bang = true, desc = "Saves the roam database to disk" })
 
     vim.api.nvim_create_user_command("RoamUpdate", function(opts)
         local force = opts.bang or false
@@ -130,15 +120,33 @@ local function define_commands(config)
         profiler:start()
 
         log.fmt_debug("Updating database (force = %s)", force)
-        require("org-roam.database")
-            :load({ force = force })
-            :next(function(...)
-                local tt = profiler:stop():time_taken_as_string()
-                notify.info("Updated database [took " .. tt .. "]")
-                return ...
-            end)
-            :catch(notify.error)
+        roam.db:load({ force = force }):next(function(...)
+            local tt = profiler:stop():time_taken_as_string()
+            notify.info("Updated database [took " .. tt .. "]")
+            return ...
+        end):catch(notify.error)
     end, { bang = true, desc = "Updates the roam database" })
+
+    vim.api.nvim_create_user_command("RoamDatabaseReset", function()
+        log.debug("Resetting database")
+        roam.db:delete_disk_cache():next(function(success)
+            roam.db = roam.db:new({
+                db_path = roam.db:path(),
+                directory = roam.db:files_path(),
+            })
+
+            -- Start profiling so we can report the time taken
+            local profiler = Profiler:new()
+            profiler:start()
+            roam.db:load():next(function(...)
+                local tt = profiler:stop():time_taken_as_string()
+                notify.info("Loaded database [took " .. tt .. "]")
+                return ...
+            end):catch(notify.error)
+
+            return success
+        end)
+    end, { desc = "Completely wipes the roam database" })
 
     vim.api.nvim_create_user_command("RoamAddAlias", function(opts)
         ---@type string|nil
@@ -147,7 +155,7 @@ local function define_commands(config)
             alias = nil
         end
 
-        require("org-roam.api").add_alias({ alias = alias })
+        roam.api.add_alias({ alias = alias })
     end, {
         desc = "Adds an alias to the current node under cursor",
         nargs = "*",
@@ -162,7 +170,7 @@ local function define_commands(config)
             alias = nil
         end
 
-        require("org-roam.api").remove_alias({ alias = alias, all = all })
+        roam.api.remove_alias({ alias = alias, all = all })
     end, {
         bang = true,
         desc = "Removes an alias from the current node under cursor",
@@ -176,24 +184,24 @@ local function define_commands(config)
             origin = nil
         end
 
-        require("org-roam.api").add_origin({ origin = origin })
+        roam.api.add_origin({ origin = origin })
     end, {
         desc = "Adds an origin to the current node under cursor",
         nargs = "*",
     })
 
     vim.api.nvim_create_user_command("RoamRemoveOrigin", function()
-        require("org-roam.api").remove_origin()
+        roam.api.remove_origin()
     end, {
         bang = true,
         desc = "Removes an origin from the current node under cursor",
     })
 end
 
----@param config org-roam.Config
-local function define_keybindings(config)
+---@param roam OrgRoam
+local function define_keybindings(roam)
     -- User can remove all bindings by setting this to nil
-    local bindings = config.bindings or {}
+    local bindings = roam.config.bindings or {}
 
     ---Retrievies selection if in visual mode.
     ---Returns "unsupported" if blockwise-visual mode.
@@ -206,8 +214,7 @@ local function define_keybindings(config)
         -- Handle visual mode and linewise visual mode
         -- (ignore blockwise-visual mode)
         if mode == "v" or mode == "V" then
-            local utils = require("org-roam.utils")
-            local lines, ranges = utils.get_visual_selection({ single_line = true })
+            local lines, ranges = roam.utils.get_visual_selection({ single_line = true })
             local title = lines[1] or ""
 
             return { title = title, ranges = ranges }
@@ -217,9 +224,7 @@ local function define_keybindings(config)
             vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
 
             vim.schedule(function()
-                require("org-roam.core.ui.notify").echo_error(
-                    "node insertion not supported for blockwise-visual mode"
-                )
+                notify.echo_error("node insertion not supported for blockwise-visual mode")
             end)
 
             return "unsupported"
@@ -255,44 +260,44 @@ local function define_keybindings(config)
     assign(
         bindings.add_alias,
         "Adds an alias to the roam node under cursor",
-        require("org-roam.api").add_alias
+        roam.api.add_alias
     )
 
     assign(
         bindings.remove_alias,
         "Removes an alias from the roam node under cursor",
-        require("org-roam.api").remove_alias
+        roam.api.remove_alias
     )
 
     assign(
         bindings.add_origin,
         "Adds an origin to the roam node under cursor",
-        require("org-roam.api").add_origin
+        roam.api.add_origin
     )
 
     assign(
         bindings.remove_origin,
         "Removes the origin from the roam node under cursor",
-        require("org-roam.api").remove_origin
+        roam.api.remove_origin
     )
 
     assign(
         bindings.goto_prev_node,
         "Goes to the previous node sequentially based on origin of the node under cursor",
-        require("org-roam.api").goto_prev_node
+        roam.api.goto_prev_node
     )
 
     assign(
         bindings.goto_next_node,
         "Goes to the next node sequentially based on origin of the node under cursor",
-        require("org-roam.api").goto_next_node
+        roam.api.goto_next_node
     )
 
     assign(
         bindings.quickfix_backlinks,
         "Open quickfix of backlinks for org-roam node under cursor",
         function()
-            require("org-roam.api").open_quickfix_list({
+            roam.ui.open_quickfix_list({
                 backlinks = true,
                 show_preview = true,
             })
@@ -301,22 +306,29 @@ local function define_keybindings(config)
 
     assign(
         bindings.toggle_roam_buffer,
-        "Opens org-roam buffer for node under cursor",
-        require("org-roam.api").open_node_buffer
+        "Toggles org-roam buffer for node under cursor",
+        function()
+            roam.ui.toggle_node_buffer({
+                focus = roam.config.ui.node_buffer.focus_on_toggle,
+            })
+        end
     )
 
     assign(
         bindings.toggle_roam_buffer_fixed,
-        "Opens org-roam buffer for a specific node, not changing",
+        "Toggles org-roam buffer for a specific node, not changing",
         function()
-            require("org-roam.api").open_node_buffer({ fixed = true })
+            roam.ui.toggle_node_buffer({
+                fixed = true,
+                focus = roam.config.ui.node_buffer.focus_on_toggle,
+            })
         end
     )
 
     assign(
         bindings.complete_at_point,
         "Completes link to a node based on expression under cursor",
-        require("org-roam.api").complete_node
+        roam.api.complete_node
     )
 
     assign(
@@ -330,7 +342,7 @@ local function define_keybindings(config)
             elseif results == "unsupported" then
                 return
             end
-            require("org-roam.api").capture_node({
+            roam.api.capture_node({
                 title = title,
             })
         end
@@ -347,7 +359,7 @@ local function define_keybindings(config)
             elseif results == "unsupported" then
                 return
             end
-            require("org-roam.api").find_node({
+            roam.api.find_node({
                 title = title,
             })
         end
@@ -365,7 +377,7 @@ local function define_keybindings(config)
             elseif results == "unsupported" then
                 return
             end
-            require("org-roam.api").insert_node({
+            roam.api.insert_node({
                 title = title,
                 ranges = ranges,
             })
@@ -384,7 +396,7 @@ local function define_keybindings(config)
             elseif results == "unsupported" then
                 return
             end
-            require("org-roam.api").insert_node({
+            roam.api.insert_node({
                 immediate = true,
                 title = title,
                 ranges = ranges,
@@ -393,8 +405,8 @@ local function define_keybindings(config)
     )
 end
 
----@param config org-roam.Config
-local function modify_orgmode_plugin(config)
+---@param roam OrgRoam
+local function modify_orgmode_plugin(roam)
     -- Provide a wrapper around `open_at_point` from orgmode mappings so we can
     -- attempt to jump to an id referenced by our database first, and then fall
     -- back to orgmode's id handling second.
@@ -406,7 +418,7 @@ local function modify_orgmode_plugin(config)
         local row, col = vim.fn.getline("."), vim.fn.col(".") or 0
         local link = require("orgmode.org.hyperlinks.link").at_pos(row, col)
         local id = link and link.url:get_id()
-        local node = id and require("org-roam.database"):get_sync(id)
+        local node = id and roam.db:get_sync(id)
 
         -- If we found a node, open the file at the start of the node
         if node then
@@ -435,44 +447,97 @@ local function modify_orgmode_plugin(config)
     end
 end
 
----@param config org-roam.Config
-local function initialize_database(config)
-    local db      = require("org-roam.database")
+---@param roam OrgRoam
+local function initialize_database(roam)
     local Promise = require("orgmode.utils.promise")
 
+    -- Swap out the database for one configured properly
+    roam.db = roam.db:new({
+        db_path = roam.config.database.path,
+        directory = roam.config.directory,
+    })
+
     -- Load the database asynchronously
-    db:load():next(function()
+    roam.db:load():next(function()
         -- If we are persisting to disk, do so now as the database may
         -- have changed post-load
-        if config.database.persist then
-            return db:save()
+        if roam.config.database.persist then
+            return roam.db:save()
         else
             return Promise.resolve(nil)
         end
-    end):catch(function(err)
-        require("org-roam.core.ui.notify").error(err)
-    end)
+    end):catch(notify.error)
 end
 
----@param this OrgRoam
----@param config org-roam.Config
-local function populate_plugin(this, config)
-    this.api    = require("org-roam.api")
-    this.config = config
-    this.db     = require("org-roam.database")
-    this.evt    = require("org-roam.events")
-    this.ext    = require("org-roam.extensions")
-end
+---@param roam OrgRoam
+---@return org-roam.Setup
+return function(roam)
+    ---@class org-roam.Setup
+    ---@operator call(org-roam.Config):nil
+    local M = setmetatable({}, {
+        __call = function(this, config)
+            this.call(config)
+        end
+    })
 
----Initializes the plugin.
----@param this OrgRoam
----@param config org-roam.Config
-return function(this, config)
-    config = merge_config(config)
-    define_autocmds(config)
-    define_commands(config)
-    define_keybindings(config)
-    modify_orgmode_plugin(config)
-    initialize_database(config)
-    populate_plugin(this, config)
+    ---Calls the setup function to initialize the plugin.
+    ---@param config org-roam.Config|nil
+    function M.call(config)
+        M.__merge_config(config or {})
+        M.__define_autocmds()
+        M.__define_commands()
+        M.__define_keybindings()
+        M.__modify_orgmode_plugin()
+        M.__initialize_database()
+    end
+
+    ---@private
+    function M.__merge_config(config)
+        if not M.__merge_config_done then
+            merge_config(roam, config)
+            M.__merge_config_done = true
+        end
+    end
+
+    ---@private
+    function M.__define_autocmds()
+        if not M.__define_autocmds_done then
+            define_autocmds(roam)
+            M.__define_autocmds_done = true
+        end
+    end
+
+    ---@private
+    function M.__define_commands()
+        if not M.__define_commands_done then
+            define_commands(roam)
+            M.__define_commands_done = true
+        end
+    end
+
+    ---@private
+    function M.__define_keybindings()
+        if not M.__define_keybindings_done then
+            define_keybindings(roam)
+            M.__define_keybindings_done = true
+        end
+    end
+
+    ---@private
+    function M.__modify_orgmode_plugin()
+        if not M.__modify_orgmode_plugin_done then
+            modify_orgmode_plugin(roam)
+            M.__modify_orgmode_plugin_done = true
+        end
+    end
+
+    ---@private
+    function M.__initialize_database()
+        if not M.__initialize_database_done then
+            initialize_database(roam)
+            M.__initialize_database_done = true
+        end
+    end
+
+    return M
 end

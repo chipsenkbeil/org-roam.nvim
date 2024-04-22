@@ -83,11 +83,11 @@ function M:open()
 
     -- Display hint on top of each window
     hint:draw(windows)
-    vim.cmd.redraw()
+    vim.cmd("redraw")
 
     -- Get a character from our selection, or nil if escaped
     self:__get_user_input_char(function(char)
-        vim.cmd.redraw()
+        vim.cmd("redraw")
         hint:clear()
 
         if not char then

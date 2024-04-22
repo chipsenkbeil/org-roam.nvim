@@ -38,6 +38,7 @@ local EVENTS = {
 ---@field focus_on_open? boolean
 ---@field close_on_bufleave? boolean
 ---@field destroy_on_close? boolean
+---@field buffer? org-roam.core.ui.Buffer
 ---@field bufopts? table<string, any>
 ---@field winopts? table<string, any>
 ---@field components? (org-roam.core.ui.Component|org-roam.core.ui.ComponentFunction)[]
@@ -88,9 +89,9 @@ function M:new(opts)
     setmetatable(instance, M)
 
     -- Create the buffer we will use with the window
-    instance.__buffer = Buffer:new(vim.tbl_extend("keep", opts.bufopts or {}, {
-        name = opts.name,
-    }))
+    instance.__buffer = opts.buffer or Buffer:new(vim.tbl_extend("keep",
+        opts.bufopts or {}, { name = opts.name }
+    ))
 
     -- Apply any components we've been assigned
     if type(opts.components) == "table" then

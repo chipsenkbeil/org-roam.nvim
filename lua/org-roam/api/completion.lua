@@ -4,23 +4,16 @@
 -- Contains functionality tied to roam completion api.
 -------------------------------------------------------------------------------
 
-local db = require("org-roam.database")
+local Promise = require("orgmode.utils.promise")
 local utils = require("org-roam.utils")
 
-local M = {}
-
----Opens a dialog to select a node based on the expression under the cursor
----and replace the expression with a link to the selected node. If there is
----only one choice, this will automatically inject the link without bringing
----up the selection dialog.
----
----This implements the functionality of both:
----
----* `org-roam-complete-link-at-point`
----* `org-roam-complete-everywhere`
-function M.complete_node_under_cursor()
-    local winnr = vim.api.nvim_get_current_win()
-    local bufnr = vim.api.nvim_get_current_buf()
+---@param roam OrgRoam
+---@param opts? {win?:integer}
+---@return OrgPromise<boolean>
+local function roam_complete_node_under_cursor(roam, opts)
+    opts = opts or {}
+    local winnr = opts.win or vim.api.nvim_get_current_win()
+    local bufnr = vim.api.nvim_win_get_buf(winnr)
 
     -- Figure out our selection range and input
     -- to feed into our dialog based on whether
@@ -30,7 +23,7 @@ function M.complete_node_under_cursor()
     ---@type string|nil
     local input
 
-    local link = utils.link_under_cursor()
+    local link = utils.link_under_cursor({ win = winnr })
     if link then
         local cursor = vim.api.nvim_win_get_cursor(winnr)
         local row = cursor[1] - 1 -- make zero-indexed
@@ -49,17 +42,20 @@ function M.complete_node_under_cursor()
             input = string.sub(input, 4)
         end
     else
-        selection = utils.expr_under_cursor()
+        selection = utils.expr_under_cursor({ win = winnr })
         input = selection
     end
 
-    require("org-roam.ui.select-node")({
-        auto_select = true,
-        init_input = input,
-    }, function(choice)
-        local node = db:get_sync(choice.id)
+    return Promise.new(function(resolve)
+        roam.ui.select_node({
+            auto_select = true,
+            init_input = input,
+        }, function(choice)
+            local node = roam.db:get_sync(choice.id)
+            if not node then
+                return resolve(false)
+            end
 
-        if node then
             -- Get our cursor position
             local cursor = vim.api.nvim_win_get_cursor(winnr)
 
@@ -86,17 +82,47 @@ function M.complete_node_under_cursor()
             end
 
             -- Insert text representing the new link only if we found a match
-            if i ~= nil then
-                -- Replace the text (this will place us into insert mode)
-                vim.api.nvim_buf_set_text(bufnr, row, col, row, col + #selection, {
-                    string.format("[[id:%s][%s]]", node.id, choice.label)
-                })
-
-                -- Force ourselves back into normal mode
-                vim.cmd("stopinsert")
+            if i == nil then
+                resolve(false)
+                return
             end
-        end
+
+            -- Replace the text (this will place us into insert mode)
+            vim.api.nvim_buf_set_text(bufnr, row, col, row, col + #selection, {
+                string.format("[[id:%s][%s]]", node.id, choice.label)
+            })
+
+            -- Force ourselves back into normal mode
+            vim.cmd.stopinsert()
+
+            -- Mark as successful
+            resolve(true)
+        end, function()
+            resolve(false)
+        end)
     end)
 end
 
-return M
+---@param roam OrgRoam
+---@return org-roam.api.CompletionApi
+return function(roam)
+    ---@class org-roam.api.CompletionApi
+    local M = {}
+
+    ---Opens a dialog to select a node based on the expression under the cursor
+    ---and replace the expression with a link to the selected node. If there is
+    ---only one choice, this will automatically inject the link without bringing
+    ---up the selection dialog.
+    ---
+    ---This implements the functionality of both:
+    ---
+    ---* `org-roam-complete-link-at-point`
+    ---* `org-roam-complete-everywhere`
+    ---@param opts? {win?:integer}
+    ---@return OrgPromise<boolean>
+    function M.complete_node_under_cursor(opts)
+        return roam_complete_node_under_cursor(roam, opts)
+    end
+
+    return M
+end

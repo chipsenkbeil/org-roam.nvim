@@ -158,6 +158,40 @@ function M:lines()
     return vim.api.nvim_buf_get_lines(self.__bufnr, 0, -1, true)
 end
 
+---Returns true if the buffer exists and has not been deleted.
+---@return boolean
+function M:is_valid()
+    return vim.api.nvim_buf_is_valid(self.__bufnr)
+end
+
+---Returns a list of window handles containing this buffer.
+---@return integer[]
+function M:windows()
+    local windows = {}
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+        local bufnr = vim.api.nvim_win_get_buf(win)
+        if bufnr == self.__bufnr then
+            table.insert(windows, win)
+        end
+    end
+    return windows
+end
+
+---Returns a list of window handles within the specified tabpage containing
+---this buffer.
+---@param tabpage integer
+---@return integer[]
+function M:windows_for_tabpage(tabpage)
+    local windows = {}
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tabpage)) do
+        local bufnr = vim.api.nvim_win_get_buf(win)
+        if bufnr == self.__bufnr then
+            table.insert(windows, win)
+        end
+    end
+    return windows
+end
+
 ---Invokes `cb` right before render has started.
 ---@param cb fun()
 function M:on_pre_render(cb)
@@ -217,7 +251,7 @@ end
 ---NOTE: Once destroyed, the buffer should not be used again.
 function M:destroy()
     vim.schedule(function()
-        if vim.api.nvim_buf_is_valid(self.__bufnr) then
+        if self:is_valid() then
             vim.api.nvim_buf_delete(self.__bufnr, { force = true })
         end
     end)
@@ -240,6 +274,12 @@ function M:render(opts)
     local function do_render()
         -- If buffer not in scheduled state (e.g. paused), exit without rendering
         if self.__state ~= STATE.SCHEDULED then
+            return
+        end
+
+        -- If buffer is no longer valid at this point, skip rendering
+        if not self:is_valid() then
+            self.__state = STATE.IDLE
             return
         end
 
@@ -534,6 +574,16 @@ function M:__clear(opts)
     end
 
     -- Clear highlights and contents of the buffer
+    --
+    -- NOTE: It appears in our tests, specifically api-completion for
+    --       exactly one match, we hit an internal error:
+    --       "Vim:E315: ml_get: invalid lnum: 2" for the call to
+    --       nvim_buf_set_lines.
+    --
+    --       I tried to add a check earlier to see if the buffer was loaded,
+    --       but it didn't do anything to help. So for now we're ignoring
+    --       this as this seems to happen in the test only and does not stop
+    --       the test from completing successfull.
     vim.api.nvim_buf_clear_namespace(self.__bufnr, self.__namespace, self.__offset, -1)
     vim.api.nvim_buf_set_lines(self.__bufnr, self.__offset, -1, true, {})
 

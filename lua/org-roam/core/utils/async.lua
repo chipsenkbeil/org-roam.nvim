@@ -8,7 +8,7 @@ local pack = require("org-roam.core.utils.table").pack
 local unpack = require("org-roam.core.utils.table").unpack
 
 ---Maximum timeout (in seconds) for `vim.wait`.
----Needed as `math.huge` is too big for `vim.wait` to support.
+---Needed as `math.max` is too big for `vim.wait` to support.
 ---@type integer
 local MAX_TIMEOUT = 2 ^ 31
 
@@ -40,7 +40,7 @@ end
 ---Accepts options to configure how to wait for writing to finish.
 ---
 ---* `time`: the milliseconds to wait for writing to finish.
---   Defaults to waiting forever by using `math.huge`.
+---  Defaults to waiting forever.
 ---* `interval`: the millseconds between attempts to check that writing
 ---  has finished. Defaults to 200 milliseconds.
 ---* `n`: the maximum number of arguments the function expects to receive,

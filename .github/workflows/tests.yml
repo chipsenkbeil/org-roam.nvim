@@ -10,7 +10,9 @@ on:
 
 env:
   CI: true
+  ROAM_DEBUG: true
   ROAM_TEST_REPORT: false
+  ROAM_WAIT_TIME: 500
 
 jobs:
   tests:

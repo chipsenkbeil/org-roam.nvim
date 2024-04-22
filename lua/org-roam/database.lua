@@ -4,8 +4,7 @@
 -- Contains global database logic used by the plugin.
 -------------------------------------------------------------------------------
 
-local CONFIG = require("org-roam.config")
-
+local io = require("org-roam.core.utils.io")
 local Loader = require("org-roam.database.loader")
 local log = require("org-roam.core.log")
 local Profiler = require("org-roam.core.utils.profiler")
@@ -20,16 +19,15 @@ local schema = require("org-roam.database.schema")
 local M = {}
 
 ---Creates a new, unloaded instance of the database.
----@param opts? {db_path?:string, directory?:string}
+---@param opts {db_path:string, directory:string}
 ---@return org-roam.Database
 function M:new(opts)
-    opts = opts or {}
     local instance = {}
     setmetatable(instance, M)
     instance.__last_save = -1
     instance.__loader = nil
-    instance.__database_path = opts.db_path or CONFIG.database.path
-    instance.__directory = opts.directory or CONFIG.directory
+    instance.__database_path = opts.db_path
+    instance.__directory = opts.directory
     return instance
 end
 
@@ -72,6 +70,19 @@ end
 ---@return string
 function M:files_path()
     return self.__directory
+end
+
+---Returns the internal database wrapped by this interface.
+---@return OrgPromise<org-roam.core.Database>
+function M:internal()
+    return self:__get_loader():database()
+end
+
+---Returns the internal database wrapped by this interface.
+---@param opts? {timeout?:integer}
+---@return org-roam.core.Database
+function M:internal_sync(opts)
+    return self:__get_loader():database_sync(opts)
 end
 
 ---Loads the database from disk and re-parses files.
@@ -159,6 +170,32 @@ function M:save(opts)
                         self.__last_save = db:changed_tick()
                         resolve(nil)
                     end)
+                end)
+            end)
+        end)
+    end)
+end
+
+---Deletes the database cache from disk.
+---@return OrgPromise<boolean>
+function M:delete_disk_cache()
+    return Promise.new(function(resolve, reject)
+        io.stat(self.__database_path, function(err, stat)
+            if err or not stat then
+                return vim.schedule(function()
+                    resolve(false)
+                end)
+            end
+
+            io.unlink(self.__database_path, function(err, success)
+                if err then
+                    return vim.schedule(function()
+                        reject(err)
+                    end)
+                end
+
+                return vim.schedule(function()
+                    resolve(success or false)
                 end)
             end)
         end)
@@ -397,5 +434,4 @@ function M:get_file_backlinks_sync(file, opts)
     return self:get_file_backlinks(file, opts):wait(opts.timeout)
 end
 
-local INSTANCE = M:new()
-return INSTANCE
+return M

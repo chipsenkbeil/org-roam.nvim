@@ -199,6 +199,41 @@ function M.stat(path, cb)
     uv.fs_stat(path, cb)
 end
 
+---Removes the file specified by `path`.
+---
+---Note: cannot be called within fast callbacks.
+---
+---Accepts options to configure how to wait.
+---
+---* `time`: the milliseconds to wait for writing to finish.
+---  Defaults to waiting forever.
+---* `interval`: the millseconds between attempts to check that writing
+---  has finished. Defaults to 200 milliseconds.
+---@param path string
+---@param opts? {time?:integer,interval?:integer}
+---@return string|nil err, boolean|nil success
+function M.unlink_sync(path, opts)
+    opts = opts or {}
+
+    local f = async.wrap(
+        M.unlink,
+        {
+            time = opts.time,
+            interval = opts.interval,
+            n = 1,
+        }
+    )
+
+    return f(path)
+end
+
+---Removes the file specified by `path`.
+---@param path string
+---@param cb fun(err:string|nil, success:boolean|nil)
+function M.unlink(path, cb)
+    uv.fs_unlink(path, cb)
+end
+
 ---@alias org-roam.core.utils.io.WalkEntryType
 ---|'"file"'
 ---|'"directory"'
