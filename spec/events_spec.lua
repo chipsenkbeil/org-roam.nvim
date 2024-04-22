@@ -28,7 +28,7 @@ describe("org-roam.events", function()
             db_path = vim.fn.tempname() .. "-test-db",
             directory = test_dir,
         })
-        roam.setup({ directory = test_dir })
+        roam.setup({ directory = test_dir }):wait()
 
         -- Patch `vim.cmd` so we can run tests here
         utils.patch_vim_cmd()

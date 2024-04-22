@@ -376,7 +376,7 @@ function M.init_plugin(opts)
         if type(opts.setup) == "table" then
             config = vim.tbl_deep_extend("force", config, opts.setup)
         end
-        roam.setup(config)
+        roam.setup(config):wait()
     end
     return roam
 end

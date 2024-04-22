@@ -31,6 +31,11 @@ describe("org-roam.setup.commands", function()
         vim.cmd("RoamSave")
         utils.wait()
 
+        local parent_dir = vim.fs.dirname(roam.config.database.path)
+        for name, kind in vim.fs.dir(parent_dir) do
+            print("[" .. kind .. "] " .. name)
+        end
+
         -- Verify the database file exists again
         assert.are.equal(1, vim.fn.filereadable(roam.config.database.path))
     end)

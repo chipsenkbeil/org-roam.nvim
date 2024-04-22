@@ -99,37 +99,56 @@ local function define_commands(roam)
     local Profiler = require("org-roam.core.utils.profiler")
 
     vim.api.nvim_create_user_command("RoamSave", function(opts)
-        log.fmt_debug("Saving database")
+        local args = opts.args or ""
+        local sync = string.lower(vim.trim(args)) == "sync"
+        log.fmt_debug("Saving database (sync = %s)", sync)
 
         -- Start profiling so we can report the time taken
         local profiler = Profiler:new()
         profiler:start()
 
-        roam.db:save():next(function(...)
+        local promise = roam.db:save():next(function(...)
             local tt = profiler:stop():time_taken_as_string()
             notify.info("Saved database [took " .. tt .. "]")
             return ...
         end):catch(notify.error)
-    end, { bang = true, desc = "Saves the roam database to disk" })
+
+        if sync then promise:wait() end
+    end, {
+        bang = true,
+        desc = "Saves the roam database to disk",
+        nargs = "?",
+    })
 
     vim.api.nvim_create_user_command("RoamUpdate", function(opts)
         local force = opts.bang or false
+        local args = opts.args or ""
+        local sync = string.lower(vim.trim(args)) == "sync"
 
         -- Start profiling so we can report the time taken
         local profiler = Profiler:new()
         profiler:start()
 
-        log.fmt_debug("Updating database (force = %s)", force)
-        roam.db:load({ force = force }):next(function(...)
+        log.fmt_debug("Updating database (force = %s, sync = %s)", force, sync)
+        local promise = roam.db:load({ force = force }):next(function(...)
             local tt = profiler:stop():time_taken_as_string()
             notify.info("Updated database [took " .. tt .. "]")
             return ...
         end):catch(notify.error)
-    end, { bang = true, desc = "Updates the roam database" })
 
-    vim.api.nvim_create_user_command("RoamDatabaseReset", function()
-        log.debug("Resetting database")
-        roam.db:delete_disk_cache():next(function(success)
+        if sync then promise:wait() end
+    end, {
+        bang = true,
+        desc = "Updates the roam database",
+        nargs = "?",
+    })
+
+    vim.api.nvim_create_user_command("RoamDatabaseReset", function(opts)
+        local args = opts.args or ""
+        local sync = string.lower(vim.trim(args)) == "sync"
+
+        log.fmt_debug("Resetting database (sync = %s)", sync)
+        local promise = roam.db:delete_disk_cache():next(function(success)
             roam.db = roam.db:new({
                 db_path = roam.db:path(),
                 directory = roam.db:files_path(),
@@ -138,15 +157,18 @@ local function define_commands(roam)
             -- Start profiling so we can report the time taken
             local profiler = Profiler:new()
             profiler:start()
-            roam.db:load():next(function(...)
+            return roam.db:load():next(function(...)
                 local tt = profiler:stop():time_taken_as_string()
                 notify.info("Loaded database [took " .. tt .. "]")
                 return ...
             end):catch(notify.error)
-
-            return success
         end)
-    end, { desc = "Completely wipes the roam database" })
+
+        if sync then promise:wait() end
+    end, {
+        desc = "Completely wipes the roam database",
+        nargs = "?",
+    })
 
     vim.api.nvim_create_user_command("RoamAddAlias", function(opts)
         ---@type string|nil
@@ -448,6 +470,7 @@ local function modify_orgmode_plugin(roam)
 end
 
 ---@param roam OrgRoam
+---@return OrgPromise<{database:org-roam.core.Database, files:OrgFiles}>
 local function initialize_database(roam)
     local Promise = require("orgmode.utils.promise")
 
@@ -458,7 +481,7 @@ local function initialize_database(roam)
     })
 
     -- Load the database asynchronously
-    roam.db:load():next(function()
+    return roam.db:load():next(function()
         -- If we are persisting to disk, do so now as the database may
         -- have changed post-load
         if roam.config.database.persist then
@@ -473,69 +496,74 @@ end
 ---@return org-roam.Setup
 return function(roam)
     ---@class org-roam.Setup
-    ---@operator call(org-roam.Config):nil
+    ---@operator call(org-roam.Config):OrgPromise<nil>
     local M = setmetatable({}, {
         __call = function(this, config)
-            this.call(config)
+            return this.call(config)
         end
     })
 
     ---Calls the setup function to initialize the plugin.
     ---@param config org-roam.Config|nil
+    ---@return OrgPromise<nil>
     function M.call(config)
         M.__merge_config(config or {})
         M.__define_autocmds()
         M.__define_commands()
         M.__define_keybindings()
         M.__modify_orgmode_plugin()
-        M.__initialize_database()
+        return M.__initialize_database()
     end
 
     ---@private
     function M.__merge_config(config)
         if not M.__merge_config_done then
-            merge_config(roam, config)
             M.__merge_config_done = true
+            merge_config(roam, config)
         end
     end
 
     ---@private
     function M.__define_autocmds()
         if not M.__define_autocmds_done then
-            define_autocmds(roam)
             M.__define_autocmds_done = true
+            define_autocmds(roam)
         end
     end
 
     ---@private
     function M.__define_commands()
         if not M.__define_commands_done then
-            define_commands(roam)
             M.__define_commands_done = true
+            define_commands(roam)
         end
     end
 
     ---@private
     function M.__define_keybindings()
         if not M.__define_keybindings_done then
-            define_keybindings(roam)
             M.__define_keybindings_done = true
+            define_keybindings(roam)
         end
     end
 
     ---@private
     function M.__modify_orgmode_plugin()
         if not M.__modify_orgmode_plugin_done then
-            modify_orgmode_plugin(roam)
             M.__modify_orgmode_plugin_done = true
+            modify_orgmode_plugin(roam)
         end
     end
 
     ---@private
+    ---@return OrgPromise<nil>
     function M.__initialize_database()
         if not M.__initialize_database_done then
-            initialize_database(roam)
             M.__initialize_database_done = true
+            return initialize_database(roam):next(function() return nil end)
+        else
+            local Promise = require("orgmode.utils.promise")
+            return Promise.resolve(nil)
         end
     end
 
