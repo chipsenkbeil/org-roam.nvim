@@ -26,6 +26,23 @@ function M.autogroup_name()
     return AUGROUP_NAME
 end
 
+---@type boolean|nil
+local __debug_enabled = nil
+
+---Prints if debug environment variable `ROAM_DEBUG` is true.
+function M.debug_print(...)
+    if type(__debug_enabled) ~= "boolean" then
+        local enabled = vim.env.ROAM_DEBUG
+        __debug_enabled = type(enabled) == "string"
+            and string.lower(vim.trim(enabled)) == "true"
+            or false
+    end
+
+    if __debug_enabled then
+        print(...)
+    end
+end
+
 ---Waits a standard amount of time for a test.
 ---This can be adjusted for CI usage.
 ---@param time? integer
@@ -54,6 +71,7 @@ function M.wait_time()
         end
 
         __wait_time = type(stime) == "number" and stime or 100
+        M.debug_print("WAIT TIME", __wait_time)
     end
 
     return __wait_time
