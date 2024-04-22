@@ -72,6 +72,19 @@ function M.org_file(content, opts)
     return file
 end
 
+---@return {module:string, text:string, lnum:integer, col:integer}[]
+function M.qflist_items()
+    local qfdata = vim.fn.getqflist({ all = true })
+    return vim.tbl_map(function(item)
+        return {
+            module = item.module,
+            text = item.text,
+            lnum = item.lnum,
+            col = item.col,
+        }
+    end, qfdata.items)
+end
+
 ---Creates a new temporary directory, copies the org files
 ---from `files/` into it, and returns the path.
 ---@return string
@@ -268,8 +281,9 @@ end
 ---@return boolean exists, table|nil mapping
 function M.global_mapping_exists(mode, lhs)
     local mappings = vim.api.nvim_get_keymap(mode)
+    local lhs_escaped = vim.api.nvim_replace_termcodes(lhs, true, false, true)
     for _, map in pairs(mappings) do
-        if map.lhs == lhs then
+        if map.lhs == lhs or map.lhs == lhs_escaped then
             return true, map
         end
     end
@@ -284,8 +298,9 @@ end
 ---@return boolean exists, table|nil mapping
 function M.buffer_local_mapping_exists(buf, mode, lhs)
     local mappings = vim.api.nvim_buf_get_keymap(buf, mode)
+    local lhs_escaped = vim.api.nvim_replace_termcodes(lhs, true, false, true)
     for _, map in pairs(mappings) do
-        if map.lhs == lhs then
+        if map.lhs == lhs or map.lhs == lhs_escaped then
             return true, map
         end
     end
@@ -344,6 +359,9 @@ function M.cleanup_after_test()
 
     -- If select was mocked, unmock it
     M.unmock_select()
+
+    -- If inputs were mocked, unmock them
+    M.unmock_vim_inputs()
 end
 
 ---Deletes all autocmds tied to the specified group.
@@ -423,14 +441,27 @@ end
 
 ---Mocks core.ui.Select to intercept the list of choices and pick a specific
 ---choice or cancel.
----@param f fun(choices:{item:any, label:string, idx:integer}[], this:org-roam.core.ui.Select):({item:any, label:string, idx:integer}|string|nil)
+---@param f fun(choices:{item:any, label:string, idx:integer}[], this:org-roam.core.ui.Select, helpers:spec.utils.select.Helpers):({item:any, label:string, idx:integer}|string|nil)
 function M.mock_select_pick(f)
     M.mock_select(function(opts, new)
         local instance = new(opts)
 
         -- When ready, get choices to make a decision
         instance:on_ready(function()
-            local choice = f(instance:filtered_choices(), instance)
+            local choices = instance:filtered_choices()
+
+            ---@class spec.utils.select.Helpers
+            local helpers = {}
+
+            function helpers.pick_with_label(label)
+                for _, choice in ipairs(choices) do
+                    if choice.label == label then
+                        return choice
+                    end
+                end
+            end
+
+            local choice = f(choices, instance, helpers)
             if type(choice) == "table" then
                 instance:choose({ item = choice.item, idx = choice.idx })
             elseif type(choice) == "string" then

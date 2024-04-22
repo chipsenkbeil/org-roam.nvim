@@ -7,19 +7,6 @@ describe("org-roam.ui.quickfix", function()
     ---@type string, string, string, string
     local test_dir, test_path_one, test_path_two, test_path_three
 
-    ---@return {module:string, text:string, lnum:integer, col:integer}[]
-    local function qflist_items()
-        local qfdata = vim.fn.getqflist({ all = true })
-        return vim.tbl_map(function(item)
-            return {
-                module = item.module,
-                text = item.text,
-                lnum = item.lnum,
-                col = item.col,
-            }
-        end, qfdata.items)
-    end
-
     before_each(function()
         test_dir = utils.make_temp_org_files_directory()
         test_path_one = utils.join_path(test_dir, "one.org")
@@ -67,7 +54,7 @@ describe("org-roam.ui.quickfix", function()
         -- Verify the quickfix contents
         assert.are.same({
             { module = "one", text = "", lnum = 7, col = 1 },
-        }, qflist_items())
+        }, utils.qflist_items())
 
         -- Trigger a quickfix error navigation
         vim.cmd([[cc]])
@@ -100,7 +87,7 @@ describe("org-roam.ui.quickfix", function()
         -- Verify the quickfix contents
         assert.are.same({
             { module = "three", text = "", lnum = 0, col = 0 },
-        }, qflist_items())
+        }, utils.qflist_items())
 
         -- Trigger a quickfix error navigation
         vim.cmd([[cc]])
@@ -132,7 +119,7 @@ describe("org-roam.ui.quickfix", function()
         roam.ui.open_quickfix_list({ backlinks = true, links = true }):wait()
 
         -- Verify the quickfix contents
-        local items = qflist_items()
+        local items = utils.qflist_items()
         table.sort(items, function(a, b)
             return a.module < b.module
         end)
@@ -157,7 +144,7 @@ describe("org-roam.ui.quickfix", function()
         -- Verify the quickfix contents
         assert.are.same({
             { module = "one", text = "[[id:2]]", lnum = 7, col = 1 },
-        }, qflist_items())
+        }, utils.qflist_items())
 
         -- Trigger a quickfix error navigation
         vim.cmd([[cc]])

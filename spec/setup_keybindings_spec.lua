@@ -1,0 +1,616 @@
+describe("org-roam.setup.keybindings", function()
+    local utils = require("spec.utils")
+
+    before_each(function()
+        utils.init_before_test()
+    end)
+
+    after_each(function()
+        -- NOTE: We aren't cleaning up everything as
+        --       closing windows can cause problems
+        --       with the capture buffer exploding
+        --       our tests.
+        utils.unpatch_vim_cmd()
+        utils.unmock_select()
+        utils.unmock_vim_inputs()
+    end)
+
+    it("add_alias keybinding should support adding an alias to the node", function()
+        local directory = utils.make_temp_org_files_directory()
+        local test_path = utils.join_path(directory, "one.org")
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Open up the some test file
+        vim.cmd.edit(test_path)
+
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 1",
+            ":ROAM_ALIASES: one",
+            ":END:",
+            "#+FILETAGS: :one:",
+            "",
+            "[[id:2]]",
+        }, utils.read_buffer())
+
+        -- Mock selection, which is triggered by the keybinding
+        utils.mock_vim_inputs({
+            input = "some alias",
+        })
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.add_alias, {
+            wait = 100,
+        })
+
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 1",
+            ":ROAM_ALIASES: one \"some alias\"",
+            ":END:",
+            "#+FILETAGS: :one:",
+            "",
+            "[[id:2]]",
+        }, utils.read_buffer())
+    end)
+
+    it("remove_alias keybinding should support removing an alias from the node", function()
+        local directory = utils.make_temp_org_files_directory()
+        local test_path = utils.join_path(directory, "one.org")
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Open up the some test file
+        vim.cmd.edit(test_path)
+
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 1",
+            ":ROAM_ALIASES: one",
+            ":END:",
+            "#+FILETAGS: :one:",
+            "",
+            "[[id:2]]",
+        }, utils.read_buffer())
+
+        -- Mock selection, which is triggered by the keybinding
+        utils.mock_select_pick(function(_, _, helpers)
+            return helpers.pick_with_label("one")
+        end)
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.remove_alias, {
+            wait = 100,
+        })
+
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 1",
+            ":END:",
+            "#+FILETAGS: :one:",
+            "",
+            "[[id:2]]",
+        }, utils.read_buffer())
+    end)
+
+    it("add_origin keybinding should support setting the origin for the node", function()
+        local directory = utils.make_temp_org_files_directory()
+        local test_path = utils.join_path(directory, "one.org")
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Open up the some test file
+        vim.cmd.edit(test_path)
+
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 1",
+            ":ROAM_ALIASES: one",
+            ":END:",
+            "#+FILETAGS: :one:",
+            "",
+            "[[id:2]]",
+        }, utils.read_buffer())
+
+        -- Mock selection, which is triggered by the keybinding
+        utils.mock_select_pick(function(_, _, helpers)
+            return helpers.pick_with_label("two")
+        end)
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.add_origin, {
+            wait = 100,
+        })
+
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 1",
+            ":ROAM_ALIASES: one",
+            ":ROAM_ORIGIN: 2",
+            ":END:",
+            "#+FILETAGS: :one:",
+            "",
+            "[[id:2]]",
+        }, utils.read_buffer())
+    end)
+
+    it("remove_origin keybinding should support removing the origin for the node", function()
+        local directory = utils.make_temp_org_files_directory()
+        local test_path = utils.join_path(directory, "two.org")
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Open up the some test file
+        vim.cmd.edit(test_path)
+
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 2",
+            ":ROAM_ALIASES: two",
+            ":ROAM_ORIGIN: 1",
+            ":END:",
+            "#+FILETAGS: :two:",
+            "",
+            "[[id:3]]",
+        }, utils.read_buffer())
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.remove_origin, {
+            wait = 100,
+        })
+
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 2",
+            ":ROAM_ALIASES: two",
+            ":END:",
+            "#+FILETAGS: :two:",
+            "",
+            "[[id:3]]",
+        }, utils.read_buffer())
+    end)
+
+    it("goto_prev_node keybinding should go to the previous node if current node has an origin", function()
+        local directory = utils.make_temp_org_files_directory()
+        local test_path = utils.join_path(directory, "test-file.org")
+        local id = "test-id"
+
+        -- Create our test file with an origin
+        utils.write_to(test_path, {
+            ":PROPERTIES:",
+            ":ID: " .. id,
+            ":ROAM_ORIGIN: 1",
+            ":END:",
+            "#+TITLE: Test",
+        })
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Load the file into the buffer
+        vim.cmd.edit(test_path)
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.goto_prev_node, {
+            wait = 100,
+        })
+
+        -- Review that we moved to the origin
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 1",
+            ":ROAM_ALIASES: one",
+            ":END:",
+            "#+FILETAGS: :one:",
+            "",
+            "[[id:2]]",
+        }, utils.read_buffer())
+    end)
+
+    it("goto_next_node keybinding should to the next node using origin", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Load a file used as an origin into the buffer
+        vim.cmd.edit(utils.join_path(directory, "one.org"))
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.goto_next_node, {
+            wait = 100,
+        })
+
+        -- Review that we moved to the next node
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 2",
+            ":ROAM_ALIASES: two",
+            ":ROAM_ORIGIN: 1",
+            ":END:",
+            "#+FILETAGS: :two:",
+            "",
+            "[[id:3]]",
+        }, utils.read_buffer())
+    end)
+
+    it("goto_next_node keybinding should to the next node using selection of origins", function()
+        local directory = utils.make_temp_org_files_directory()
+        local test_path = utils.join_path(directory, "test-file.org")
+
+        utils.write_to(test_path, utils.indent([=[
+        :PROPERTIES:
+        :ID: test-id
+        :ROAM_ORIGIN: 1
+        :END:
+        ]=]))
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Load a file used as an origin into the buffer
+        vim.cmd.edit(utils.join_path(directory, "one.org"))
+
+        -- Given two choices, pick node 2
+        utils.mock_select_pick(function(_, _, helpers)
+            return helpers.pick_with_label("two")
+        end)
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.goto_next_node, {
+            wait = 100,
+        })
+
+        -- Review that we moved to the next node
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 2",
+            ":ROAM_ALIASES: two",
+            ":ROAM_ORIGIN: 1",
+            ":END:",
+            "#+FILETAGS: :two:",
+            "",
+            "[[id:3]]",
+        }, utils.read_buffer())
+    end)
+
+    it("quickfix_backlinks keybinding should be able to display backlinks for the node under cursor", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Load up a test file
+        vim.cmd.edit(utils.join_path(directory, "two.org"))
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.quickfix_backlinks, {
+            wait = 100,
+        })
+
+        -- Verify the quickfix contents
+        assert.are.same({
+            { module = "one", text = "[[id:2]]", lnum = 7, col = 1 },
+        }, utils.qflist_items())
+    end)
+
+    it("toggle_roam_buffer keybinding should open roam buffer for node under cursor", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Load up a test file
+        vim.cmd.edit(utils.join_path(directory, "two.org"))
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.toggle_roam_buffer, {
+            wait = 100,
+        })
+
+        -- Verify we have switched to the appropriate buffer
+        assert.are.same({
+            "Press <Enter> to open a link in another window",
+            "Press <Tab> to expand/collapse a link",
+            "Press <S-Tab> to expand/collapse all links",
+            "Press <C-r> to refresh buffer",
+            "",
+            "Node: two",
+            "Origin: one",
+            "",
+            "Backlinks (1)",
+            "▶ one @ 7,0",
+        }, utils.read_buffer())
+    end)
+
+    it("toggle_roam_buffer_fixed keybinding should open roam buffer for selected node", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Mock selection to pick node 2
+        utils.mock_select_pick(function(_, _, helpers)
+            return helpers.pick_with_label("two")
+        end)
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.toggle_roam_buffer_fixed, {
+            wait = 100,
+        })
+
+        -- Verify we have switched to the appropriate buffer
+        assert.are.same({
+            "Press <Enter> to open a link in another window",
+            "Press <Tab> to expand/collapse a link",
+            "Press <S-Tab> to expand/collapse all links",
+            "Press <C-r> to refresh buffer",
+            "",
+            "Fixed Node: two",
+            "Origin: one",
+            "",
+            "Backlinks (1)",
+            "▶ one @ 7,0",
+        }, utils.read_buffer())
+    end)
+
+    it("complete_at_point keybinding should complete a link to a node based on expression under cursor", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Set our buffer text to something and point cursor to text this is
+        -- close to the title of the node "three"
+        vim.api.nvim_buf_set_lines(0, 0, -1, true, {
+            "some text",
+            "with thr link",
+            "is good",
+        })
+        vim.api.nvim_win_set_cursor(0, { 2, 5 }) -- point to start of "thr"
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.complete_at_point, {
+            wait = 100,
+        })
+
+        -- Verify we have switched to the appropriate buffer
+        assert.are.same({
+            "some text",
+            "with [[id:3][three]] link",
+            "is good",
+        }, utils.read_buffer())
+    end)
+
+    it("capture keybinding should open capture buffer from normal mode", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Open a file buffer so we avoid capture closing neovim
+        vim.cmd.edit(utils.join_path(directory, "one.org"))
+
+        -- Select the default template
+        utils.mock_vim_inputs({
+            confirm = 0,                   -- confirm no for refile
+            getchar = vim.fn.char2nr("d"), -- select "d" template
+            input   = "Some title",        -- input "Some title" on title prompt
+        })
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.capture, {
+            wait = 100,
+        })
+
+        -- Capture the lines of the capture buffer
+        local lines = utils.read_buffer()
+
+        -- Save the capture buffer and exit it
+        -- NOTE: We do this before any tests as any failure before capture
+        --       buffer is closed can cause issues.
+        vim.cmd("wq")
+        vim.wait(100)
+
+        -- Verify we have switched to the appropriate buffer, stubbing out
+        -- the randomly-generated id
+        lines[2] = string.sub(lines[2], 1, 4) .. " <ID>"
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: <ID>",
+            ":ROAM_ORIGIN: 1",
+            ":END:",
+            "#+TITLE: Some title",
+            "",
+            "",
+        }, lines)
+    end)
+
+    it("capture keybinding should open capture buffer with title matching visual selection", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Open a file buffer so we avoid capture closing neovim
+        vim.cmd.edit(utils.join_path(directory, "one.org"))
+
+        -- Select the default template
+        utils.mock_vim_inputs({
+            confirm = 0,                   -- confirm no for refile
+            getchar = vim.fn.char2nr("d"), -- select "d" template
+        })
+
+        -- Do a visual selection first before triggering keybinding
+        vim.api.nvim_buf_set_lines(0, -1, -1, true, { "Visually Selected Title", "" })
+        local line = vim.api.nvim_buf_line_count(0) - 1
+        roam.utils.set_visual_selection({
+            start_row = line,
+            start_col = 1,
+            end_row = line,
+            end_col = 999,
+        })
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.capture, {
+            wait = 100,
+        })
+
+        -- Capture the lines of the capture buffer
+        local lines = utils.read_buffer()
+
+        -- Save the capture buffer and exit it
+        -- NOTE: We do this before any tests as any failure before capture
+        --       buffer is closed can cause issues.
+        vim.cmd("wq")
+        vim.wait(100)
+
+        -- Verify we have switched to the appropriate buffer, stubbing out
+        -- the randomly-generated id
+        lines[2] = string.sub(lines[2], 1, 4) .. " <ID>"
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: <ID>",
+            ":ROAM_ORIGIN: 1",
+            ":END:",
+            "#+TITLE: Visually Selected Title",
+            "",
+            "",
+        }, lines)
+    end)
+end)
