@@ -42,9 +42,9 @@ local HIGHLIGHTS = {
     ---Highlight group whose foreground color is used for matches
     MATCHED_FG = "WarningMsg",
     ---Highlight group for unselected, matched text
-    MATCHED = "@org-roam.core.ui.select.matched",
+    MATCHED = "@roam.core.ui.select.matched",
     ---Highlight group for selected, matched text
-    SELECTED_MATCHED = "@org-roam.core.ui.select.selected-matched",
+    SELECTED_MATCHED = "@roam.core.ui.select.selected-matched",
 }
 
 ---Initializes highlights globally for the select ui.
