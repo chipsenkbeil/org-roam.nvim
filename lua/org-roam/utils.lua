@@ -24,12 +24,21 @@ local CACHE = {}
 ---Escape key used for `nvim_feedkeys()`.
 local ESC_FEEDKEY = vim.api.nvim_replace_termcodes("<ESC>", true, false, true)
 
+---@class org-roam.Utils
 local M = {}
 
 ---@param bufnr integer
----@return org-roam.utils.BufferCache
+---@return org-roam.utils.BufferCache|nil
 local function get_buffer_cache(bufnr)
+    -- If accessing a buffer that is no longer valid, clear the cache
+    -- return nothing to indicate there is no cache
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+        CACHE[bufnr] = nil
+        return
+    end
+
     local cache = CACHE[bufnr]
+
     ---@type integer
     local tick = vim.b[bufnr].changedtick
 
@@ -241,6 +250,17 @@ end
 ---@field end_row integer #end row (one-indexed, inclusive)
 ---@field end_col integer #end column (one-indexed, inclusive)
 
+---Sets a visual selection using given range.
+---@param range org-roam.utils.Range
+---@param opts? {buf?:integer}
+function M.set_visual_selection(range, opts)
+    opts = opts or {}
+    local buf = opts.buf or 0
+    vim.fn.setpos("'<", { buf, range.start_row, range.start_col, 0 })
+    vim.fn.setpos("'>", { buf, range.end_row, range.end_col, 0 })
+    vim.cmd("normal! gv")
+end
+
 ---Extracts visual selection (supports visual and linewise visual modes),
 ---returning lines and range. The range is 1-based and inclusive.
 ---
@@ -261,7 +281,8 @@ function M.get_visual_selection(opts)
     -- Force a reset of visual selection, re-selecting it (gv), in order to get
     -- the markers '< and '> to map to the current selection instead of older
     vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
-    vim.api.nvim_feedkeys("gv", "x", false)
+    vim.cmd.stopinsert()
+    vim.api.nvim_feedkeys("gv", "nx", false)
     vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
 
     local start_row, start_col = unpack(vim.api.nvim_buf_get_mark(bufnr, "<"))

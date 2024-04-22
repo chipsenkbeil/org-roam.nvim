@@ -239,10 +239,14 @@ function M:load(opts)
             local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
 
             table.insert(promises.insert, files:load_file(filename):next(function(file)
-                log.fmt_debug("inserting into database: %s", file.filename)
-                return insert_new_file_into_database(db, file, {
-                    force = force or file.metadata.changedtick ~= changedtick,
-                })
+                if file then
+                    log.fmt_debug("inserting into database: %s", file.filename)
+                    return insert_new_file_into_database(db, file, {
+                        force = force or file.metadata.changedtick ~= changedtick,
+                    })
+                else
+                    return 0
+                end
             end))
         end
 
@@ -259,10 +263,14 @@ function M:load(opts)
             local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
 
             table.insert(promises.modify, files:load_file(filename):next(function(file)
-                log.fmt_debug("modifying in database: %s", file.filename)
-                return modify_file_in_database(db, file, {
-                    force = force or file.metadata.changedtick ~= changedtick,
-                })
+                if file then
+                    log.fmt_debug("modifying in database: %s", file.filename)
+                    return modify_file_in_database(db, file, {
+                        force = force or file.metadata.changedtick ~= changedtick,
+                    })
+                else
+                    return 0
+                end
             end))
         end
 
@@ -299,29 +307,39 @@ function M:load_file(opts)
         local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
 
         -- This both loads the file and adds it to our file path if not there already
-        return files:add_to_paths(opts.path):next(function(file)
-            -- Determine if the file already exists through nodes in the db
-            local ids = db:find_by_index(schema.FILE, file.filename)
-            local has_file = not vim.tbl_isempty(ids)
+        return Promise.new(function(resolve, reject)
+            files:add_to_paths(opts.path):next(function(file)
+                -- If false, means failed to add the file
+                if not file then
+                    reject("invalid path to org file: " .. opts.path)
+                    return file
+                end
 
-            if has_file then
-                log.fmt_debug("modifying in database: %s", file.filename)
-                modify_file_in_database(db, file, {
-                    force = opts.force or file.metadata.changedtick ~= changedtick,
-                })
-            else
-                log.fmt_debug("inserting into database: %s", file.filename)
-                insert_new_file_into_database(db, file, {
-                    force = opts.force or file.metadata.changedtick ~= changedtick,
-                })
-            end
+                -- Determine if the file already exists through nodes in the db
+                local ids = db:find_by_index(schema.FILE, file.filename)
+                local has_file = not vim.tbl_isempty(ids)
 
-            return {
-                file = file,
-                nodes = vim.tbl_values(
-                    db:get_many(db:find_by_index(schema.FILE, file.filename))
-                ),
-            }
+                if has_file then
+                    log.fmt_debug("modifying in database: %s", file.filename)
+                    modify_file_in_database(db, file, {
+                        force = opts.force or file.metadata.changedtick ~= changedtick,
+                    })
+                else
+                    log.fmt_debug("inserting into database: %s", file.filename)
+                    insert_new_file_into_database(db, file, {
+                        force = opts.force or file.metadata.changedtick ~= changedtick,
+                    })
+                end
+
+                resolve({
+                    file = file,
+                    nodes = vim.tbl_values(
+                        db:get_many(db:find_by_index(schema.FILE, file.filename))
+                    ),
+                })
+
+                return file
+            end):catch(reject)
         end)
     end)
 end
@@ -346,10 +364,16 @@ function M:database()
 
             Database:load_from_disk(self.path.database, function(err, db)
                 if err then
-                    -- NOTE: Scheduling to avoid textlock issues in promise
-                    --       resolution
+                    -- NOTE: Scheduling to avoid textlock issues
                     return vim.schedule(function()
-                        reject(err)
+                        log.fmt_error("Failed to load database: %s", err)
+
+                        -- Set up database with a clean slate instead
+                        db = Database:new()
+                        schema:update(db)
+                        self.__db = db
+
+                        resolve(db)
                     end)
                 end
 

@@ -34,6 +34,8 @@
 local Queue = require("org-roam.core.utils.queue")
 local unpack = require("org-roam.core.utils.table").unpack
 
+local DEFAULT_LIMIT = 2 ^ 31
+
 ---An augmented tree using intervals as defined in
 ---[Wikipedia](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree).
 ---
@@ -199,7 +201,7 @@ function M:find_all(opts)
 
     local start = opts[1]
     local end_ = opts[2]
-    local limit = opts.limit or math.huge
+    local limit = opts.limit or DEFAULT_LIMIT
 
     ---@type org-roam.core.utils.tree.MatchFn|nil
     local is_match
