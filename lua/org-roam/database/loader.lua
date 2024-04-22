@@ -239,10 +239,14 @@ function M:load(opts)
             local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
 
             table.insert(promises.insert, files:load_file(filename):next(function(file)
-                log.fmt_debug("inserting into database: %s", file.filename)
-                return insert_new_file_into_database(db, file, {
-                    force = force or file.metadata.changedtick ~= changedtick,
-                })
+                if file then
+                    log.fmt_debug("inserting into database: %s", file.filename)
+                    return insert_new_file_into_database(db, file, {
+                        force = force or file.metadata.changedtick ~= changedtick,
+                    })
+                else
+                    return 0
+                end
             end))
         end
 
@@ -259,10 +263,14 @@ function M:load(opts)
             local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
 
             table.insert(promises.modify, files:load_file(filename):next(function(file)
-                log.fmt_debug("modifying in database: %s", file.filename)
-                return modify_file_in_database(db, file, {
-                    force = force or file.metadata.changedtick ~= changedtick,
-                })
+                if file then
+                    log.fmt_debug("modifying in database: %s", file.filename)
+                    return modify_file_in_database(db, file, {
+                        force = force or file.metadata.changedtick ~= changedtick,
+                    })
+                else
+                    return 0
+                end
             end))
         end
 
@@ -403,7 +411,6 @@ function M:files(opts)
 
     -- If not skipping, perform loading/reloading of org files
     if not opts.skip then
-        print("LOAD FILES")
         return files:load(opts.force)
     else
         return Promise.resolve(files)
