@@ -2,6 +2,9 @@ describe("org-roam.core.file", function()
     local File = require("org-roam.core.file")
     local utils = require("spec.utils")
 
+    -- Drop-in replacement for `math.huge` that we use for file node end range.
+    local MAX_NUMBER = 2 ^ 31
+
     it("parse blank orgfile", function()
         local orgfile = utils.org_file("")
 
@@ -60,9 +63,9 @@ describe("org-roam.core.file", function()
                 mtime = 0,
                 range = {
                     end_ = {
-                        column = math.huge,
-                        offset = math.huge,
-                        row = math.huge,
+                        column = MAX_NUMBER,
+                        offset = MAX_NUMBER,
+                        row = MAX_NUMBER,
                     },
                     start = {
                         column = 0,
@@ -295,9 +298,9 @@ describe("org-roam.core.file", function()
                 mtime = 0,
                 range = {
                     end_ = {
-                        column = math.huge,
-                        offset = math.huge,
-                        row = math.huge
+                        column = MAX_NUMBER,
+                        offset = MAX_NUMBER,
+                        row = MAX_NUMBER
                     },
                     start = {
                         column = 0,

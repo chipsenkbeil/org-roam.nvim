@@ -10,6 +10,10 @@ local Node         = require("org-roam.core.file.node")
 local Range        = require("org-roam.core.file.range")
 local utils        = require("org-roam.core.file.utils")
 
+-- Cannot serialie `math.huge`. Potentially could use `vim.v.numbermax`, but
+-- this is a safer and more reliable guarantee of maximum size.
+local MAX_NUMBER   = 2 ^ 31
+
 local KEYS         = {
     DIR_TITLE    = "TITLE",
     PROP_ALIASES = "ROAM_ALIASES",
@@ -116,7 +120,7 @@ function M:from_org_file(file)
             origin = origin,
             range = Range:new(
                 { row = 0, column = 0, offset = 0 },
-                { row = math.huge, column = math.huge, offset = math.huge }
+                { row = MAX_NUMBER, column = MAX_NUMBER, offset = MAX_NUMBER }
             ),
             file = file.filename,
             mtime = file.metadata.mtime,

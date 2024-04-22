@@ -11,6 +11,9 @@ local Queue = require("org-roam.core.utils.queue")
 local random = require("org-roam.core.utils.random")
 local tbl_utils = require("org-roam.core.utils.table")
 
+local DEFAULT_MAX_NODES = 2 ^ 31
+local DEFAULT_MAX_DISTANCE = 2 ^ 31
+
 -- NOTE: This is a placeholder until we can make the database class generic
 --       as ideally we have a specific type used for the node data across
 --       all nodes. I don't expect this to be available for years, but the
@@ -35,7 +38,12 @@ local tbl_utils = require("org-roam.core.utils.table")
 
 ---@alias org-roam.core.database.Indexer fun(data:org-roam.core.database.Data):(org-roam.core.database.IndexKeys|nil)
 
+---@alias org-roam.core.database.CacheType
+---| "json"
+---| "msgpack"
+
 ---@class org-roam.core.Database
+---@field private __cache_type org-roam.core.database.CacheType #type to use for caching to disk
 ---@field private __changed_tick integer #total number of changes made to the database (non-persistent)
 ---@field private __nodes table<org-roam.core.database.Id, org-roam.core.database.Data>
 ---@field private __outbound table<org-roam.core.database.Id, org-roam.core.database.IdMap> mapping of node -> node by id
@@ -46,10 +54,13 @@ local M = {}
 M.__index = M
 
 ---Creates a new instance of the database.
+---@param opts? {cache_type?:org-roam.core.database.CacheType}
 ---@return org-roam.core.Database
-function M:new()
+function M:new(opts)
+    opts = opts or {}
     local instance = {}
     setmetatable(instance, M)
+    instance.__cache_type = opts.cache_type or "json"
     instance.__changed_tick = 0
     instance.__nodes = {}
     instance.__outbound = {}
@@ -114,9 +125,20 @@ function M:load_from_disk(path, cb)
 
         assert(data, "impossible: data nil")
 
-        -- Decode the data into Lua and set it as the nodes
+        -- Try to decode the data into Lua and set it as the nodes,
+        -- using each potential decoder in turn
         ---@type boolean, table|nil
         local success, __data = pcall(vim.mpack.decode, data)
+
+        success, __data = pcall(vim.json.decode, data, {
+            luanil = { array = true, object = true },
+        })
+
+        if not success then
+            success, __data = pcall(vim.mpack.decode, data, {
+                luanil = { array = true, object = true },
+            })
+        end
 
         if not success or not __data then
             local errmsg = "Failed to decode database"
@@ -174,13 +196,25 @@ end
 ---@param path string where to store the database
 ---@param cb fun(err:string|nil)
 function M:write_to_disk(path, cb)
-    ---@type boolean, string|nil
-    local success, data = pcall(vim.mpack.encode, {
+    ---@type fun(obj:any):string
+    local encode
+    if self.__cache_type == "json" then
+        encode = vim.json.encode
+    elseif self.__cache_type == "msgpack" then
+        encode = vim.mpack.encode
+    end
+
+    assert(encode, "invalid cache type: " .. self.__cache_type)
+
+    local db_contents = {
         nodes = self.__nodes,
         inbound = self.__inbound,
         outbound = self.__outbound,
         indexes = self.__indexes,
-    })
+    }
+
+    ---@type boolean, string|nil
+    local success, data = pcall(encode, db_contents)
 
     if not success or not data then
         local errmsg = "Failed to encode database"
@@ -633,8 +667,8 @@ end
 function M:iter_nodes(opts)
     assert(opts and opts.start_node_id, "Missing starting node id")
 
-    local MAX_NODES = opts.max_nodes or math.huge
-    local MAX_DISTANCE = opts.max_distance or math.huge
+    local MAX_NODES = opts.max_nodes or DEFAULT_MAX_NODES
+    local MAX_DISTANCE = opts.max_distance or DEFAULT_MAX_DISTANCE
     local filter = opts.filter or function() return true end
 
     ---@type table<org-roam.core.database.Id, boolean>
@@ -676,7 +710,7 @@ end
 function M:iter_paths(start_node_id, end_node_id, opts)
     opts = opts or {}
 
-    local MAX_DISTANCE = opts.max_distance or math.huge
+    local MAX_DISTANCE = opts.max_distance or DEFAULT_MAX_DISTANCE
 
     -- Establish a queue of paths that we continue to try to build out
     -- until we find the end node.
