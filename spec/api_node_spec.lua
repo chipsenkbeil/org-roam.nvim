@@ -51,13 +51,13 @@ describe("org-roam.api.node", function()
         roam.api.capture_node({}, function(_id) id = _id end)
 
         -- Wait a bit for the capture buffer to appear
-        vim.wait(100)
+        utils.wait()
 
         -- Save the capture buffer and exit it
         vim.cmd("wq")
 
         -- Wait a bit for the capture to be processed
-        vim.wait(100)
+        utils.wait()
 
         -- We should have an id for a valid capture
         assert.is_not_nil(id)
@@ -97,7 +97,7 @@ describe("org-roam.api.node", function()
         end)
 
         -- Wait a bit for the capture to be processed
-        vim.wait(100)
+        utils.wait()
 
         -- We should have an id for a valid capture
         assert.is_not_nil(id)
@@ -143,7 +143,7 @@ describe("org-roam.api.node", function()
         roam.api.insert_node({}, function(_id) id = _id end)
 
         -- Wait a bit for the capture to be processed
-        vim.wait(100)
+        utils.wait()
 
         -- We should have an id for a valid insertion
         assert.are.equal("1", id)
@@ -186,13 +186,13 @@ describe("org-roam.api.node", function()
         roam.api.insert_node({}, function(_id) id = _id end)
 
         -- Wait a bit for the capture buffer to appear
-        vim.wait(100)
+        utils.wait()
 
         -- Save the capture buffer and exit it
         vim.cmd("wq")
 
         -- Wait a bit for the capture to be processed
-        vim.wait(100)
+        utils.wait()
 
         -- We should have an id for a valid insertion
         assert.is_not_nil(id)
@@ -231,7 +231,7 @@ describe("org-roam.api.node", function()
         roam.api.insert_node({ immediate = true }, function(_id) id = _id end)
 
         -- Wait a bit for the capture to be processed
-        vim.wait(100)
+        utils.wait()
 
         -- We should have an id for a valid insertion
         assert.is_not_nil(id)
@@ -269,7 +269,7 @@ describe("org-roam.api.node", function()
         roam.api.find_node({}, function(_id) id = _id end)
 
         -- Wait a bit for the capture to be processed
-        vim.wait(100)
+        utils.wait()
 
         -- We should have an id for a valid find
         assert.are.equal("2", id)
@@ -309,13 +309,13 @@ describe("org-roam.api.node", function()
         roam.api.find_node({}, function(_id) id = _id end)
 
         -- Wait a bit for the capture buffer to appear
-        vim.wait(100)
+        utils.wait()
 
         -- Save the capture buffer and exit it
         vim.cmd("wq")
 
         -- Wait a bit for the capture to be processed
-        vim.wait(100)
+        utils.wait()
 
         -- We should have an id for a valid find
         assert.is_not_nil(id)

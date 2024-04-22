@@ -26,6 +26,13 @@ function M.autogroup_name()
     return AUGROUP_NAME
 end
 
+---Waits a standard amount of time for a test.
+---This can be adjusted for CI usage.
+---@param time? integer
+function M.wait(time)
+    vim.wait(time or 300)
+end
+
 ---Takes string, splits into lines, and removes common indentation.
 ---@param s string
 ---@return string
