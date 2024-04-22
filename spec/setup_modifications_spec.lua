@@ -10,6 +10,42 @@ describe("org-roam.setup.modifications", function()
     end)
 
     it("should override orgmode's open_at_point to use roam's database first", function()
-        error("todo")
+        local directory = utils.make_temp_org_files_directory()
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        roam.db:load():wait()
+
+        -- Add a custom entry into our database that points to the same file
+        local node = roam.db:get_sync("1")
+        assert.is_not_nil(node)
+
+        -- Make a new node that points to "1", but is called "4"
+        local new_node = vim.deepcopy(node)
+        new_node.id = "4"
+        roam.db:internal_sync():insert(new_node, { id = "4" })
+
+        -- Create a link reference to that id
+        vim.api.nvim_buf_set_lines(0, 0, -1, true, { "[[id:4]]" })
+
+        -- Our cursor should be on the link right now, so open it
+        require("orgmode").org_mappings:open_at_point()
+
+        -- Verify that we loaded node "1"
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 1",
+            ":ROAM_ALIASES: one",
+            ":END:",
+            "#+FILETAGS: :one:",
+            "",
+            "[[id:2]]",
+        }, utils.read_buffer())
     end)
 end)

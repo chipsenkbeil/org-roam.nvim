@@ -72,6 +72,19 @@ function M:files_path()
     return self.__directory
 end
 
+---Returns the internal database wrapped by this interface.
+---@return OrgPromise<org-roam.core.Database>
+function M:internal()
+    return self:__get_loader():database()
+end
+
+---Returns the internal database wrapped by this interface.
+---@param opts? {timeout?:integer}
+---@return org-roam.core.Database
+function M:internal_sync(opts)
+    return self:__get_loader():database_sync(opts)
+end
+
 ---Loads the database from disk and re-parses files.
 ---Returns a promise that receives a database reference and collection of files.
 ---@param opts? {force?:boolean}
