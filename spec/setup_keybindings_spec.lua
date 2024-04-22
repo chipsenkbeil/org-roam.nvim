@@ -613,4 +613,245 @@ describe("org-roam.setup.keybindings", function()
             "",
         }, lines)
     end)
+
+    it("find_node keybinding should open buffer for selected node", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Mock the selected node to be node 2
+        utils.mock_select_pick(function(_, _, helpers)
+            return helpers.pick_with_label("two")
+        end)
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.find_node, {
+            wait = 100,
+        })
+
+        -- Verify we loaded the buffer for the selected node
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 2",
+            ":ROAM_ALIASES: two",
+            ":ROAM_ORIGIN: 1",
+            ":END:",
+            "#+FILETAGS: :two:",
+            "",
+            "[[id:3]]",
+        }, utils.read_buffer())
+    end)
+
+    it("find_node keybinding should open buffer using visual selection as filter", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Do a visual selection first before triggering keybinding
+        vim.api.nvim_buf_set_lines(0, 0, -1, true, { "three" })
+        roam.utils.set_visual_selection({
+            start_row = 1,
+            start_col = 1,
+            end_row = 1,
+            end_col = 999,
+        })
+
+        -- Mock the selected node to be node 2
+        utils.mock_select_pick(function(choices, this)
+            -- NOTE: The error won't get caught, but it will still
+            --       cause the test to fail as the selection dialog
+            --       won't change.
+            assert(this:input() == "three", "input did not match visual selection")
+            return choices[1]
+        end)
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.find_node, {
+            wait = 100,
+        })
+
+        -- Verify we loaded the buffer for the selected node
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 3",
+            ":ROAM_ALIASES: three",
+            ":ROAM_ORIGIN: 2",
+            ":END:",
+            "#+FILETAGS: :three:",
+            "",
+            "[[id:1]]",
+        }, utils.read_buffer())
+    end)
+
+    it("insert_node keybinding should insert a link at cursor for selected node", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Mock the selected node to be node 2
+        utils.mock_select_pick(function(_, _, helpers)
+            return helpers.pick_with_label("two")
+        end)
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.insert_node, {
+            wait = 100,
+        })
+
+        -- Verify we inserted the link
+        assert.are.same({
+            "[[id:2][two]]",
+        }, utils.read_buffer())
+    end)
+
+    it("insert_node keybinding should support replacing visual selection", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Do a visual selection first before triggering keybinding
+        vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+            "some series of text",
+            "on multiple lines",
+        })
+
+        roam.utils.set_visual_selection({
+            start_row = 1,
+            start_col = 6,
+            end_row = 2,
+            end_col = 11,
+        })
+
+        -- Mock the selected node to be node 2 (ignore filter)
+        utils.mock_select_pick(function(_, _, helpers)
+            return { item = { id = "2" }, label = "two", idx = 2 }
+        end)
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.insert_node, {
+            wait = 100,
+        })
+
+        -- Verify we inserted the link, replacing the visual selection
+        assert.are.same({
+            "some [[id:2][two]] lines",
+        }, utils.read_buffer())
+    end)
+
+    it("insert_node_immediate keybinding should insert link to node without capture dialog", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Mock the selected node to be unique
+        utils.mock_select_pick(function()
+            return "new node"
+        end)
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.insert_node_immediate, {
+            wait = 100,
+        })
+
+        -- Verify we inserted the link to the new node
+        local lines = utils.read_buffer()
+        local _, _, id = string.find(lines[1], "%[%[id:([^]]+)]%[new node]]")
+        assert.are.same({ "[[id:" .. id .. "][new node]]" }, lines)
+    end)
+
+    it("insert_node_immediate keybinding should support replacing visual selection", function()
+        local directory = utils.make_temp_org_files_directory()
+
+        -- Configure plugin to update database on write
+        local roam = utils.init_plugin({
+            setup = {
+                directory = directory,
+                database = {
+                    path = utils.join_path(directory, "db"),
+                },
+            }
+        })
+
+        -- Ensure loading is done
+        roam.db:load():wait()
+
+        -- Do a visual selection first before triggering keybinding
+        vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+            "some series of text",
+            "on multiple lines",
+        })
+
+        roam.utils.set_visual_selection({
+            start_row = 1,
+            start_col = 6,
+            end_row = 2,
+            end_col = 11,
+        })
+
+        -- Trigger the keybinding and wait a bit
+        utils.trigger_mapping("n", roam.config.bindings.insert_node_immediate, {
+            wait = 100,
+        })
+
+        -- Verify we inserted the link to the new node
+        local lines = utils.read_buffer()
+        local _, _, id = string.find(lines[1], "%[%[id:([^]]+)]%[[^]]+]]")
+        assert(id, "could not find id of newly-inserted node")
+        assert.are.same({ "some [[id:" .. id .. "][series of text on multiple]] lines" }, lines)
+    end)
 end)

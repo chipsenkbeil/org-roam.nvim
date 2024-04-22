@@ -648,6 +648,12 @@ function M:__refresh_filter()
     end
 end
 
+---Returns the current input fed into the selection dialog.
+---@return string
+function M:input()
+    return self:__get_input()
+end
+
 ---@private
 ---@return string
 function M:__get_input()
