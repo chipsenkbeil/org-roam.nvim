@@ -192,16 +192,23 @@ end
 ---Loads all files into the database. If files have not been modified
 ---from current database record, they will be ignored.
 ---
----@param opts? {force?:boolean}
+---If `force` is "scan", the directory will be searched again for files
+---and they will be reloaded. Modification of database records will not be
+---forced.
+---
+---If `force` is true, the directory will be searched again for files,
+---they will be reloaded, and modifications of database records will be forced.
+---@param opts? {force?:boolean|"scan"}
 ---@return OrgPromise<{database:org-roam.core.Database, files:OrgFiles}>
 function M:load(opts)
     opts = opts or {}
-    local force = opts.force or false
+    local force_modify = opts.force == true
+    local force_scan = opts.force == "scan" or opts.force == true
 
     -- Reload all org-roam files
     return Promise.all({
         self:database(),
-        self:files({ force = force }),
+        self:files({ force = force_scan }),
     }):next(function(results)
         ---@type org-roam.core.Database, OrgFiles
         local db, files = results[1], results[2]
@@ -242,7 +249,7 @@ function M:load(opts)
                 if file then
                     log.fmt_debug("inserting into database: %s", file.filename)
                     return insert_new_file_into_database(db, file, {
-                        force = force or file.metadata.changedtick ~= changedtick,
+                        force = force_modify or file.metadata.changedtick ~= changedtick,
                     })
                 else
                     return 0
@@ -266,7 +273,7 @@ function M:load(opts)
                 if file then
                     log.fmt_debug("modifying in database: %s", file.filename)
                     return modify_file_in_database(db, file, {
-                        force = force or file.metadata.changedtick ~= changedtick,
+                        force = force_modify or file.metadata.changedtick ~= changedtick,
                     })
                 else
                     return 0

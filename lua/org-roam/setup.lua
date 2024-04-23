@@ -481,8 +481,8 @@ local function initialize_database(roam)
         directory = roam.config.directory,
     })
 
-    -- Load the database asynchronously
-    return roam.db:load({ force = true }):next(function()
+    -- Load the database asynchronously, forcing a full sweep of directory
+    return roam.db:load({ force = "scan" }):next(function()
         -- If we are persisting to disk, do so now as the database may
         -- have changed post-load
         if roam.config.database.persist then

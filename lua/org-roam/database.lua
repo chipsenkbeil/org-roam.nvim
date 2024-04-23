@@ -87,7 +87,14 @@ end
 
 ---Loads the database from disk and re-parses files.
 ---Returns a promise that receives a database reference and collection of files.
----@param opts? {force?:boolean}
+---
+---If `force` is "scan", the directory will be searched again for files
+---and they will be reloaded. Modification of database records will not be
+---forced.
+---
+---If `force` is true, the directory will be searched again for files,
+---they will be reloaded, and modifications of database records will be forced.
+---@param opts? {force?:boolean|"scan"}
 ---@return OrgPromise<{database:org-roam.core.Database, files:OrgFiles}>
 function M:load(opts)
     opts = opts or {}
@@ -152,7 +159,7 @@ function M:save(opts)
             return Promise.resolve(false)
         end
 
-        -- Refresh our data to make sure it is fresh
+        -- Refresh our data (no rescan or force) to make sure it is fresh
         return self:load():next(function()
             return Promise.new(function(resolve, reject)
                 db:write_to_disk(self.__database_path, function(err)
