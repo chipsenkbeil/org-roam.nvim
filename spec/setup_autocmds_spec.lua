@@ -25,9 +25,9 @@ describe("org-roam.setup.autocmds", function()
         })
 
         -- Ensure we are loaded
-        roam.db:load():wait()
+        roam.database:load():wait()
 
-        local ids = roam.db:ids()
+        local ids = roam.database:ids()
         table.sort(ids)
         assert.are.same({ "1", "2", "3" }, ids)
 
@@ -40,7 +40,7 @@ describe("org-roam.setup.autocmds", function()
         utils.wait()
 
         -- Verify that the database reflects the change
-        ids = roam.db:ids()
+        ids = roam.database:ids()
         table.sort(ids)
         assert.are.same({ "2", "3", "new-id" }, ids)
     end)
@@ -60,9 +60,9 @@ describe("org-roam.setup.autocmds", function()
         })
 
         -- Ensure we are loaded
-        roam.db:load():wait()
+        roam.database:load():wait()
 
-        local ids = roam.db:ids()
+        local ids = roam.database:ids()
         table.sort(ids)
         assert.are.same({ "1", "2", "3" }, ids)
 
@@ -75,7 +75,7 @@ describe("org-roam.setup.autocmds", function()
         utils.wait()
 
         -- Verify that the database does not reflect change
-        ids = roam.db:ids()
+        ids = roam.database:ids()
         table.sort(ids)
         assert.are.same({ "1", "2", "3" }, ids)
     end)
@@ -107,7 +107,7 @@ describe("org-roam.setup.autocmds", function()
         assert.are.equal(0, vim.fn.filereadable(roam.config.database.path))
 
         -- Do some database mutation to avoid caching
-        roam.db:insert_sync(utils.fake_node())
+        roam.database:insert_sync(utils.fake_node())
 
         -- Trigger the autocmd to save the database
         autocmd.callback()

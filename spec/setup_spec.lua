@@ -26,7 +26,7 @@ describe("org-roam.setup", function()
             directory = directory,
         }):wait()
 
-        assert.are.equal(db_path, roam.db:path())
-        assert.are.equal(directory, roam.db:files_path())
+        assert.are.equal(db_path, roam.database:path())
+        assert.are.equal(directory, roam.database:files_path())
     end)
 end)

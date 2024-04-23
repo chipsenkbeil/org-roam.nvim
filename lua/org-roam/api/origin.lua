@@ -18,7 +18,7 @@ local function roam_add_origin(roam, opts)
         utils.node_under_cursor(function(node)
             if not node then return resolve(false) end
 
-            roam.db:load_file({ path = node.file }):next(function(results)
+            roam.database:load_file({ path = node.file }):next(function(results)
                 -- Get the OrgFile instance
                 local file = results.file
 
@@ -68,7 +68,7 @@ local function roam_goto_prev_node(roam, opts)
 
         utils.node_under_cursor(function(node)
             if not node or not node.origin then return resolve(false) end
-            roam.db:get(node.origin)
+            roam.database:get(node.origin)
                 :next(goto_node)
                 :catch(function() resolve(false) end)
         end, { win = winnr })
@@ -92,7 +92,7 @@ local function roam_goto_next_node(roam, opts)
 
         utils.node_under_cursor(function(node)
             if not node then return resolve(false) end
-            roam.db:find_nodes_by_origin(node.id):next(function(nodes)
+            roam.database:find_nodes_by_origin(node.id):next(function(nodes)
                 if #nodes == 0 then
                     resolve(false)
                     return nodes
@@ -108,7 +108,7 @@ local function roam_goto_next_node(roam, opts)
 
                 roam.ui.select_node({ include = ids }, function(selection)
                     if selection.id then
-                        roam.db:get(selection.id)
+                        roam.database:get(selection.id)
                             :next(goto_node)
                             :catch(function() resolve(false) end)
                     else
@@ -131,7 +131,7 @@ local function roam_remove_origin(roam)
         utils.node_under_cursor(function(node)
             if not node then return resolve(false) end
 
-            roam.db:load_file({ path = node.file }):next(function(results)
+            roam.database:load_file({ path = node.file }):next(function(results)
                 -- Get the OrgFile instance
                 local file = results.file
 

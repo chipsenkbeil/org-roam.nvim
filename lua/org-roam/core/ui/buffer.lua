@@ -297,15 +297,18 @@ function M:render(opts)
         end, ui_utils.get_windows_for_buffer(self.__bufnr))
 
         -- Clear the buffer of its content
-        self:__clear({ force = true })
-
-        -- Redraw content using the provided components
-        for _, component in ipairs(self.__components) do
-            local ret = component:render()
-            if ret.ok then
-                self:__apply_lines(ret.lines, true)
-            else
-                notify.error("component failed: " .. ret.error)
+        -- NOTE: If clear fails, something has gone wrong in neovim, which
+        --       seems to happen in our CI tests. Otherwise, we continue
+        --       to process components as expected.
+        if self:__clear({ force = true }) then
+            -- Redraw content using the provided components
+            for _, component in ipairs(self.__components) do
+                local ret = component:render()
+                if ret.ok then
+                    self:__apply_lines(ret.lines, true)
+                else
+                    notify.error("component failed: " .. ret.error)
+                end
             end
         end
 
@@ -564,6 +567,7 @@ end
 ---@private
 ---Clears the buffer's contents.
 ---@param opts? {force?:boolean}
+---@return boolean
 function M:__clear(opts)
     opts = opts or {}
     local force = opts.force or false
@@ -585,11 +589,18 @@ function M:__clear(opts)
     --       this as this seems to happen in the test only and does not stop
     --       the test from completing successfull.
     vim.api.nvim_buf_clear_namespace(self.__bufnr, self.__namespace, self.__offset, -1)
-    vim.api.nvim_buf_set_lines(self.__bufnr, self.__offset, -1, true, {})
+
+    -- NOTE: This fails with "E315: ml_get: invalid lnum: 2" in our CI (sometimes); so,
+    --       we are wrapping it in a pcall to catch the error. If we really did get in
+    --       a bad state as a user, it'd be better to just stop processing, which is
+    --       what we do when this reports false.
+    local ok = pcall(vim.api.nvim_buf_set_lines, self.__bufnr, self.__offset, -1, true, {})
 
     if force then
         vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", modifiable)
     end
+
+    return ok
 end
 
 return M

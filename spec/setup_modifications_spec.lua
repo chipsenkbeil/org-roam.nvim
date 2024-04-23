@@ -20,16 +20,16 @@ describe("org-roam.setup.modifications", function()
             }
         })
 
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Add a custom entry into our database that points to the same file
-        local node = roam.db:get_sync("1")
+        local node = roam.database:get_sync("1")
         assert.is_not_nil(node)
 
         -- Make a new node that points to "1", but is called "4"
         local new_node = vim.deepcopy(node)
         new_node.id = "4"
-        roam.db:internal_sync():insert(new_node, { id = "4" })
+        roam.database:internal_sync():insert(new_node, { id = "4" })
 
         -- Create a link reference to that id
         vim.api.nvim_buf_set_lines(0, 0, -1, true, { "[[id:4]]" })

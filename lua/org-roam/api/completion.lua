@@ -51,7 +51,7 @@ local function roam_complete_node_under_cursor(roam, opts)
             auto_select = true,
             init_input = input,
         }, function(choice)
-            local node = roam.db:get_sync(choice.id)
+            local node = roam.database:get_sync(choice.id)
             if not node then
                 return resolve(false)
             end

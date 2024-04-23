@@ -18,7 +18,7 @@ describe("org-roam.setup.commands", function()
 
         -- Perform a change to the database since the last save so
         -- we get around the tick write protection
-        roam.db:insert_sync(utils.fake_node())
+        roam.database:insert_sync(utils.fake_node())
 
         -- Trigger the command synchronously
         vim.cmd("RoamSave sync")
@@ -53,7 +53,7 @@ describe("org-roam.setup.commands", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Create a new file not loaded by the plugin yet
         utils.write_to(utils.join_path(directory, "one.org"), utils.indent([=[
@@ -66,7 +66,7 @@ describe("org-roam.setup.commands", function()
         vim.cmd("RoamUpdate sync")
 
         -- Verify the existing file was updated
-        local ids = roam.db:ids()
+        local ids = roam.database:ids()
         table.sort(ids)
         assert.are.same({ "2", "3", "roam-update-node" }, ids)
     end)
@@ -83,7 +83,7 @@ describe("org-roam.setup.commands", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Create a new file not loaded by the plugin yet
         utils.write_to(utils.join_path(directory, "test.org"), utils.indent([=[
@@ -96,7 +96,7 @@ describe("org-roam.setup.commands", function()
         vim.cmd("RoamUpdate! sync")
 
         -- Verify the new file was loaded
-        local ids = roam.db:ids()
+        local ids = roam.database:ids()
         table.sort(ids)
         assert.are.same({ "1", "2", "3", "roam-update-node" }, ids)
     end)
@@ -113,7 +113,7 @@ describe("org-roam.setup.commands", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Create a new file not loaded by the plugin yet
         utils.write_to(utils.join_path(directory, "test.org"), utils.indent([=[
@@ -126,7 +126,7 @@ describe("org-roam.setup.commands", function()
         assert.are.equal(1, vim.fn.filereadable(roam.config.database.path))
 
         -- Verify the state of the database
-        local ids = roam.db:ids()
+        local ids = roam.database:ids()
         table.sort(ids)
         assert.are.same({ "1", "2", "3" }, ids)
 
@@ -134,7 +134,7 @@ describe("org-roam.setup.commands", function()
         vim.cmd("RoamReset sync")
 
         -- Verify database has latest status
-        ids = roam.db:ids()
+        ids = roam.database:ids()
         table.sort(ids)
         assert.are.same({ "1", "2", "3", "roam-update-node" }, ids)
 
@@ -155,7 +155,7 @@ describe("org-roam.setup.commands", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open up the some test file
         vim.cmd.edit(test_path)
@@ -198,7 +198,7 @@ describe("org-roam.setup.commands", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open up the some test file
         vim.cmd.edit(test_path)
@@ -240,7 +240,7 @@ describe("org-roam.setup.commands", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open up the some test file
         vim.cmd.edit(test_path)
@@ -284,7 +284,7 @@ describe("org-roam.setup.commands", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open up the some test file
         vim.cmd.edit(test_path)

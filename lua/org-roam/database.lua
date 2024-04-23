@@ -39,11 +39,34 @@ function M:__index(key)
     local loader = rawget(self, "__loader")
 
     -- Check the fields of the table, then the metatable
-    -- of the table which includes methods defined below,
-    -- and finally fall back to the underlying database
-    return rawget(self, key)
+    -- of the table which includes methods defined below
+    local self_value = rawget(self, key)
         or rawget(getmetatable(self) or {}, key)
-        or (loader and loader:database_sync()[key])
+    if self_value ~= nil then
+        return self_value
+    end
+
+    -- Fall back ot the underlying database
+    local db = loader and loader:database_sync()
+    local db_value = db and db[key]
+
+    -- If we are accessing the core database function,
+    -- we need to wrap it as the "self" value that is
+    -- passed to it may be our wrapper instead of the
+    -- core database. So, we wrap our function, check
+    -- if the first value matches our wrapper, and
+    -- swap it if that is the case.
+    if type(db_value) == "function" then
+        return function(this, ...)
+            if this == self then
+                this = db
+            end
+
+            return db_value(this, ...)
+        end
+    else
+        return db_value
+    end
 end
 
 ---@private

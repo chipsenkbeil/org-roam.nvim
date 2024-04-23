@@ -37,7 +37,7 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
@@ -69,7 +69,7 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
@@ -100,7 +100,7 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
@@ -131,7 +131,7 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
@@ -162,7 +162,7 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
@@ -195,7 +195,7 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
@@ -215,7 +215,7 @@ describe("org-roam.api.origin", function()
 
     it("should be able to go to the next node automatically if current node is used as origin in one place", function()
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load a file used as an origin into the buffer
         vim.cmd.edit(one_path)
@@ -269,7 +269,7 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database (force to get new files)
-        roam.db:load({ force = true }):wait()
+        roam.database:load({ force = true }):wait()
 
         -- Load the base file
         vim.cmd.edit(path_3)
@@ -309,7 +309,7 @@ describe("org-roam.api.origin", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)

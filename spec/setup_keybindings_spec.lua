@@ -24,7 +24,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open up the some test file
         vim.cmd.edit(test_path)
@@ -75,7 +75,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open up the some test file
         vim.cmd.edit(test_path)
@@ -125,7 +125,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open up the some test file
         vim.cmd.edit(test_path)
@@ -177,7 +177,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open up the some test file
         vim.cmd.edit(test_path)
@@ -234,7 +234,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_path)
@@ -270,7 +270,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load a file used as an origin into the buffer
         vim.cmd.edit(utils.join_path(directory, "one.org"))
@@ -315,7 +315,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load a file used as an origin into the buffer
         vim.cmd.edit(utils.join_path(directory, "one.org"))
@@ -357,7 +357,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load up a test file
         vim.cmd.edit(utils.join_path(directory, "two.org"))
@@ -387,7 +387,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load up a test file
         vim.cmd.edit(utils.join_path(directory, "two.org"))
@@ -426,7 +426,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Mock selection to pick node 2
         utils.mock_select_pick(function(_, _, helpers)
@@ -467,7 +467,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Set our buffer text to something and point cursor to text this is
         -- close to the title of the node "three"
@@ -505,7 +505,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(utils.join_path(directory, "one.org"))
@@ -559,7 +559,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(utils.join_path(directory, "one.org"))
@@ -622,7 +622,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Mock the selected node to be node 2
         utils.mock_select_pick(function(_, _, helpers)
@@ -661,7 +661,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Do a visual selection first before triggering keybinding
         vim.api.nvim_buf_set_lines(0, 0, -1, true, { "three" })
@@ -713,7 +713,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Mock the selected node to be node 2
         utils.mock_select_pick(function(_, _, helpers)
@@ -745,7 +745,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Do a visual selection first before triggering keybinding
         vim.api.nvim_buf_set_lines(0, 0, -1, false, {
@@ -790,7 +790,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Mock the selected node to be unique
         utils.mock_select_pick(function()
@@ -822,7 +822,7 @@ describe("org-roam.setup.keybindings", function()
         })
 
         -- Ensure loading is done
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Do a visual selection first before triggering keybinding
         vim.api.nvim_buf_set_lines(0, 0, -1, false, {
