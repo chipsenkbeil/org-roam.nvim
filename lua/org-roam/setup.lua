@@ -481,7 +481,7 @@ local function initialize_database(roam)
     })
 
     -- Load the database asynchronously
-    return roam.db:load():next(function()
+    return roam.db:load({ force = true }):next(function()
         -- If we are persisting to disk, do so now as the database may
         -- have changed post-load
         if roam.config.database.persist then
@@ -496,7 +496,7 @@ end
 ---@return org-roam.Setup
 return function(roam)
     ---@class org-roam.Setup
-    ---@operator call(org-roam.Config):OrgPromise<nil>
+    ---@operator call(org-roam.Config):OrgPromise<OrgRoam>
     local M = setmetatable({}, {
         __call = function(this, config)
             return this.call(config)
@@ -505,14 +505,16 @@ return function(roam)
 
     ---Calls the setup function to initialize the plugin.
     ---@param config org-roam.Config|nil
-    ---@return OrgPromise<nil>
+    ---@return OrgPromise<OrgRoam>
     function M.call(config)
         M.__merge_config(config or {})
         M.__define_autocmds()
         M.__define_commands()
         M.__define_keybindings()
         M.__modify_orgmode_plugin()
-        return M.__initialize_database()
+        return M.__initialize_database():next(function()
+            return roam
+        end)
     end
 
     ---@private

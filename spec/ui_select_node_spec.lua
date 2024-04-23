@@ -1,9 +1,6 @@
 describe("org-roam.ui.select-node", function()
-    local roam = require("org-roam")
+    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
-
-    ---@type string, string, string, string
-    local test_dir, test_path_one, test_path_two, test_path_three
 
     ---@param buf? integer
     ---@return string[]
@@ -42,14 +39,10 @@ describe("org-roam.ui.select-node", function()
     end
 
     before_each(function()
-        test_dir = utils.make_temp_org_files_directory()
-        test_path_one = utils.join_path(test_dir, "one.org")
-        test_path_two = utils.join_path(test_dir, "two.org")
-        test_path_three = utils.join_path(test_dir, "three.org")
-
-        roam.db = roam.db:new({
-            db_path = vim.fn.tempname() .. "-test-db",
-            directory = test_dir,
+        roam = utils.init_plugin({
+            setup = {
+                directory = utils.make_temp_org_files_directory(),
+            }
         })
 
         -- Patch `vim.cmd` so we can run tests here

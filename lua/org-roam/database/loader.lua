@@ -347,7 +347,7 @@ end
 ---Loads database (or retrieves from cache) asynchronously.
 ---@return OrgPromise<org-roam.core.Database>
 function M:database()
-    return self.__db and Promise.resolve(self.__db) or Promise.new(function(resolve, reject)
+    return self.__db and Promise.resolve(self.__db) or Promise.new(function(resolve)
         -- Load our database from disk if it is available
         io.stat(self.path.database, function(unavailable)
             if unavailable then

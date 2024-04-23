@@ -1,24 +1,18 @@
 describe("org-roam.api.node", function()
-    local roam = require("org-roam")
-
-    ---@type spec.utils
+    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
-    ---@type string, string
-    local test_dir, one_path
+    ---@type string
+    local one_path
 
     before_each(function()
-        test_dir = utils.make_temp_org_files_directory()
-
-        -- Overwrite the configuration roam directory
-        roam.config.directory = test_dir
-
-        roam.db = roam.db:new({
-            db_path = vim.fn.tempname() .. "-test-db",
-            directory = test_dir,
+        roam = utils.init_plugin({
+            setup = {
+                directory = utils.make_temp_org_files_directory(),
+            }
         })
 
-        one_path = utils.join_path(roam.db:files_path(), "one.org")
+        one_path = utils.join_path(roam.config.directory, "one.org")
 
         -- Patch `vim.cmd` so we can run tests here
         utils.patch_vim_cmd()

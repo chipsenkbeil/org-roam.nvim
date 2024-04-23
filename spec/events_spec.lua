@@ -1,10 +1,9 @@
 describe("org-roam.events", function()
-    ---@type OrgRoam
-    local roam
+    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
-    ---@type string, string, string, string
-    local test_dir, test_path_one, test_path_two, test_path_three
+    ---@type string, string, string
+    local test_path_one, test_path_two, test_path_three
 
     ---Moves cursor and forces a trigger of "CursorMoved".
     ---@param line integer
@@ -16,19 +15,14 @@ describe("org-roam.events", function()
     end
 
     before_each(function()
-        test_dir = utils.make_temp_org_files_directory()
-        test_path_one = utils.join_path(test_dir, "one.org")
-        test_path_two = utils.join_path(test_dir, "two.org")
-        test_path_three = utils.join_path(test_dir, "three.org")
-
-        -- Initialize an entirely new plugin and set it up
-        -- so extra features like cursor node tracking works
-        roam = require("org-roam"):new()
-        roam.db = roam.db:new({
-            db_path = vim.fn.tempname() .. "-test-db",
-            directory = test_dir,
+        roam = utils.init_plugin({
+            setup = {
+                directory = utils.make_temp_org_files_directory(),
+            }
         })
-        roam.setup({ directory = test_dir }):wait()
+        test_path_one = utils.join_path(roam.config.directory, "one.org")
+        test_path_two = utils.join_path(roam.config.directory, "two.org")
+        test_path_three = utils.join_path(roam.config.directory, "three.org")
 
         -- Patch `vim.cmd` so we can run tests here
         utils.patch_vim_cmd()
@@ -78,7 +72,7 @@ describe("org-roam.events", function()
 
     it("moving around buffer with multiple nodes should report changes", function()
         -- Save the file without our test directory
-        local test_path = utils.join_path(test_dir, "new.org")
+        local test_path = utils.join_path(roam.config.directory, "new.org")
         utils.write_to(test_path, utils.indent([=[
         :PROPERTIES:
         :ID: 1234
