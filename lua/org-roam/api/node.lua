@@ -473,8 +473,10 @@ local function roam_find(roam, opts, cb)
             return
         end
 
-        local ok = pcall(vim.api.nvim_set_current_win, winnr)
-        if not ok then return end
+        -- Try to switch back to the original window, but ignore errors
+        -- in case we did something like close that window inbetween
+        pcall(vim.api.nvim_set_current_win, winnr)
+
         vim.cmd("edit! " .. node.file)
 
         -- Force ourselves back into normal mode
