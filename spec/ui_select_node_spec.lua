@@ -57,7 +57,7 @@ describe("org-roam.ui.select-node", function()
         local win = vim.api.nvim_get_current_win()
 
         -- Load up the selection interface for all nodes
-        roam.ui.select_node(function() end)
+        roam.ui.select_node():open()
         utils.wait()
 
         -- Grab lines from current buffer
@@ -78,7 +78,7 @@ describe("org-roam.ui.select-node", function()
         local win = vim.api.nvim_get_current_win()
 
         -- Load up the selection interface for nodes 2 and 3
-        roam.ui.select_node({ include = { "2", "3" } }, function() end)
+        roam.ui.select_node({ include = { "2", "3" } }):open()
         utils.wait()
 
         -- Grab lines from current buffer
@@ -98,7 +98,7 @@ describe("org-roam.ui.select-node", function()
         local win = vim.api.nvim_get_current_win()
 
         -- Load up the selection interface for all nodes except 1
-        roam.ui.select_node({ exclude = { "1" } }, function() end)
+        roam.ui.select_node({ exclude = { "1" } }):open()
         utils.wait()
 
         -- Grab lines from current buffer
@@ -118,7 +118,7 @@ describe("org-roam.ui.select-node", function()
         local win = vim.api.nvim_get_current_win()
 
         -- Load up the selection interface for all nodes that contain "o"
-        roam.ui.select_node({ init_input = "o" }, function() end)
+        roam.ui.select_node({ init_input = "o" }):open()
         utils.wait()
 
         -- Grab lines from current buffer
@@ -141,10 +141,12 @@ describe("org-roam.ui.select-node", function()
         -- will automatically select a node and close itself
         local selected = false
         local id = nil
-        roam.ui.select_node({ auto_select = true, init_input = "one" }, function(node)
-            id = node.id
-            selected = true
-        end)
+        roam.ui.select_node({ auto_select = true, init_input = "one" })
+            :on_choice(function(choice)
+                id = choice.id
+                selected = true
+            end)
+            :open()
         utils.wait()
 
         -- Verify we're on the original window
@@ -163,9 +165,9 @@ describe("org-roam.ui.select-node", function()
         -- Load up the selection interface for all nodes with autoselect, which
         -- will do nothing because we have more than one node
         local selected = false
-        roam.ui.select_node({ auto_select = true, init_input = "o" }, function()
-            selected = true
-        end)
+        roam.ui.select_node({ auto_select = true, init_input = "o" })
+            :on_choice(function() selected = true end)
+            :open()
         utils.wait()
 
         -- Grab lines from current buffer
@@ -190,11 +192,10 @@ describe("org-roam.ui.select-node", function()
         -- Allow missing selection, which we will trigger by pressing <Enter>
         local canceled = false
         local selected = false
-        roam.ui.select_node({ init_input = "four" }, function()
-            selected = true
-        end, function()
-            canceled = true
-        end)
+        roam.ui.select_node({ init_input = "four" })
+            :on_choice(function() selected = true end)
+            :on_cancel(function() canceled = true end)
+            :open()
         utils.wait()
 
         -- Should be at original window with no modifications
@@ -213,10 +214,12 @@ describe("org-roam.ui.select-node", function()
         -- Allow missing selection, which we will trigger by pressing <Enter>
         local label = ""
         local selected = false
-        roam.ui.select_node({ allow_select_missing = true }, function(node)
-            label = node.label
-            selected = true
-        end)
+        roam.ui.select_node({ allow_select_missing = true })
+            :on_choice_missing(function(_label)
+                label = _label
+                selected = true
+            end)
+            :open()
         utils.wait()
 
         -- Verify that we're at the selection dialog
@@ -253,10 +256,12 @@ describe("org-roam.ui.select-node", function()
         -- Don't allow selecting missing
         local label = ""
         local selected = false
-        roam.ui.select_node(function(node)
-            label = node.label
-            selected = true
-        end)
+        roam.ui.select_node()
+            :on_choice_missing(function(_label)
+                label = _label
+                selected = true
+            end)
+            :open()
         utils.wait()
 
         -- Verify that we're at the selection dialog

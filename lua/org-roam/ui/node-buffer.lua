@@ -122,13 +122,14 @@ local function roam_toggle_fixed_buffer(roam, id)
         if id then
             toggle_node_buffer(id)
         else
-            roam.ui.select_node(function(selection)
-                if selection.id then
-                    toggle_node_buffer(selection.id)
-                else
+            roam.ui.select_node()
+                :on_choice(function(choice)
+                    toggle_node_buffer(choice.id)
+                end)
+                :on_cancel(function()
                     resolve(nil)
-                end
-            end)
+                end)
+                :open()
         end
     end)
 end

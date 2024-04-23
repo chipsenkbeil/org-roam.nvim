@@ -1356,8 +1356,9 @@
    Parameters:
 
    - {opts} optional table.
-     - force: optional, if true, will reload each file and node regardless of
-              whether they have changed on disk. If false, only reloads
+     - force: optional, boolean or "scan". if true, will reload each file and
+              node regardless of whether they have changed on disk. If "scan",
+              will check for new or removed files. If false, only reloads
               pre-existing files and nodes if they have changed.
 
    Example:

@@ -424,29 +424,29 @@ local function roam_insert(roam, opts, cb)
         allow_select_missing = true,
         auto_select = opts.immediate,
         init_input = opts.title,
-    }, function(node)
-        if node.id then
-            insert_link(node.id)
-            do_cb(node.id)
-            return
-        end
-
-        if roam.config.capture.include_origin and not opts.origin then
-            opts.origin = node_id_under_cursor_sync({ win = winnr })
-        end
-
-        roam_capture(roam, {
-            immediate = opts.immediate,
-            origin = opts.origin,
-            title = node.label,
-        }, function(id)
-            do_cb(id)
-            if id then
-                insert_link(id)
-                return
-            end
+    })
+        :on_choice(function(choice)
+            insert_link(choice.id)
+            do_cb(choice.id)
         end)
-    end)
+        :on_choice_missing(function(label)
+            if roam.config.capture.include_origin and not opts.origin then
+                opts.origin = node_id_under_cursor_sync({ win = winnr })
+            end
+
+            roam_capture(roam, {
+                immediate = opts.immediate,
+                origin = opts.origin,
+                title = label,
+            }, function(id)
+                do_cb(id)
+                if id then
+                    insert_link(id)
+                    return
+                end
+            end)
+        end)
+        :open()
 end
 
 ---@param roam OrgRoam
@@ -486,28 +486,28 @@ local function roam_find(roam, opts, cb)
     roam.ui.select_node({
         allow_select_missing = true,
         init_input = opts.title,
-    }, function(node)
-        if node.id then
-            visit_node(node.id)
-            do_cb(node.id)
-            return
-        end
-
-        if roam.config.capture.include_origin and not opts.origin then
-            opts.origin = node_id_under_cursor_sync({ win = winnr })
-        end
-
-        roam_capture(roam, {
-            origin = opts.origin,
-            title = node.label,
-        }, function(id)
-            do_cb(id)
-            if id then
-                visit_node(id)
-                return
-            end
+    })
+        :on_choice(function(choice)
+            visit_node(choice.id)
+            do_cb(choice.id)
         end)
-    end)
+        :on_choice_missing(function(label)
+            if roam.config.capture.include_origin and not opts.origin then
+                opts.origin = node_id_under_cursor_sync({ win = winnr })
+            end
+
+            roam_capture(roam, {
+                origin = opts.origin,
+                title = label,
+            }, function(id)
+                do_cb(id)
+                if id then
+                    visit_node(id)
+                    return
+                end
+            end)
+        end)
+        :open()
 end
 
 ---@param roam OrgRoam

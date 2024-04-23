@@ -8,10 +8,8 @@ local Select = require("org-roam.core.ui.select")
 
 ---@param roam OrgRoam
 ---@param opts {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
----@param cb fun(selection:{id:org-roam.core.database.Id|nil, label:string})
----@param cancel_cb fun()
----@return integer win
-local function roam_select_node(roam, opts, cb, cancel_cb)
+---@return org-roam.core.ui.Select
+local function roam_select_node(roam, opts)
     -- TODO: Make this more optimal. Probably involves supporting
     --       an async function to return items instead of an
     --       item list so we can query the database by name
@@ -58,10 +56,6 @@ local function roam_select_node(roam, opts, cb, cancel_cb)
     }, opts or {})
 
     return Select:new(select_opts)
-        :on_choice(cb)
-        :on_choice_missing(function(label) cb({ id = nil, label = label }) end)
-        :on_cancel(cancel_cb)
-        :open()
 end
 
 ---@param roam OrgRoam
@@ -71,21 +65,41 @@ return function(roam)
     local M = {}
 
     ---Opens up a selection dialog populated with nodes (titles and aliases).
-    ---@overload fun(cb:fun(selection:{id:org-roam.core.database.Id|nil, label:string}))
-    ---@param opts {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
-    ---@param cb fun(selection:{id:org-roam.core.database.Id|nil, label:string})
-    ---@param cancel_cb? fun()
-    ---@return integer win
-    function M.select_node(opts, cb, cancel_cb)
-        if type(opts) == "function" then
-            cb = opts
-            opts = {}
-        end
+    ---@param opts? {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
+    ---@return org-roam.ui.NodeSelect
+    function M.select_node(opts)
         opts = opts or {}
-        if type(cancel_cb) ~= "function" then
-            cancel_cb = function() end
+
+        ---@class org-roam.ui.NodeSelect
+        local select = { __select = roam_select_node(roam, opts) }
+
+        ---@param f fun(selection:{id:org-roam.core.database.Id, label:string})
+        ---@return org-roam.ui.NodeSelect
+        function select:on_choice(f)
+            self.__select:on_choice(f)
+            return self
         end
-        return roam_select_node(roam, opts, cb, cancel_cb)
+
+        ---@param f fun(label:string)
+        ---@return org-roam.ui.NodeSelect
+        function select:on_choice_missing(f)
+            self.__select:on_choice_missing(f)
+            return self
+        end
+
+        ---@param f fun()
+        ---@return org-roam.ui.NodeSelect
+        function select:on_cancel(f)
+            self.__select:on_cancel(f)
+            return self
+        end
+
+        ---@return integer win
+        function select:open()
+            return self.__select:open()
+        end
+
+        return select
     end
 
     return M
