@@ -18,7 +18,7 @@ local function roam_select_node(roam, opts, cb, cancel_cb)
     --       and by aliases to get candidate ids.
     ---@type {id:org-roam.core.database.Id, label:string}
     local items = {}
-    for _, id in ipairs(opts.include or roam.db:ids()) do
+    for _, id in ipairs(opts.include or roam.database:ids()) do
         local skip = false
 
         -- If we were given an exclusion list, check if the id is in that list
@@ -28,7 +28,7 @@ local function roam_select_node(roam, opts, cb, cancel_cb)
         end
 
         if not skip then
-            local node = roam.db:get_sync(id)
+            local node = roam.database:get_sync(id)
             if node then
                 table.insert(items, { id = id, label = node.title })
                 for _, alias in ipairs(node.aliases) do

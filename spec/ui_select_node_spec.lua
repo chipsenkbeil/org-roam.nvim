@@ -53,7 +53,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should display titles and aliases of all nodes by default", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
         -- Load up the selection interface for all nodes
@@ -74,7 +74,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support limiting to only included node ids", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
         -- Load up the selection interface for nodes 2 and 3
@@ -94,7 +94,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support limiting to exclude specific node ids", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
         -- Load up the selection interface for all nodes except 1
@@ -114,7 +114,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support being provided initial input to filter by title/alias", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
         -- Load up the selection interface for all nodes that contain "o"
@@ -134,7 +134,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support selecting automatically if filter matches one node", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
         -- Load up the selection interface for all nodes with autoselect, which
@@ -157,7 +157,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should not select automatically if filter does not select one node", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
         -- Load up the selection interface for all nodes with autoselect, which
@@ -184,7 +184,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should cancel and close itself if provided initial input with no matches", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
         -- Allow missing selection, which we will trigger by pressing <Enter>
@@ -207,7 +207,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support returning typed text as a label if missing true", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
         -- Allow missing selection, which we will trigger by pressing <Enter>
@@ -247,7 +247,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should not support returning typed text as a label if missing false/unspecified", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
         -- Don't allow selecting missing

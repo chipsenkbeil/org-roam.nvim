@@ -72,7 +72,7 @@ local function define_autocmds(roam)
 
                 if is_roam_file then
                     log.fmt_debug("Updating on save: %s", path)
-                    roam.db:load_file({ path = path }):catch(log.error)
+                    roam.database:load_file({ path = path }):catch(log.error)
                 end
             end,
         })
@@ -87,8 +87,8 @@ local function define_autocmds(roam)
             callback = function()
                 -- Block, don't be async, as neovim could exit during async
                 -- and cause issues with corrupt databases
-                log.fmt_debug("Persisting database to disk: %s", roam.db:path())
-                roam.db:save():catch(log.error):wait()
+                log.fmt_debug("Persisting database to disk: %s", roam.database:path())
+                roam.database:save():catch(log.error):wait()
             end,
         })
     end
@@ -108,7 +108,7 @@ local function define_commands(roam)
         local profiler = Profiler:new()
         profiler:start()
 
-        local promise = roam.db:save({ force = force }):next(function(...)
+        local promise = roam.database:save({ force = force }):next(function(...)
             local tt = profiler:stop():time_taken_as_string()
             notify.info("Saved database [took " .. tt .. "]")
             return ...
@@ -131,7 +131,7 @@ local function define_commands(roam)
         profiler:start()
 
         log.fmt_debug("Updating database (force = %s, sync = %s)", force, sync)
-        local promise = roam.db:load({ force = force }):next(function(...)
+        local promise = roam.database:load({ force = force }):next(function(...)
             local tt = profiler:stop():time_taken_as_string()
             notify.info("Updated database [took " .. tt .. "]")
             return ...
@@ -149,16 +149,16 @@ local function define_commands(roam)
         local sync = string.lower(vim.trim(args)) == "sync"
 
         log.fmt_debug("Resetting database (sync = %s)", sync)
-        local promise = roam.db:delete_disk_cache():next(function(success)
-            roam.db = roam.db:new({
-                db_path = roam.db:path(),
-                directory = roam.db:files_path(),
+        local promise = roam.database:delete_disk_cache():next(function(success)
+            roam.database = roam.database:new({
+                db_path = roam.database:path(),
+                directory = roam.database:files_path(),
             })
 
             -- Start profiling so we can report the time taken
             local profiler = Profiler:new()
             profiler:start()
-            return roam.db:load():next(function(...)
+            return roam.database:load():next(function(...)
                 local tt = profiler:stop():time_taken_as_string()
                 notify.info("Loaded database [took " .. tt .. "]")
                 return ...
@@ -441,7 +441,7 @@ local function modify_orgmode_plugin(roam)
         local row, col = vim.fn.getline("."), vim.fn.col(".") or 0
         local link = require("orgmode.org.hyperlinks.link").at_pos(row, col)
         local id = link and link.url:get_id()
-        local node = id and roam.db:get_sync(id)
+        local node = id and roam.database:get_sync(id)
 
         -- If we found a node, open the file at the start of the node
         if node then
@@ -476,17 +476,17 @@ local function initialize_database(roam)
     local Promise = require("orgmode.utils.promise")
 
     -- Swap out the database for one configured properly
-    roam.db = roam.db:new({
+    roam.database = roam.database:new({
         db_path = roam.config.database.path,
         directory = roam.config.directory,
     })
 
     -- Load the database asynchronously, forcing a full sweep of directory
-    return roam.db:load({ force = "scan" }):next(function()
+    return roam.database:load({ force = "scan" }):next(function()
         -- If we are persisting to disk, do so now as the database may
         -- have changed post-load
         if roam.config.database.persist then
-            return roam.db:save()
+            return roam.database:save()
         else
             return Promise.resolve(nil)
         end

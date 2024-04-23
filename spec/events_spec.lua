@@ -77,7 +77,7 @@ describe("org-roam.events", function()
         ]=]))
 
         -- Reload the nodes into our database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         ---@type string[]
         local nodes = {}

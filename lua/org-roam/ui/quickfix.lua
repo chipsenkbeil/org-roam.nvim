@@ -20,11 +20,11 @@ local utils = require("org-roam.utils")
 ---@return org-roam.ui.quickfix.Item[]
 local function roam_get_links_as_quickfix_items(roam, id)
     ---@type org-roam.core.database.Id[]
-    local ids = vim.tbl_keys(roam.db:get_links(id))
+    local ids = vim.tbl_keys(roam.database:get_links(id))
 
     local items = {}
     for _, link_id in ipairs(ids) do
-        local node = roam.db:get_sync(link_id)
+        local node = roam.database:get_sync(link_id)
         if node then
             table.insert(items, {
                 filename = node.file,
@@ -44,11 +44,11 @@ local function roam_get_backlinks_as_quickfix_items(roam, id, opts)
     opts = opts or {}
 
     ---@type org-roam.core.database.Id[]
-    local ids = vim.tbl_keys(roam.db:get_backlinks(id))
+    local ids = vim.tbl_keys(roam.database:get_backlinks(id))
 
     local items = {}
     for _, backlink_id in ipairs(ids) do
-        local node = roam.db:get_sync(backlink_id)
+        local node = roam.database:get_sync(backlink_id)
 
         if node then
             -- If showing preview of the link, we load the
@@ -87,7 +87,7 @@ local function roam_open(roam, id, opts)
     opts = opts or {}
 
     local title = (function()
-        local node = roam.db:get_sync(id)
+        local node = roam.database:get_sync(id)
         return node and node.title
     end)()
 

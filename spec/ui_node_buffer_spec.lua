@@ -24,7 +24,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should display node buffer that follows cursor if no node specified", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load up multiple different files
         local one_win, two_win = utils.edit_files(test_path_one, test_path_two)
@@ -68,7 +68,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should include origin of node in the displayed node buffer if it has one", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         vim.cmd.edit(test_path_two)
 
@@ -94,7 +94,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should be able to navigate to the origin from the node buffer", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load up a test file so we have a node under cursor
         vim.cmd.edit(test_path_two)
@@ -134,7 +134,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should be able to navigate to the link from the node buffer", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load up a test file so we have a node under cursor
         vim.cmd.edit(test_path_two)
@@ -174,7 +174,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should be able to expand a link to display a preview within the node buffer", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load up a test file so we have a node under cursor
         vim.cmd.edit(test_path_two)
@@ -214,7 +214,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should be able to expand all links to display previews within the node buffer", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load up a test file so we have a node under cursor
         vim.cmd.edit(test_path_two)
@@ -247,7 +247,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should display node buffer for a fixed node specified", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load up multiple different files
         local one_win, two_win = utils.edit_files(test_path_one, test_path_two)

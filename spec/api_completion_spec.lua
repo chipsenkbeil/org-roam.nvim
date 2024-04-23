@@ -37,7 +37,7 @@ describe("org-roam.api.completion", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open our test file into a buffer
         vim.cmd.edit(test_path)
@@ -76,7 +76,7 @@ describe("org-roam.api.completion", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open our test file into a buffer
         vim.cmd.edit(test_path)
@@ -115,7 +115,7 @@ describe("org-roam.api.completion", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open our test file into a buffer
         vim.cmd.edit(test_path)
