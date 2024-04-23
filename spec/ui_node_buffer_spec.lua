@@ -1,30 +1,22 @@
 describe("org-roam.ui.node-buffer", function()
-    ---@type OrgRoam
-    local roam
-
+    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
-    ---@type string, string, string, string
-    local test_dir, test_path_one, test_path_two, test_path_three
+    ---@type string, string
+    local test_path_one, test_path_two
 
     before_each(function()
-        test_dir = utils.make_temp_org_files_directory()
-        test_path_one = utils.join_path(test_dir, "one.org")
-        test_path_two = utils.join_path(test_dir, "two.org")
-        test_path_three = utils.join_path(test_dir, "three.org")
-
         utils.init_before_test()
 
         -- Initialize an entirely new plugin and set it up
         -- so extra features like cursor node tracking works
         roam = utils.init_plugin({
             setup = {
-                directory = test_dir,
-                database = {
-                    path = vim.fn.tempname() .. "-test-db",
-                },
+                directory = utils.make_temp_org_files_directory(),
             },
         })
+        test_path_one = utils.join_path(roam.config.directory, "one.org")
+        test_path_two = utils.join_path(roam.config.directory, "two.org")
     end)
 
     after_each(function()

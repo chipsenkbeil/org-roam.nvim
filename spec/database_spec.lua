@@ -1,5 +1,5 @@
 describe("org-roam.database", function()
-    local roam = require("org-roam")
+    local Database = require("org-roam.database")
     local utils = require("spec.utils")
 
     ---Database populated before each test.
@@ -10,13 +10,15 @@ describe("org-roam.database", function()
     local one_path, two_path, three_path
 
     before_each(function()
-        db = roam.db:new({
-            db_path = vim.fn.tempname() .. "-test-db",
-            directory = utils.make_temp_org_files_directory(),
+        local test_dir = utils.make_temp_org_files_directory()
+        one_path = utils.join_path(test_dir, "one.org")
+        two_path = utils.join_path(test_dir, "two.org")
+        three_path = utils.join_path(test_dir, "three.org")
+
+        db = Database:new({
+            db_path = utils.join_path(test_dir, "db"),
+            directory = test_dir,
         })
-        one_path = utils.join_path(db:files_path(), "one.org")
-        two_path = utils.join_path(db:files_path(), "two.org")
-        three_path = utils.join_path(db:files_path(), "three.org")
     end)
 
     it("should support loading new files from a directory", function()

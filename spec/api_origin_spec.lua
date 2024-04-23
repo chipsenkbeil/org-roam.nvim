@@ -1,37 +1,28 @@
 describe("org-roam.api.origin", function()
-    local roam = require("org-roam")
+    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
     ---@type string, string, string
     local test_dir, test_org_file_path, one_path
 
     before_each(function()
-        test_dir = utils.make_temp_org_files_directory()
+        utils.init_before_test()
+
+        roam = utils.init_plugin({
+            setup = {
+                directory = utils.make_temp_org_files_directory(),
+            }
+        })
+        test_dir = roam.config.directory
         test_org_file_path = utils.make_temp_filename({
-            dir = test_dir,
+            dir = roam.config.directory,
             ext = "org",
         })
-
-        -- Overwrite the configuration roam directory
-        roam.config.directory = test_dir
-
-        roam.db = roam.db:new({
-            db_path = vim.fn.tempname() .. "-test-db",
-            directory = test_dir,
-        })
-
-        one_path = utils.join_path(roam.db:files_path(), "one.org")
-
-        -- Patch `vim.cmd` so we can run tests here
-        utils.patch_vim_cmd()
+        one_path = utils.join_path(roam.config.directory, "one.org")
     end)
 
     after_each(function()
-        -- Unpatch `vim.cmd` so we can have tests pass
-        utils.unpatch_vim_cmd()
-
-        -- Restore select in case we mocked it
-        utils.unmock_select()
+        utils.cleanup_after_test()
     end)
 
     it("should be able to set the origin for the node under cursor", function()
@@ -277,8 +268,8 @@ describe("org-roam.api.origin", function()
             "#+TITLE: Multi-test Three",
         })
 
-        -- Load files into the database
-        roam.db:load():wait()
+        -- Load files into the database (force to get new files)
+        roam.db:load({ force = true }):wait()
 
         -- Load the base file
         vim.cmd.edit(path_3)
