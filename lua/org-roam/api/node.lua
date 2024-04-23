@@ -352,6 +352,8 @@ end
 local function roam_insert(roam, opts, cb)
     opts = opts or {}
     local winnr = vim.api.nvim_get_current_win()
+    local bufnr = vim.api.nvim_get_current_buf()
+    local changedtick = vim.api.nvim_buf_get_changedtick(bufnr)
     local cursor = vim.api.nvim_win_get_cursor(winnr)
 
     ---@param id org-roam.core.database.Id|nil
@@ -371,10 +373,18 @@ local function roam_insert(roam, opts, cb)
             return
         end
 
-        local ok = pcall(vim.api.nvim_set_current_win, winnr)
-        if not ok then return end
+        -- If the buffer has changed since we started, we don't want to
+        -- inject in the wrong place, so instead report an error and exit
+        if vim.api.nvim_buf_get_changedtick(bufnr) ~= changedtick then
+            local msg = "buffer " .. bufnr .. " has changed, so canceling link insertion"
+            log.warn(msg)
+            notify.echo_warning(msg)
+            return
+        end
 
-        -- Ignore errors that occur here
+        -- Ignore errors that occur here when resetting ourselves
+        -- to the appropriate window and repositioning the cursor
+        pcall(vim.api.nvim_set_current_win, winnr)
         pcall(vim.api.nvim_win_set_cursor, winnr, cursor)
 
         local bufnr = vim.api.nvim_win_get_buf(winnr)
