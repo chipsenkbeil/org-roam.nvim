@@ -31,16 +31,13 @@ local function roam_add_origin(roam, opts)
                 elseif entry then
                     -- If no origin specified, we load up a selection dialog
                     -- to pick a node other than the current one
-                    roam.ui.select_node({ exclude = { node.id } }, function(selection)
-                        if selection.id then
-                            entry:set_property(ORIGIN_PROP_NAME, selection.id)
+                    roam.ui.select_node({ exclude = { node.id } })
+                        :on_choice(function(choice)
+                            entry:set_property(ORIGIN_PROP_NAME, choice.id)
                             resolve(true)
-                        else
-                            resolve(false)
-                        end
-                    end, function()
-                        resolve(false)
-                    end)
+                        end)
+                        :on_cancel(function() resolve(false) end)
+                        :open()
                 else
                     resolve(false)
                 end
@@ -106,17 +103,14 @@ local function roam_goto_next_node(roam, opts)
                     return n.id
                 end, nodes)
 
-                roam.ui.select_node({ include = ids }, function(selection)
-                    if selection.id then
-                        roam.database:get(selection.id)
+                roam.ui.select_node({ include = ids })
+                    :on_choice(function(choice)
+                        roam.database:get(choice.id)
                             :next(goto_node)
                             :catch(function() resolve(false) end)
-                    else
-                        resolve(false)
-                    end
-                end, function()
-                    resolve(false)
-                end)
+                    end)
+                    :on_cancel(function() resolve(false) end)
+                    :open()
 
                 return nodes
             end)
