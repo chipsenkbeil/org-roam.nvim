@@ -1,4 +1,4 @@
-*org-roam.txt*            For NVIM v0.9.2           Last change: 2024 April 22
+*org-roam.txt*            For NVIM v0.9.2           Last change: 2024 April 23
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -1030,7 +1030,7 @@ Example:
 
 FILES                                                *org-roam-database-files*
 
-roam.db:files({opts})
+roam.database:files({opts})
 
 Description:
 
@@ -1049,7 +1049,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:files():next(function(files)
+    roam.database:files():next(function(files)
       for _, path in ipairs(files.paths) do
         print("File " .. path)
       end
@@ -1059,7 +1059,7 @@ Example:
 
 FILES PATH                                      *org-roam-database-files-path*
 
-roam.db:files_path()
+roam.database:files_path()
 
 Description:
 
@@ -1069,13 +1069,13 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:files_path()
+    roam.database:files_path()
 <
 
 
 FILES SYNC                                      *org-roam-database-files-sync*
 
-roam.db:files_sync({opts})
+roam.database:files_sync({opts})
 
 Description:
 
@@ -1096,7 +1096,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    local files = roam.db:files_sync()
+    local files = roam.database:files_sync()
     for _, path in ipairs(files.paths) do
       print("File " .. path)
     end
@@ -1105,7 +1105,7 @@ Example:
 
 FIND NODES BY ALIAS                    *org-roam-database-find-nodes-by-alias*
 
-roam.db:find_nodesbyalias({alias})
+roam.database:find_nodesbyalias({alias})
 
 Description:
 
@@ -1122,7 +1122,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:find_nodes_by_alias("Some Alias"):next(function(nodes)
+    roam.database:find_nodes_by_alias("Some Alias"):next(function(nodes)
       for _, node in ipairs(nodes) do
         print("Got node " .. node.id)
       end
@@ -1132,7 +1132,7 @@ Example:
 
 FIND NODES BY ALIAS SYNC          *org-roam-database-find-nodes-by-alias-sync*
 
-roam.db:find_nodesbyaliassync({alias}, {opts})
+roam.database:find_nodesbyaliassync({alias}, {opts})
 
 Description:
 
@@ -1150,7 +1150,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    local nodes = roam.db:find_nodes_by_alias_sync("Some Alias")
+    local nodes = roam.database:find_nodes_by_alias_sync("Some Alias")
     for _, node in ipairs(nodes) do
       print("Got node " .. node.id)
     end
@@ -1159,7 +1159,7 @@ Example:
 
 FIND NODES BY FILE                      *org-roam-database-find-nodes-by-file*
 
-roam.db:find_nodesbyfile({file})
+roam.database:find_nodesbyfile({file})
 
 Description:
 
@@ -1176,7 +1176,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:find_nodes_by_file("path/to/file.org"):next(function(nodes)
+    roam.database:find_nodes_by_file("path/to/file.org"):next(function(nodes)
       for _, node in ipairs(nodes) do
         print("Got node " .. node.id)
       end
@@ -1186,7 +1186,7 @@ Example:
 
 FIND NODES BY FILE SYNC            *org-roam-database-find-nodes-by-file-sync*
 
-roam.db:find_nodesbyfilesync({file}, {opts})
+roam.database:find_nodesbyfilesync({file}, {opts})
 
 Description:
 
@@ -1204,7 +1204,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    local nodes = roam.db:find_nodes_by_file_sync("path/to/file.org")
+    local nodes = roam.database:find_nodes_by_file_sync("path/to/file.org")
     for _, node in ipairs(nodes) do
       print("Got node " .. node.id)
     end
@@ -1213,7 +1213,7 @@ Example:
 
 FIND NODES BY TAG                        *org-roam-database-find-nodes-by-tag*
 
-roam.db:find_nodesbytag({tag})
+roam.database:find_nodesbytag({tag})
 
 Description:
 
@@ -1230,7 +1230,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:find_nodes_by_tag("example"):next(function(nodes)
+    roam.database:find_nodes_by_tag("example"):next(function(nodes)
       for _, node in ipairs(nodes) do
         print("Got node " .. node.id)
       end
@@ -1240,7 +1240,7 @@ Example:
 
 FIND NODES BY TAG SYNC              *org-roam-database-find-nodes-by-tag-sync*
 
-roam.db:find_nodesbytagsync({tag}, {opts})
+roam.database:find_nodesbytagsync({tag}, {opts})
 
 Description:
 
@@ -1258,7 +1258,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    local nodes = roam.db:find_nodes_by_tag_sync("example")
+    local nodes = roam.database:find_nodes_by_tag_sync("example")
     for _, node in ipairs(nodes) do
       print("Got node " .. node.id)
     end
@@ -1267,7 +1267,7 @@ Example:
 
 FIND NODES BY TITLE                    *org-roam-database-find-nodes-by-title*
 
-roam.db:find_nodesbytitle({title})
+roam.database:find_nodesbytitle({title})
 
 Description:
 
@@ -1284,7 +1284,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:find_nodes_by_title("Some Title"):next(function(nodes)
+    roam.database:find_nodes_by_title("Some Title"):next(function(nodes)
       for _, node in ipairs(nodes) do
         print("Got node " .. node.id)
       end
@@ -1294,7 +1294,7 @@ Example:
 
 FIND NODES BY TITLE SYNC          *org-roam-database-find-nodes-by-title-sync*
 
-roam.db:find_nodesbytitlesync({title}, {opts})
+roam.database:find_nodesbytitlesync({title}, {opts})
 
 Description:
 
@@ -1312,7 +1312,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    local nodes = roam.db:find_nodes_by_title_sync("example")
+    local nodes = roam.database:find_nodes_by_title_sync("example")
     for _, node in ipairs(nodes) do
       print("Got node " .. node.id)
     end
@@ -1321,7 +1321,7 @@ Example:
 
 GET                                                    *org-roam-database-get*
 
-roam.db:get({id})
+roam.database:get({id})
 
 Description:
 
@@ -1336,7 +1336,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:get("1234"):next(function(node)
+    roam.database:get("1234"):next(function(node)
       if node then
         print("Got node " .. node.title)
       end
@@ -1346,7 +1346,7 @@ Example:
 
 GET SYNC                                          *org-roam-database-get-sync*
 
-roam.db:get_sync({id}, {opts})
+roam.database:get_sync({id}, {opts})
 
 Description:
 
@@ -1364,7 +1364,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    local node = roam.db:get_sync("1234")
+    local node = roam.database:get_sync("1234")
     if node then
       print("Got node " .. node.title)
     end
@@ -1373,7 +1373,7 @@ Example:
 
 GET FILE BACKLINKS                      *org-roam-database-get-file-backlinks*
 
-roam.db:get_filebacklinks({file}, {opts})
+roam.database:get_filebacklinks({file}, {opts})
 
 Description:
 
@@ -1392,7 +1392,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:get_file_backlinks("path/to/file.org"):next(function(backlinks)
+    roam.database:get_file_backlinks("path/to/file.org"):next(function(backlinks)
       for id, distance in pairs(backlinks) do
         print("Got node " .. id .. " with distance " .. distance)
       end
@@ -1402,7 +1402,7 @@ Example:
 
 GET FILE BACKLINKS SYNC            *org-roam-database-get-file-backlinks-sync*
 
-roam.db:get_filebacklinkssync({id}, {opts})
+roam.database:get_filebacklinkssync({id}, {opts})
 
 Description:
 
@@ -1422,7 +1422,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    local backlinks = roam.db:get_file_backlinks_sync("path/to/file.org")
+    local backlinks = roam.database:get_file_backlinks_sync("path/to/file.org")
     for id, distance in pairs(backlinks) do
       print("Got node " .. id .. " with distance " .. distance)
     end
@@ -1431,7 +1431,7 @@ Example:
 
 GET FILE LINKS                              *org-roam-database-get-file-links*
 
-roam.db:get_filelinks({file}, {opts})
+roam.database:get_filelinks({file}, {opts})
 
 Description:
 
@@ -1450,7 +1450,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:get_file_links("path/to/file.org"):next(function(links)
+    roam.database:get_file_links("path/to/file.org"):next(function(links)
       for id, distance in pairs(links) do
         print("Got node " .. id .. " with distance " .. distance)
       end
@@ -1460,7 +1460,7 @@ Example:
 
 GET FILE LINKS SYNC                    *org-roam-database-get-file-links-sync*
 
-roam.db:get_filelinkssync({id}, {opts})
+roam.database:get_filelinkssync({id}, {opts})
 
 Description:
 
@@ -1480,7 +1480,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    local links = roam.db:get_file_links_sync("path/to/file.org")
+    local links = roam.database:get_file_links_sync("path/to/file.org")
     for id, distance in pairs(links) do
       print("Got node " .. id .. " with distance " .. distance)
     end
@@ -1489,7 +1489,7 @@ Example:
 
 LOAD                                                  *org-roam-database-load*
 
-roam.db:load({opts})
+roam.database:load({opts})
 
 Description:
 
@@ -1507,7 +1507,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:load({ force = true }):next(function(results)
+    roam.database:load({ force = true }):next(function(results)
       ---@type OrgFiles
       local files = results.files
     end)
@@ -1516,7 +1516,7 @@ Example:
 
 LOAD FILE                                        *org-roam-database-load-file*
 
-roam.db:load_file({opts})
+roam.database:load_file({opts})
 
 Description:
 
@@ -1535,7 +1535,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:load_file({ path = "path/to/file.org" }):next(function(results)
+    roam.database:load_file({ path = "path/to/file.org" }):next(function(results)
       ---@type OrgFile
       local file = results.file
     
@@ -1547,7 +1547,7 @@ Example:
 
 PATH                                                  *org-roam-database-path*
 
-roam.db:path()
+roam.database:path()
 
 Description:
 
@@ -1557,13 +1557,13 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:path()
+    roam.database:path()
 <
 
 
 SAVE                                                  *org-roam-database-save*
 
-roam.db:save({opts})
+roam.database:save({opts})
 
 Description:
 
@@ -1580,7 +1580,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.db:save():next(function()
+    roam.database:save():next(function()
       print("Done!")
     end)
 <
