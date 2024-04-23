@@ -131,8 +131,11 @@ function M:load_file(opts)
 end
 
 ---Saves the database to disk.
+---
+---Returns a promise of a boolean indicating if the database was actually
+---written to disk, or if it was cached.
 ---@param opts? {force?:boolean}
----@return OrgPromise<nil>
+---@return OrgPromise<boolean>
 function M:save(opts)
     opts = opts or {}
     log.fmt_debug("saving database (force=%s)", opts.force or false)
@@ -142,11 +145,11 @@ function M:save(opts)
 
     return self:__get_loader():database():next(function(db)
         -- If our last save was recent enough, do not actually save
-        if self.__last_save >= db:changed_tick() then
+        if not opts.force and self.__last_save >= db:changed_tick() then
             profiler:stop(rec_id)
             log.fmt_debug("saving database took %s (nothing to save)",
                 profiler:time_taken_as_string({ recording = rec_id }))
-            return Promise.resolve(nil)
+            return Promise.resolve(false)
         end
 
         -- Refresh our data to make sure it is fresh
@@ -168,7 +171,7 @@ function M:save(opts)
                             profiler:time_taken_as_string({ recording = rec_id }))
 
                         self.__last_save = db:changed_tick()
-                        resolve(nil)
+                        resolve(true)
                     end)
                 end)
             end)
@@ -214,6 +217,33 @@ end
 ---@return OrgFiles
 function M:files_sync(opts)
     return self:__get_loader():files_sync(opts)
+end
+
+---Inserts a node into the database.
+---
+---Returns a promise of the id tied to the node in the database.
+---@param node org-roam.core.file.Node
+---@param opts? {overwrite?:boolean}
+---@return OrgPromise<string>
+function M:insert(node, opts)
+    opts = opts or {}
+
+    ---@diagnostic disable-next-line:missing-return-value
+    return self:__get_loader():database():next(function(db)
+        return db:insert(node, {
+            id = node.id,
+            overwrite = opts.overwrite,
+        })
+    end)
+end
+
+---Retrieves a node from the database by its id.
+---@param node org-roam.core.file.Node
+---@param opts? {overwrite?:boolean, timeout?:integer}
+---@return org-roam.core.file.Node|nil
+function M:insert_sync(node, opts)
+    opts = opts or {}
+    return self:insert(node, opts):wait(opts.timeout)
 end
 
 ---Retrieves a node from the database by its id.

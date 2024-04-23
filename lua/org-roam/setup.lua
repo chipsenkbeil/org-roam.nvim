@@ -99,6 +99,7 @@ local function define_commands(roam)
     local Profiler = require("org-roam.core.utils.profiler")
 
     vim.api.nvim_create_user_command("RoamSave", function(opts)
+        local force = opts.bang or false
         local args = opts.args or ""
         local sync = string.lower(vim.trim(args)) == "sync"
         log.fmt_debug("Saving database (sync = %s)", sync)
@@ -107,7 +108,7 @@ local function define_commands(roam)
         local profiler = Profiler:new()
         profiler:start()
 
-        local promise = roam.db:save():next(function(...)
+        local promise = roam.db:save({ force = force }):next(function(...)
             local tt = profiler:stop():time_taken_as_string()
             notify.info("Saved database [took " .. tt .. "]")
             return ...

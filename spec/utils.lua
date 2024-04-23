@@ -1,6 +1,8 @@
 local OrgFile = require("orgmode.files.file")
 local io = require("org-roam.core.utils.io")
+local Node = require("org-roam.core.file.node")
 local path = require("org-roam.core.utils.path")
+local Range = require("org-roam.core.file.range")
 local Select = require("org-roam.core.ui.select")
 local unpack = require("org-roam.core.utils.table").unpack
 local uuid_v4 = require("org-roam.core.utils.random").uuid_v4
@@ -134,6 +136,21 @@ function M.qflist_items()
             col = item.col,
         }
     end, qfdata.items)
+end
+
+---@param opts? org-roam.core.file.Node.NewOpts
+---@return org-roam.core.file.Node
+function M.fake_node(opts)
+    return Node:new(vim.tbl_deep_extend("keep", opts or {}, {
+        id = uuid_v4(),
+        range = Range:new({
+            row = 0, column = 0, offset = 0,
+        }, {
+            row = 0, column = 0, offset = 0,
+        }),
+        file = uuid_v4() .. ".org",
+        mtime = 0,
+    }))
 end
 
 ---Creates a new temporary directory, copies the org files

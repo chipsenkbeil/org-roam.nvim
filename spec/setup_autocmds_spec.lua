@@ -106,6 +106,9 @@ describe("org-roam.setup.autocmds", function()
         vim.fn.delete(roam.config.database.path)
         assert.are.equal(0, vim.fn.filereadable(roam.config.database.path))
 
+        -- Do some database mutation to avoid caching
+        roam.db:insert_sync(utils.fake_node())
+
         -- Trigger the autocmd to save the database
         autocmd.callback()
 

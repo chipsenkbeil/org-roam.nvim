@@ -10,31 +10,32 @@ describe("org-roam.setup.commands", function()
     end)
 
     it("RoamSave should save database to disk", function()
-        local directory = utils.make_temp_org_files_directory()
+        local roam = utils.init_plugin({ setup = true })
 
-        -- Configure plugin to update database on write
-        local roam = utils.init_plugin({
-            setup = {
-                directory = directory,
-                database = {
-                    path = utils.join_path(directory, "db"),
-                },
-            }
-        })
-
-        -- Ensure we are loaded and wipe out the local database file
-        roam.db:load():wait()
+        -- Delete the local database file that was created during setup
         assert.are.equal(0, vim.fn.delete(roam.config.database.path))
         assert.are.equal(0, vim.fn.filereadable(roam.config.database.path))
 
-        -- Trigger the command and wait a bit
-        vim.cmd("RoamSave")
-        utils.wait()
+        -- Perform a change to the database since the last save so
+        -- we get around the tick write protection
+        roam.db:insert_sync(utils.fake_node())
 
-        local parent_dir = vim.fs.dirname(roam.config.database.path)
-        for name, kind in vim.fs.dir(parent_dir) do
-            print("[" .. kind .. "] " .. name)
-        end
+        -- Trigger the command synchronously
+        vim.cmd("RoamSave sync")
+
+        -- Verify the database file exists again
+        assert.are.equal(1, vim.fn.filereadable(roam.config.database.path))
+    end)
+
+    it("RoamSave! should force saving database to disk", function()
+        local roam = utils.init_plugin({ setup = true })
+
+        -- Delete the local database file that was created during setup
+        assert.are.equal(0, vim.fn.delete(roam.config.database.path))
+        assert.are.equal(0, vim.fn.filereadable(roam.config.database.path))
+
+        -- Trigger the command synchronously
+        vim.cmd("RoamSave! sync")
 
         -- Verify the database file exists again
         assert.are.equal(1, vim.fn.filereadable(roam.config.database.path))
@@ -42,8 +43,6 @@ describe("org-roam.setup.commands", function()
 
     it("RoamUpdate should update database's existing files if they changed on disk", function()
         local directory = utils.make_temp_org_files_directory()
-
-        -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
@@ -63,9 +62,8 @@ describe("org-roam.setup.commands", function()
         :END:
         ]=]))
 
-        -- Trigger the command and wait a bit
-        vim.cmd("RoamUpdate")
-        utils.wait()
+        -- Trigger the command synchronously
+        vim.cmd("RoamUpdate sync")
 
         -- Verify the existing file was updated
         local ids = roam.db:ids()
@@ -75,8 +73,6 @@ describe("org-roam.setup.commands", function()
 
     it("RoamUpdate! should force reloading database from files on disk", function()
         local directory = utils.make_temp_org_files_directory()
-
-        -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
@@ -96,9 +92,8 @@ describe("org-roam.setup.commands", function()
         :END:
         ]=]))
 
-        -- Trigger the command and wait a bit
-        vim.cmd("RoamUpdate!")
-        utils.wait()
+        -- Trigger the command synchronously
+        vim.cmd("RoamUpdate! sync")
 
         -- Verify the new file was loaded
         local ids = roam.db:ids()
@@ -108,8 +103,6 @@ describe("org-roam.setup.commands", function()
 
     it("RoamDatabaseReset should clear disk cache, wipe the database, and reload from disk", function()
         local directory = utils.make_temp_org_files_directory()
-
-        -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
@@ -137,9 +130,8 @@ describe("org-roam.setup.commands", function()
         table.sort(ids)
         assert.are.same({ "1", "2", "3" }, ids)
 
-        -- Trigger the command and wait a bit
-        vim.cmd("RoamDatabaseReset")
-        utils.wait()
+        -- Trigger the command synchronously
+        vim.cmd("RoamDatabaseReset sync")
 
         -- Verify database has latest status
         ids = roam.db:ids()
@@ -153,8 +145,6 @@ describe("org-roam.setup.commands", function()
     it("RoamAddAlias should support adding an alias to the node", function()
         local directory = utils.make_temp_org_files_directory()
         local test_path = utils.join_path(directory, "one.org")
-
-        -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
@@ -198,8 +188,6 @@ describe("org-roam.setup.commands", function()
     it("RoamRemoveAlias should support removing an alias from the node", function()
         local directory = utils.make_temp_org_files_directory()
         local test_path = utils.join_path(directory, "one.org")
-
-        -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
@@ -242,8 +230,6 @@ describe("org-roam.setup.commands", function()
     it("RoamAddOrigin should support setting the origin for the node", function()
         local directory = utils.make_temp_org_files_directory()
         local test_path = utils.join_path(directory, "one.org")
-
-        -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
@@ -288,8 +274,6 @@ describe("org-roam.setup.commands", function()
     it("RoamRemoveOrigin should support removing the origin for the node", function()
         local directory = utils.make_temp_org_files_directory()
         local test_path = utils.join_path(directory, "two.org")
-
-        -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
