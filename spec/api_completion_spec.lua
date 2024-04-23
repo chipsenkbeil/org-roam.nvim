@@ -6,23 +6,18 @@ describe("org-roam.api.completion", function()
     local test_dir
 
     before_each(function()
+        utils.init_before_test()
+
         roam = utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory(),
             }
         })
         test_dir = roam.config.directory
-
-        -- Patch `vim.cmd` so we can run tests here
-        utils.patch_vim_cmd()
     end)
 
     after_each(function()
-        -- Unpatch `vim.cmd` so we can have tests pass
-        utils.unpatch_vim_cmd()
-
-        -- Restore select in case we mocked it
-        utils.unmock_select()
+        utils.cleanup_after_test()
     end)
 
     it("should do nothing if the expression under cursor has no matching nodes", function()

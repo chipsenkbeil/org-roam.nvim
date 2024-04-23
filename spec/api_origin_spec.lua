@@ -6,6 +6,8 @@ describe("org-roam.api.origin", function()
     local test_dir, test_org_file_path, one_path
 
     before_each(function()
+        utils.init_before_test()
+
         roam = utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory(),
@@ -17,17 +19,10 @@ describe("org-roam.api.origin", function()
             ext = "org",
         })
         one_path = utils.join_path(roam.config.directory, "one.org")
-
-        -- Patch `vim.cmd` so we can run tests here
-        utils.patch_vim_cmd()
     end)
 
     after_each(function()
-        -- Unpatch `vim.cmd` so we can have tests pass
-        utils.unpatch_vim_cmd()
-
-        -- Restore select in case we mocked it
-        utils.unmock_select()
+        utils.cleanup_after_test()
     end)
 
     it("should be able to set the origin for the node under cursor", function()

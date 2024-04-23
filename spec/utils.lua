@@ -416,8 +416,9 @@ function M.cleanup_after_test()
 end
 
 ---Deletes all autocmds tied to the specified group.
----@param group integer|string
+---@param group integer|string|nil
 function M.clear_autocmds(group)
+    group = group or AUGROUP_NAME
     local success, cmds = pcall(vim.api.nvim_get_autocmds, {
         group = group,
     })

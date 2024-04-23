@@ -6,13 +6,7 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     after_each(function()
-        -- NOTE: We aren't cleaning up everything as
-        --       closing windows can cause problems
-        --       with the capture buffer exploding
-        --       our tests.
-        utils.unpatch_vim_cmd()
-        utils.unmock_select()
-        utils.unmock_vim_inputs()
+        utils.cleanup_after_test()
     end)
 
     it("add_alias keybinding should support adding an alias to the node", function()

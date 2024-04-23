@@ -39,30 +39,17 @@ describe("org-roam.ui.select-node", function()
     end
 
     before_each(function()
+        utils.init_before_test()
+
         roam = utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory(),
             }
         })
-
-        -- Patch `vim.cmd` so we can run tests here
-        utils.patch_vim_cmd()
-
-        -- Clear any buffers/windows that carried over from other tests
-        utils.clear_windows()
-        utils.clear_buffers()
     end)
 
     after_each(function()
-        -- Clear any buffers/windows that carried over from this test
-        utils.clear_windows()
-        utils.clear_buffers()
-
-        -- Unpatch `vim.cmd` so we can have tests pass
-        utils.unpatch_vim_cmd()
-
-        -- Restore select in case we mocked it
-        utils.unmock_select()
+        utils.cleanup_after_test()
     end)
 
     it("should display titles and aliases of all nodes by default", function()
