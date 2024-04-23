@@ -27,6 +27,7 @@ Table of Contents                                 *org-roam-table-of-contents*
   - Goto Prev Node                               |org-roam-api-goto-prev-node|
   - Insert Node                                     |org-roam-api-insert-node|
   - Open Quickfix List                       |org-roam-api-open-quickfix-list|
+  - Select Node                                     |org-roam-api-select-node|
   - Toggle Node Buffer                       |org-roam-api-toggle-node-buffer|
   - Remove Alias                                   |org-roam-api-remove-alias|
   - Remove Origin                                 |org-roam-api-remove-origin|
@@ -953,6 +954,68 @@ Example:
 <
 
 
+SELECT NODE                                         *org-roam-api-select-node*
+
+roam.ui.select_node({opts})
+
+Description:
+
+Builds a selection dialog populated by nodes, displaying their titles and
+aliases as choices in the selection. Returns a builder interface.
+
+Parameters:
+
+- {opts} optional table.
+    - allow_selectmissing: optional, if true, the user can press `<Enter>`
+        when no choices are available to select the
+        input instead. Additionally, a user can press
+        `<S-Enter>` at any time in the selection dialog
+        to select the input, regardless of choices shown.
+    - auto_select: optional, if true and init_input is not empty, will
+        automatically pick the choice if there is exactly
+        one match.
+    - exclude: optional, list of ids of nodes to exclude from choices.
+    - include: optional, list of ids of nodes to include in the choices. If
+        not provided, all nodes will immediately be available.
+    - init_input: optional, string representing initial input to provide to
+        the selection dialog, as if the user typed it.
+
+Returns:
+
+A builder interface for the selection dialog, which contains a handful of
+methods that can be used to register callbacks and open the dialog.
+
+- {on_choice} takes a single function, which will be passed the selection
+    as an argument. The selection is a table containing an `id` and `label`
+    representing the id of the selected node and the title or alias of the
+    choice that was picked. This function is only called when a regular
+    selection is made, not when input selected. Returns the builder.
+- {on_choicemissing} takes a single function, which will be passed the
+    text of the input as an argument. This function is only called when
+    `allow_select_missing` is true and the input is selected instead of
+    a valid choice. Returns the builder.
+- {on_cancel} takes a single function, which is invoked when the selection
+    dialog is closed without making any choice. Returns the builder.
+- {open} will open the selection dialog, and returns the window handle.
+
+Example:
+
+>lua
+    local roam = require("org-roam")
+    local win = roam.ui.select_node({ init_input = "trees" })
+        :on_choice(function(selection)
+            print("picked " .. selection.id)
+        end)
+        :on_choice_missing(function(text)
+            print("picked " .. text)
+        end)
+        :on_cancel(function()
+            print("canceled")
+        end)
+        :open()
+<
+
+
 TOGGLE NODE BUFFER                           *org-roam-api-toggle-node-buffer*
 
 roam.ui.toggle_nodebuffer({opts})
@@ -1653,7 +1716,7 @@ TODO
 
 - Kristijan Husak <https://github.com/kristijanhusak> for creating nvim-orgmode <https://github.com/nvim-orgmode/orgmode> (the backbone of functionality in neovim that we leverage)
 - Jethro Kuan <https://github.com/jethrokuan> for creating Org Roam (Emacs) <https://github.com/org-roam/org-roam> (the original implementation whose design we copied)
-- Daniel Mendler <https://github.com/minad> for creating vertico.el <https://github.com/minad/vertico> (inspiration for ourg selection dialog)
+- Daniel Mendler <https://github.com/minad> for creating vertico.el <https://github.com/minad/vertico> (inspiration for our selection dialog)
 - Srinesh Nisala <https://github.com/s1n7ax> for creating nvim-window-picker <https://github.com/s1n7ax/nvim-window-picker> (integrated directly for our window selection)
 - Dheepak Krishnamurthy <https://github.com/kdheepak> for creating panvimdoc <https://github.com/kdheepak/panvimdoc> (used to create our vimdoc)
 
