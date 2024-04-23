@@ -1,45 +1,23 @@
 describe("org-roam.ui.quickfix", function()
-    ---@type OrgRoam
-    local roam
-
+    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
-    ---@type string, string, string, string
-    local test_dir, test_path_one, test_path_two, test_path_three
+    ---@type string
+    local test_path_two
 
     before_each(function()
-        test_dir = utils.make_temp_org_files_directory()
-        test_path_one = utils.join_path(test_dir, "one.org")
-        test_path_two = utils.join_path(test_dir, "two.org")
-        test_path_three = utils.join_path(test_dir, "three.org")
+        utils.init_before_test()
 
-        -- Initialize an entirely new plugin and set it up
-        -- so extra features like cursor node tracking works
-        roam = require("org-roam"):new()
-        roam.db = roam.db:new({
-            db_path = vim.fn.tempname() .. "-test-db",
-            directory = test_dir,
+        roam = utils.init_plugin({
+            setup = {
+                directory = utils.make_temp_org_files_directory(),
+            }
         })
-        roam.setup({ directory = test_dir })
-
-        -- Patch `vim.cmd` so we can run tests here
-        utils.patch_vim_cmd()
-
-        -- Clear any buffers/windows that carried over from other tests
-        utils.clear_windows()
-        utils.clear_buffers()
+        test_path_two = utils.join_path(roam.config.directory, "two.org")
     end)
 
     after_each(function()
-        -- Clear any buffers/windows that carried over from this test
-        utils.clear_windows()
-        utils.clear_buffers()
-
-        -- Unpatch `vim.cmd` so we can have tests pass
-        utils.unpatch_vim_cmd()
-
-        -- Restore select in case we mocked it
-        utils.unmock_select()
+        utils.cleanup_after_test()
     end)
 
     it("should be able to display backlinks for the node under cursor", function()

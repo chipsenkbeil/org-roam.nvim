@@ -1,32 +1,22 @@
 describe("org-roam.api.alias", function()
-    local roam = require("org-roam")
+    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
     ---@type string
     local test_org_file_path
 
     before_each(function()
-        local dir = utils.make_temp_directory()
+        utils.init_before_test()
+
+        roam = utils.init_plugin({ setup = true })
         test_org_file_path = utils.make_temp_filename({
-            dir = dir,
+            dir = roam.config.directory,
             ext = "org",
         })
-
-        roam.db = roam.db:new({
-            db_path = vim.fn.tempname() .. "-test-db",
-            directory = dir,
-        })
-
-        -- Patch `vim.cmd` so we can run tests here
-        utils.patch_vim_cmd()
     end)
 
     after_each(function()
-        -- Unpatch `vim.cmd` so we can have tests pass
-        utils.unpatch_vim_cmd()
-
-        -- Restore select in case we mocked it
-        utils.unmock_select()
+        utils.cleanup_after_test()
     end)
 
     it("should be able to add the first alias to the node under cursor", function()

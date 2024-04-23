@@ -12,7 +12,7 @@ describe("org-roam.setup", function()
     it("should fail if no directory supplied", function()
         assert.is.error(function()
             local roam = utils.init_plugin({ setup = false })
-            roam.setup({})
+            roam.setup({}):wait()
         end)
     end)
 
@@ -24,7 +24,7 @@ describe("org-roam.setup", function()
         roam.setup({
             database = { path = db_path },
             directory = directory,
-        })
+        }):wait()
 
         assert.are.equal(db_path, roam.db:path())
         assert.are.equal(directory, roam.db:files_path())
