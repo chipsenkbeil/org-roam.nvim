@@ -144,7 +144,7 @@ local function define_commands(roam)
         nargs = "?",
     })
 
-    vim.api.nvim_create_user_command("RoamDatabaseReset", function(opts)
+    vim.api.nvim_create_user_command("RoamReset", function(opts)
         local args = opts.args or ""
         local sync = string.lower(vim.trim(args)) == "sync"
 
@@ -167,7 +167,7 @@ local function define_commands(roam)
 
         if sync then promise:wait() end
     end, {
-        desc = "Completely wipes the roam database",
+        desc = "Resets the roam database (wipe and rebuild)",
         nargs = "?",
     })
 

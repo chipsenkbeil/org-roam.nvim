@@ -101,7 +101,7 @@ describe("org-roam.setup.commands", function()
         assert.are.same({ "1", "2", "3", "roam-update-node" }, ids)
     end)
 
-    it("RoamDatabaseReset should clear disk cache, wipe the database, and reload from disk", function()
+    it("RoamReset should clear disk cache, wipe the database, and reload from disk", function()
         local directory = utils.make_temp_org_files_directory()
         local roam = utils.init_plugin({
             setup = {
@@ -131,7 +131,7 @@ describe("org-roam.setup.commands", function()
         assert.are.same({ "1", "2", "3" }, ids)
 
         -- Trigger the command synchronously
-        vim.cmd("RoamDatabaseReset sync")
+        vim.cmd("RoamReset sync")
 
         -- Verify database has latest status
         ids = roam.db:ids()
