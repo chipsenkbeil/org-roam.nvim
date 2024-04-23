@@ -22,7 +22,7 @@ local function roam_add_alias(roam, opts)
             -- Mark unsuccessful and exit
             if not node then return resolve(false) end
 
-            roam.db:load_file({ path = node.file }):next(function(results)
+            roam.database:load_file({ path = node.file }):next(function(results)
                 -- Get the OrgFile instance
                 local file = results.file
 
@@ -80,7 +80,7 @@ local function roam_remove_alias(roam, opts)
             -- Mark unsuccessful and exit
             if not node then return resolve(false) end
 
-            roam.db:load_file({ path = node.file }):next(function(results)
+            roam.database:load_file({ path = node.file }):next(function(results)
                 -- Get the OrgFile instance
                 local file = results.file
 

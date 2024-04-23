@@ -23,7 +23,7 @@ describe("org-roam.api.node", function()
 
     it("should capture by using the selected roam template", function()
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -51,7 +51,7 @@ describe("org-roam.api.node", function()
         assert.is_not_nil(id)
 
         -- Grab the file tied to the node and load it
-        local node = assert(roam.db:get_sync(id), "missing node " .. id)
+        local node = assert(roam.database:get_sync(id), "missing node " .. id)
         local contents = utils.read_from(node.file)
 
         -- Verify that basic template was captured
@@ -69,7 +69,7 @@ describe("org-roam.api.node", function()
 
     it("should capture without prompting if immediate mode enabled", function()
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -91,7 +91,7 @@ describe("org-roam.api.node", function()
         assert.is_not_nil(id)
 
         -- Grab the file tied to the node and load it
-        local node = assert(roam.db:get_sync(id), "missing node " .. id)
+        local node = assert(roam.database:get_sync(id), "missing node " .. id)
         local contents = utils.read_from(node.file)
 
         -- Verify that basic template was captured
@@ -108,7 +108,7 @@ describe("org-roam.api.node", function()
 
     it("should insert link to existing node if selected", function()
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -150,7 +150,7 @@ describe("org-roam.api.node", function()
 
     it("should create a new node and insert it if selected non-existing node", function()
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -199,7 +199,7 @@ describe("org-roam.api.node", function()
 
     it("should create a new node and insert it using immediate mode if specified", function()
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -238,7 +238,7 @@ describe("org-roam.api.node", function()
 
     it("should find and open existing node if selected", function()
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -277,7 +277,7 @@ describe("org-roam.api.node", function()
 
     it("should create a new node and navigate to it if find with non-existing node", function()
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)

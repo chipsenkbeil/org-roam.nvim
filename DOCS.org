@@ -904,7 +904,7 @@
 
 ** Files
 
-   roam.db:files({opts})
+   roam.database:files({opts})
 
    Description:
 
@@ -923,7 +923,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:files():next(function(files)
+   roam.database:files():next(function(files)
      for _, path in ipairs(files.paths) do
        print("File " .. path)
      end
@@ -932,7 +932,7 @@
 
 ** Files Path
 
-   roam.db:files_path()
+   roam.database:files_path()
 
    Description:
 
@@ -942,12 +942,12 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:files_path()
+   roam.database:files_path()
    #+end_src
 
 ** Files Sync
 
-   roam.db:files_sync({opts})
+   roam.database:files_sync({opts})
 
    Description:
 
@@ -968,7 +968,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   local files = roam.db:files_sync()
+   local files = roam.database:files_sync()
    for _, path in ipairs(files.paths) do
      print("File " .. path)
    end
@@ -976,7 +976,7 @@
 
 ** Find Nodes by Alias
 
-   roam.db:find_nodes_by_alias({alias})
+   roam.database:find_nodes_by_alias({alias})
 
    Description:
 
@@ -993,7 +993,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:find_nodes_by_alias("Some Alias"):next(function(nodes)
+   roam.database:find_nodes_by_alias("Some Alias"):next(function(nodes)
      for _, node in ipairs(nodes) do
        print("Got node " .. node.id)
      end
@@ -1002,7 +1002,7 @@
 
 ** Find Nodes by Alias Sync
 
-   roam.db:find_nodes_by_alias_sync({alias}, {opts})
+   roam.database:find_nodes_by_alias_sync({alias}, {opts})
 
    Description:
 
@@ -1020,7 +1020,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   local nodes = roam.db:find_nodes_by_alias_sync("Some Alias")
+   local nodes = roam.database:find_nodes_by_alias_sync("Some Alias")
    for _, node in ipairs(nodes) do
      print("Got node " .. node.id)
    end
@@ -1028,7 +1028,7 @@
 
 ** Find Nodes by File
 
-   roam.db:find_nodes_by_file({file})
+   roam.database:find_nodes_by_file({file})
 
    Description:
 
@@ -1045,7 +1045,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:find_nodes_by_file("path/to/file.org"):next(function(nodes)
+   roam.database:find_nodes_by_file("path/to/file.org"):next(function(nodes)
      for _, node in ipairs(nodes) do
        print("Got node " .. node.id)
      end
@@ -1054,7 +1054,7 @@
 
 ** Find Nodes by File Sync
 
-   roam.db:find_nodes_by_file_sync({file}, {opts})
+   roam.database:find_nodes_by_file_sync({file}, {opts})
 
    Description:
 
@@ -1072,7 +1072,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   local nodes = roam.db:find_nodes_by_file_sync("path/to/file.org")
+   local nodes = roam.database:find_nodes_by_file_sync("path/to/file.org")
    for _, node in ipairs(nodes) do
      print("Got node " .. node.id)
    end
@@ -1080,7 +1080,7 @@
 
 ** Find Nodes by Tag
 
-   roam.db:find_nodes_by_tag({tag})
+   roam.database:find_nodes_by_tag({tag})
 
    Description:
 
@@ -1097,7 +1097,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:find_nodes_by_tag("example"):next(function(nodes)
+   roam.database:find_nodes_by_tag("example"):next(function(nodes)
      for _, node in ipairs(nodes) do
        print("Got node " .. node.id)
      end
@@ -1106,7 +1106,7 @@
 
 ** Find Nodes by Tag Sync
 
-   roam.db:find_nodes_by_tag_sync({tag}, {opts})
+   roam.database:find_nodes_by_tag_sync({tag}, {opts})
 
    Description:
 
@@ -1124,7 +1124,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   local nodes = roam.db:find_nodes_by_tag_sync("example")
+   local nodes = roam.database:find_nodes_by_tag_sync("example")
    for _, node in ipairs(nodes) do
      print("Got node " .. node.id)
    end
@@ -1132,7 +1132,7 @@
 
 ** Find Nodes by Title
 
-   roam.db:find_nodes_by_title({title})
+   roam.database:find_nodes_by_title({title})
 
    Description:
 
@@ -1149,7 +1149,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:find_nodes_by_title("Some Title"):next(function(nodes)
+   roam.database:find_nodes_by_title("Some Title"):next(function(nodes)
      for _, node in ipairs(nodes) do
        print("Got node " .. node.id)
      end
@@ -1158,7 +1158,7 @@
 
 ** Find Nodes by Title Sync
 
-   roam.db:find_nodes_by_title_sync({title}, {opts})
+   roam.database:find_nodes_by_title_sync({title}, {opts})
 
    Description:
 
@@ -1176,7 +1176,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   local nodes = roam.db:find_nodes_by_title_sync("example")
+   local nodes = roam.database:find_nodes_by_title_sync("example")
    for _, node in ipairs(nodes) do
      print("Got node " .. node.id)
    end
@@ -1184,7 +1184,7 @@
 
 ** Get
 
-   roam.db:get({id})
+   roam.database:get({id})
 
    Description:
 
@@ -1199,7 +1199,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:get("1234"):next(function(node)
+   roam.database:get("1234"):next(function(node)
      if node then
        print("Got node " .. node.title)
      end
@@ -1208,7 +1208,7 @@
 
 ** Get Sync
 
-   roam.db:get_sync({id}, {opts})
+   roam.database:get_sync({id}, {opts})
 
    Description:
 
@@ -1226,7 +1226,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   local node = roam.db:get_sync("1234")
+   local node = roam.database:get_sync("1234")
    if node then
      print("Got node " .. node.title)
    end
@@ -1234,7 +1234,7 @@
 
 ** Get File Backlinks
 
-   roam.db:get_file_backlinks({file}, {opts})
+   roam.database:get_file_backlinks({file}, {opts})
 
    Description:
 
@@ -1253,7 +1253,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:get_file_backlinks("path/to/file.org"):next(function(backlinks)
+   roam.database:get_file_backlinks("path/to/file.org"):next(function(backlinks)
      for id, distance in pairs(backlinks) do
        print("Got node " .. id .. " with distance " .. distance)
      end
@@ -1262,7 +1262,7 @@
 
 ** Get File Backlinks Sync
 
-   roam.db:get_file_backlinks_sync({id}, {opts})
+   roam.database:get_file_backlinks_sync({id}, {opts})
 
    Description:
 
@@ -1282,7 +1282,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   local backlinks = roam.db:get_file_backlinks_sync("path/to/file.org")
+   local backlinks = roam.database:get_file_backlinks_sync("path/to/file.org")
    for id, distance in pairs(backlinks) do
      print("Got node " .. id .. " with distance " .. distance)
    end
@@ -1290,7 +1290,7 @@
 
 ** Get File Links
 
-   roam.db:get_file_links({file}, {opts})
+   roam.database:get_file_links({file}, {opts})
 
    Description:
 
@@ -1309,7 +1309,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:get_file_links("path/to/file.org"):next(function(links)
+   roam.database:get_file_links("path/to/file.org"):next(function(links)
      for id, distance in pairs(links) do
        print("Got node " .. id .. " with distance " .. distance)
      end
@@ -1318,7 +1318,7 @@
 
 ** Get File Links Sync
 
-   roam.db:get_file_links_sync({id}, {opts})
+   roam.database:get_file_links_sync({id}, {opts})
 
    Description:
 
@@ -1338,7 +1338,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   local links = roam.db:get_file_links_sync("path/to/file.org")
+   local links = roam.database:get_file_links_sync("path/to/file.org")
    for id, distance in pairs(links) do
      print("Got node " .. id .. " with distance " .. distance)
    end
@@ -1346,7 +1346,7 @@
 
 ** Load
 
-   roam.db:load({opts})
+   roam.database:load({opts})
 
    Description:
 
@@ -1364,7 +1364,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:load({ force = true }):next(function(results)
+   roam.database:load({ force = true }):next(function(results)
      ---@type OrgFiles
      local files = results.files
    end)
@@ -1372,7 +1372,7 @@
 
 ** Load File
 
-   roam.db:load_file({opts})
+   roam.database:load_file({opts})
 
    Description:
 
@@ -1391,7 +1391,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:load_file({ path = "path/to/file.org" }):next(function(results)
+   roam.database:load_file({ path = "path/to/file.org" }):next(function(results)
      ---@type OrgFile
      local file = results.file
 
@@ -1402,7 +1402,7 @@
 
 ** Path
 
-   roam.db:path()
+   roam.database:path()
 
    Description:
 
@@ -1412,12 +1412,12 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:path()
+   roam.database:path()
    #+end_src
 
 ** Save
 
-   roam.db:save({opts})
+   roam.database:save({opts})
 
    Description:
 
@@ -1434,7 +1434,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.db:save():next(function()
+   roam.database:save():next(function()
      print("Done!")
    end)
    #+end_src

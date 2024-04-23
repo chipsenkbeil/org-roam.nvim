@@ -144,7 +144,7 @@ local function load_lines_at_cursor(roam, path, cursor)
     local lines = (CACHE[key] or {}).lines or {}
 
     -- Kick off a reload of lines
-    roam.db
+    roam.database
         :load_file({ path = path })
         :next(function(results)
             local file = results.file
@@ -206,7 +206,7 @@ local function render(roam, this, node, details)
     -- If given an id instead of a node, load it here
     if type(node) == "string" then
         ---@diagnostic disable-next-line:cast-local-type
-        node = roam.db:get_sync(node)
+        node = roam.database:get_sync(node)
     end
 
     if node then
@@ -240,7 +240,7 @@ local function render(roam, this, node, details)
 
         -- If we have an origin for the node, display it next
         if node.origin then
-            local origin_node = roam.db:get_sync(node.origin)
+            local origin_node = roam.database:get_sync(node.origin)
             if origin_node then
                 local function do_open()
                     local win = vim.api.nvim_get_current_win()
@@ -275,7 +275,7 @@ local function render(roam, this, node, details)
         table.insert(lines, "")
 
         -- Ensure our rendering of backlinks is a consistent order
-        local backlink_ids = vim.tbl_keys(roam.db:get_backlinks(node.id))
+        local backlink_ids = vim.tbl_keys(roam.database:get_backlinks(node.id))
         table.sort(backlink_ids)
 
         local function do_expand_all()
@@ -284,7 +284,7 @@ local function render(roam, this, node, details)
             end
             local is_expanded
             for _, backlink_id in pairs(backlink_ids) do
-                local backlink_node = roam.db:get_sync(backlink_id)
+                local backlink_node = roam.database:get_sync(backlink_id)
 
                 if backlink_node then
                     local locs = backlink_node.linked[node.id]
@@ -318,7 +318,7 @@ local function render(roam, this, node, details)
         local backlink_lines = {}
         local backlink_links_cnt = 0
         for _, backlink_id in ipairs(backlink_ids) do
-            local backlink_node = roam.db:get_sync(backlink_id)
+            local backlink_node = roam.database:get_sync(backlink_id)
 
             if backlink_node then
                 local locs = backlink_node.linked[node.id]

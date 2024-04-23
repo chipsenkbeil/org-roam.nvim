@@ -12,9 +12,9 @@ end
 ---@class OrgRoam
 ---@field api org-roam.Api
 ---@field config org-roam.Config
----@field db org-roam.Database
+---@field database org-roam.Database
 ---@field events org-roam.Events
----@field ext org-roam.Extensions
+---@field extensions org-roam.Extensions
 ---@field setup org-roam.Setup
 ---@field ui org-roam.UserInterface
 ---@field utils org-roam.Utils
@@ -28,23 +28,23 @@ function M:new(config)
     local instance = {}
     setmetatable(instance, M)
 
-    local Config    = require("org-roam.config")
-    local Database  = require("org-roam.database")
+    local Config        = require("org-roam.config")
+    local Database      = require("org-roam.database")
 
     -- Use the supplied config, or leverage the default
-    config          = config or Config:new()
+    config              = config or Config:new()
 
-    instance.api    = require("org-roam.api")(instance)
-    instance.config = Config:new():replace(config or {})
-    instance.db     = Database:new({
+    instance.api        = require("org-roam.api")(instance)
+    instance.config     = Config:new():replace(config or {})
+    instance.database   = Database:new({
         db_path = instance.config.database.path,
         directory = instance.config.directory,
     })
-    instance.events = require("org-roam.events")(instance)
-    instance.ext    = require("org-roam.extensions")(instance)
-    instance.setup  = require("org-roam.setup")(instance)
-    instance.ui     = require("org-roam.ui")(instance)
-    instance.utils  = require("org-roam.utils")
+    instance.events     = require("org-roam.events")(instance)
+    instance.extensions = require("org-roam.extensions")(instance)
+    instance.setup      = require("org-roam.setup")(instance)
+    instance.ui         = require("org-roam.ui")(instance)
+    instance.utils      = require("org-roam.utils")
 
     return instance
 end

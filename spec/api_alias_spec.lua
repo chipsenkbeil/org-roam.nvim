@@ -31,7 +31,7 @@ describe("org-roam.api.alias", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
@@ -63,7 +63,7 @@ describe("org-roam.api.alias", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
@@ -94,7 +94,7 @@ describe("org-roam.api.alias", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
@@ -125,7 +125,7 @@ describe("org-roam.api.alias", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
@@ -164,7 +164,7 @@ describe("org-roam.api.alias", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
@@ -196,7 +196,7 @@ describe("org-roam.api.alias", function()
         })
 
         -- Load files into the database
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)

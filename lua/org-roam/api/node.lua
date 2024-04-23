@@ -250,7 +250,7 @@ local function make_on_post_refile(roam, cb)
 
         -- Reload the file that was written due to a refile
         local filename = capture_opts.destination_file.filename
-        roam.db:load_file({ path = filename })
+        roam.database:load_file({ path = filename })
             :next(function(...)
                 cb(id)
                 return ...
@@ -288,7 +288,7 @@ local function roam_capture_immediate(roam, opts, cb)
             end
 
             vim.schedule(function()
-                roam.db:load_file({ path = path }):next(function(result)
+                roam.database:load_file({ path = path }):next(function(result)
                     local file = result.file
 
                     -- Look for the id of the newly-captured file
@@ -332,7 +332,7 @@ local function roam_capture(roam, opts, cb)
         })
         local on_pre_refile = make_on_pre_refile(opts)
         local on_post_refile = make_on_post_refile(roam, cb)
-        roam.db:files():next(function(files)
+        roam.database:files():next(function(files)
             local Capture = require("orgmode.capture")
             local capture = Capture:new({
                 files = files,
@@ -367,7 +367,7 @@ local function roam_insert(roam, opts, cb)
 
     ---@param id org-roam.core.database.Id
     local function insert_link(id)
-        local node = roam.db:get_sync(id)
+        local node = roam.database:get_sync(id)
         if not node then
             log.fmt_warn("node %s does not exist, so not inserting link", id)
             return
@@ -467,7 +467,7 @@ local function roam_find(roam, opts, cb)
 
     ---@param id org-roam.core.database.Id
     local function visit_node(id)
-        local node = roam.db:get_sync(id)
+        local node = roam.database:get_sync(id)
         if not node then
             log.fmt_warn("node %s does not exist, so not visiting", id)
             return

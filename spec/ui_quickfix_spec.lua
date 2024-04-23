@@ -21,7 +21,7 @@ describe("org-roam.ui.quickfix", function()
     end)
 
     it("should be able to display backlinks for the node under cursor", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load up a test file
         vim.cmd.edit(test_path_two)
@@ -54,7 +54,7 @@ describe("org-roam.ui.quickfix", function()
     end)
 
     it("should be able to display links for the node under cursor", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load up a test file
         vim.cmd.edit(test_path_two)
@@ -88,7 +88,7 @@ describe("org-roam.ui.quickfix", function()
     end)
 
     it("should distinguish multiple items of different types", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load up a test file
         vim.cmd.edit(test_path_two)
@@ -108,7 +108,7 @@ describe("org-roam.ui.quickfix", function()
     end)
 
     it("should support including a preview for quickfix items", function()
-        roam.db:load():wait()
+        roam.database:load():wait()
 
         -- Load up a test file
         vim.cmd.edit(test_path_two)
