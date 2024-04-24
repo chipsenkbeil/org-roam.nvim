@@ -131,7 +131,7 @@ local function define_commands(roam)
         profiler:start()
 
         log.fmt_debug("Updating database (force = %s, sync = %s)", force, sync)
-        local promise = roam.database:load({ force = force }):next(function(...)
+        local promise = roam.database:load({ force = force or "scan" }):next(function(...)
             local tt = profiler:stop():time_taken_as_string()
             notify.info("Updated database [took " .. tt .. "]")
             return ...
@@ -216,7 +216,6 @@ local function define_commands(roam)
     vim.api.nvim_create_user_command("RoamRemoveOrigin", function()
         roam.api.remove_origin()
     end, {
-        bang = true,
         desc = "Removes an origin from the current node under cursor",
     })
 end
