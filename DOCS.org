@@ -578,6 +578,87 @@
    })
    #+end_src
 
+* Commands
+
+** RoamAddAlias
+
+   :RoamAddAlias [<ARGS>]
+
+   Description:
+
+   Adds an alias to the node under the cursor.
+
+   If arguments are supplied, they are used as the alias; otherwise, a prompt
+   is provided to specify the alias.
+
+** RoamAddOrigin
+
+   :RoamAddOrigin [<ARGS>]
+
+   Description:
+
+   Adds/replaces the origin to the node under the cursor. Opens a selection
+   dialog to pick the node to act as the origin.
+
+   If arguments are supplied, they are used as the initial input to the
+   selection dialog.
+
+** RoamRemoveAlias
+
+   :RoamRemoveAlias [<ARGS>]
+
+   Description:
+
+   Removes an alias for the node under the cursor. Opens a selection
+   dialog to pick the alias to remove.
+
+   If arguments are supplied, they are used as the initial input to the
+   selection dialog.
+
+** RoamRemoveOrigin
+
+   :RoamRemoveOrigin [<ARGS>]
+
+   Description:
+
+   Removes the origin for the node under the cursor.
+
+** RoamReset
+
+   :RoamReset [sync]
+
+   Description:
+
+   Resets the roam database, wiping and rebuilding it.
+
+   If =sync= argument is provided, will perform the reset synchronously.
+
+** RoamSave
+
+   :RoamSave[!] [sync]
+
+   Description:
+
+   Save the roam database to disk. If no changes to the database have occurred
+   since last save, nothing happens.
+
+   If =!= is provided, will force saving.
+
+   If =sync= argument is provided, will perform the save synchronously.
+
+** RoamUpdate
+
+   :RoamUpdate[!] [sync]
+
+   Description:
+
+   Updates the roam database, checking every existing file for changes.
+
+   If =!= is provided, will perform a complete recheck of the database
+   for changes found on disk including new and deleted files.
+
+   If =sync= argument is provided, will perform the update synchronously.
+
 * User Interface
 
 ** Org Roam Buffer
