@@ -15,9 +15,17 @@ Table of Contents                                 *org-roam-table-of-contents*
 3. Bindings                                                |org-roam-bindings|
   - Modifying bindings                  |org-roam-bindings-modifying-bindings|
   - Coming from Emacs                    |org-roam-bindings-coming-from-emacs|
-4. User Interface                                    |org-roam-user-interface|
+4. Commands                                                |org-roam-commands|
+  - RoamAddAlias                              |org-roam-commands-roamaddalias|
+  - RoamAddOrigin                            |org-roam-commands-roamaddorigin|
+  - RoamRemoveAlias                        |org-roam-commands-roamremovealias|
+  - RoamRemoveOrigin                      |org-roam-commands-roamremoveorigin|
+  - RoamReset                                    |org-roam-commands-roamreset|
+  - RoamSave                                      |org-roam-commands-roamsave|
+  - RoamUpdate                                  |org-roam-commands-roamupdate|
+5. User Interface                                    |org-roam-user-interface|
   - Org Roam Buffer                  |org-roam-user-interface-org-roam-buffer|
-5. API                                                          |org-roam-api|
+6. API                                                          |org-roam-api|
   - Add Alias                                         |org-roam-api-add-alias|
   - Add Origin                                       |org-roam-api-add-origin|
   - Capture Node                                   |org-roam-api-capture-node|
@@ -31,7 +39,7 @@ Table of Contents                                 *org-roam-table-of-contents*
   - Toggle Node Buffer                       |org-roam-api-toggle-node-buffer|
   - Remove Alias                                   |org-roam-api-remove-alias|
   - Remove Origin                                 |org-roam-api-remove-origin|
-6. Database                                                |org-roam-database|
+7. Database                                                |org-roam-database|
   - Files                                            |org-roam-database-files|
   - Files Path                                  |org-roam-database-files-path|
   - Files Sync                                  |org-roam-database-files-sync|
@@ -53,15 +61,15 @@ Table of Contents                                 *org-roam-table-of-contents*
   - Load File                                    |org-roam-database-load-file|
   - Path                                              |org-roam-database-path|
   - Save                                              |org-roam-database-save|
-7. Events                                                    |org-roam-events|
+8. Events                                                    |org-roam-events|
   - On Cursor Node Changed            |org-roam-events-on-cursor-node-changed|
-8. Extensions                                            |org-roam-extensions|
+9. Extensions                                            |org-roam-extensions|
   - Dailies                                      |org-roam-extensions-dailies|
   - Export                                        |org-roam-extensions-export|
   - Graph                                          |org-roam-extensions-graph|
   - Protocol                                    |org-roam-extensions-protocol|
-9. Changelog                                              |org-roam-changelog|
-10. Credits                                                 |org-roam-credits|
+10. Changelog                                             |org-roam-changelog|
+11. Credits                                                 |org-roam-credits|
 
 ==============================================================================
 1. Getting Started                                  *org-roam-getting-started*
@@ -689,7 +697,97 @@ Keep in mind that nvim-orgmode <https://github.com/nvim-orgmode/orgmode> maps
 
 
 ==============================================================================
-4. User Interface                                    *org-roam-user-interface*
+4. Commands                                                *org-roam-commands*
+
+
+ROAMADDALIAS                                  *org-roam-commands-roamaddalias*
+
+:RoamAddAlias [<ARGS>]
+
+Description:
+
+Adds an alias to the node under the cursor.
+
+If arguments are supplied, they are used as the alias; otherwise, a prompt is
+provided to specify the alias.
+
+
+ROAMADDORIGIN                                *org-roam-commands-roamaddorigin*
+
+:RoamAddOrigin [<ARGS>]
+
+Description:
+
+Adds/replaces the origin to the node under the cursor. Opens a selection dialog
+to pick the node to act as the origin.
+
+If arguments are supplied, they are used as the initial input to the selection
+dialog.
+
+
+ROAMREMOVEALIAS                            *org-roam-commands-roamremovealias*
+
+:RoamRemoveAlias [<ARGS>]
+
+Description:
+
+Removes an alias for the node under the cursor. Opens a selection dialog to
+pick the alias to remove.
+
+If arguments are supplied, they are used as the initial input to the selection
+dialog.
+
+
+ROAMREMOVEORIGIN                          *org-roam-commands-roamremoveorigin*
+
+:RoamRemoveOrigin [<ARGS>]
+
+Description:
+
+Removes the origin for the node under the cursor.
+
+
+ROAMRESET                                        *org-roam-commands-roamreset*
+
+:RoamReset [sync]
+
+Description:
+
+Resets the roam database, wiping and rebuilding it.
+
+If `sync` argument is provided, will perform the reset synchronously.
+
+
+ROAMSAVE                                          *org-roam-commands-roamsave*
+
+:RoamSave[!] [sync]
+
+Description:
+
+Save the roam database to disk. If no changes to the database have occurred
+since last save, nothing happens.
+
+If `!` is provided, will force saving.
+
+If `sync` argument is provided, will perform the save synchronously.
+
+
+ROAMUPDATE                                      *org-roam-commands-roamupdate*
+
+:RoamUpdate[!] [sync]
+
+Description:
+
+Updates the roam database, checking every existing file for changes.
+
+If `!` is provided, will perform a complete recheck of the database for changes
+found on disk including new and deleted files.
+
+If `sync` argument is provided, will perform the update synchronously.
+
+
+==============================================================================
+5. User Interface                                    *org-roam-user-interface*
 
 
 ORG ROAM BUFFER                      *org-roam-user-interface-org-roam-buffer*
@@ -706,7 +804,7 @@ couple of specific bindings available:
 
 
 ==============================================================================
-5. API                                                          *org-roam-api*
+6. API                                                          *org-roam-api*
 
 
 ADD ALIAS                                             *org-roam-api-add-alias*
@@ -1091,7 +1189,7 @@ Example:
 
 
 ==============================================================================
-6. Database                                                *org-roam-database*
+7. Database                                                *org-roam-database*
 
 
 FILES                                                *org-roam-database-files*
@@ -1654,7 +1752,7 @@ Example:
 
 
 ==============================================================================
-7. Events                                                    *org-roam-events*
+8. Events                                                    *org-roam-events*
 
 
 ON CURSOR NODE CHANGED                *org-roam-events-on-cursor-node-changed*
@@ -1685,7 +1783,7 @@ Example:
 
 
 ==============================================================================
-8. Extensions                                            *org-roam-extensions*
+9. Extensions                                            *org-roam-extensions*
 
 
 DAILIES                                          *org-roam-extensions-dailies*
@@ -1709,13 +1807,13 @@ Unimplemented for now!
 
 
 ==============================================================================
-9. Changelog                                              *org-roam-changelog*
+10. Changelog                                             *org-roam-changelog*
 
 TODO
 
 
 ==============================================================================
-10. Credits                                                 *org-roam-credits*
+11. Credits                                                 *org-roam-credits*
 
 - Kristijan Husak <https://github.com/kristijanhusak> for creating nvim-orgmode <https://github.com/nvim-orgmode/orgmode> (the backbone of functionality in neovim that we leverage)
 - Jethro Kuan <https://github.com/jethrokuan> for creating Org Roam (Emacs) <https://github.com/org-roam/org-roam> (the original implementation whose design we copied)
