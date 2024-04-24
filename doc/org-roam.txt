@@ -1,4 +1,4 @@
-*org-roam.txt*            For NVIM v0.9.2           Last change: 2024 April 23
+*org-roam.txt*            For NVIM v0.9.2           Last change: 2024 April 24
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -700,6 +700,9 @@ couple of specific bindings available:
 - Press `<Enter>` on a link to navigate to it in another window.
 - Press `<Tab>` to expand or collapse a preview of the content of a
     backlink, reference link, or unlinked reference.
+- Press `<STab>` to expand or collapse all previews.
+- Press `<C-r>` to refresh the buffer. This can be handy if some
+    information has changed in the database.
 
 
 ==============================================================================
