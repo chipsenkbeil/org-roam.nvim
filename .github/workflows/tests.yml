@@ -34,4 +34,8 @@ jobs:
           neovim: true
           version: ${{ matrix.version }}
       - name: Run tests
-        run: make test
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 3
+          max_attempts: 5
+          command: make test

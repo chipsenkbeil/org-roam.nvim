@@ -588,6 +588,9 @@
    - Press =<Enter>= on a link to navigate to it in another window.
    - Press =<Tab>= to expand or collapse a preview of the content of a
      backlink, reference link, or unlinked reference.
+   - Press =<STab>= to expand or collapse all previews.
+   - Press =<C-r>= to refresh the buffer. This can be handy if some
+     information has changed in the database.
 
 * API
 
