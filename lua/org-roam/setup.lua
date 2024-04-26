@@ -282,37 +282,49 @@ local function define_keybindings(roam)
     assign(
         bindings.add_alias,
         "Adds an alias to the roam node under cursor",
-        roam.api.add_alias
+        function()
+            roam.api.add_alias()
+        end
     )
 
     assign(
         bindings.remove_alias,
         "Removes an alias from the roam node under cursor",
-        roam.api.remove_alias
+        function()
+            roam.api.remove_alias()
+        end
     )
 
     assign(
         bindings.add_origin,
         "Adds an origin to the roam node under cursor",
-        roam.api.add_origin
+        function()
+            roam.api.add_origin()
+        end
     )
 
     assign(
         bindings.remove_origin,
         "Removes the origin from the roam node under cursor",
-        roam.api.remove_origin
+        function()
+            roam.api.remove_origin()
+        end
     )
 
     assign(
         bindings.goto_prev_node,
         "Goes to the previous node sequentially based on origin of the node under cursor",
-        roam.api.goto_prev_node
+        function()
+            roam.api.goto_prev_node()
+        end
     )
 
     assign(
         bindings.goto_next_node,
         "Goes to the next node sequentially based on origin of the node under cursor",
-        roam.api.goto_next_node
+        function()
+            roam.api.goto_next_node()
+        end
     )
 
     assign(
@@ -350,7 +362,9 @@ local function define_keybindings(roam)
     assign(
         bindings.complete_at_point,
         "Completes link to a node based on expression under cursor",
-        roam.api.complete_node
+        function()
+            roam.api.complete_node()
+        end
     )
 
     assign(

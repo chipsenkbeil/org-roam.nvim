@@ -19,7 +19,27 @@ end
 ---@field ui org-roam.UserInterface
 ---@field utils org-roam.Utils
 local M = {}
-M.__index = M
+
+---@private
+---Invoked when a field is missing, which should be any plugin field that
+---has not been accessed before. Upon first access, the field will be
+---populated from the lazy declaration and available for future access.
+function M.__index(tbl, key)
+    -- Check the metatable first for missing value
+    local value = rawget(getmetatable(tbl) or tbl, key)
+    if value then
+        return value
+    end
+
+    -- Otherwise, load it from the lazy table
+    local lazy = rawget(tbl, "__lazy")
+    value = lazy and lazy[key] and lazy[key]()
+    if value then
+        tbl[key] = value
+        lazy[key] = nil
+        return value
+    end
+end
 
 ---Creates a new instance of the org-roam plugin.
 ---@param config? org-roam.Config
@@ -28,24 +48,48 @@ function M:new(config)
     local instance = {}
     setmetatable(instance, M)
 
-    local Config        = require("org-roam.config")
-    local Database      = require("org-roam.database")
+    -- For our fields, we will be lazily loading them as needed
+    local lazy = {}
 
-    -- Use the supplied config, or leverage the default
-    config              = config or Config:new()
+    lazy.api = function()
+        return require("org-roam.api")(instance)
+    end
 
-    instance.api        = require("org-roam.api")(instance)
-    instance.config     = Config:new():replace(config or {})
-    instance.database   = Database:new({
-        db_path = instance.config.database.path,
-        directory = instance.config.directory,
-    })
-    instance.events     = require("org-roam.events")(instance)
-    instance.extensions = require("org-roam.extensions")(instance)
-    instance.setup      = require("org-roam.setup")(instance)
-    instance.ui         = require("org-roam.ui")(instance)
-    instance.utils      = require("org-roam.utils")
+    lazy.config = function()
+        local Config = require("org-roam.config")
+        config = config or Config:new()
+        return Config:new():replace(config or {})
+    end
 
+    lazy.database = function()
+        local Database = require("org-roam.database")
+        return Database:new({
+            db_path = instance.config.database.path,
+            directory = instance.config.directory,
+        })
+    end
+
+    lazy.events = function()
+        return require("org-roam.events")(instance)
+    end
+
+    lazy.extensions = function()
+        return require("org-roam.extensions")(instance)
+    end
+
+    lazy.setup = function()
+        return require("org-roam.setup")(instance)
+    end
+
+    lazy.ui = function()
+        return require("org-roam.ui")(instance)
+    end
+
+    lazy.utils = function()
+        return require("org-roam.utils")
+    end
+
+    instance.__lazy = lazy
     return instance
 end
 
