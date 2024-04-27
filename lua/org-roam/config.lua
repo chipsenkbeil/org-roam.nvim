@@ -104,6 +104,37 @@ local DEFAULT_CONFIG = {
             ---@type string
             directory = "daily",
 
+            ---Bindings associated with org-roam dailies functionality.
+            ---@class org-roam.config.extensions.dailies.Bindings
+            bindings = {
+                ---Capture a specific date's note.
+                capture_date = "<Leader>ndD",
+
+                ---Capture today's note.
+                capture_today = "<Leader>ndN",
+
+                ---Capture tomorrow's note.
+                capture_tomorrow = "<Leader>ndT",
+
+                ---Capture yesterday's note.
+                capture_yesterday = "<Leader>ndY",
+
+                ---Navigate to dailies note directory.
+                find_directory = "<Leader>nd.",
+
+                ---Navigate to specific date's note.
+                goto_date = "<Leader>ndd",
+
+                ---Navigate to today's note.
+                goto_today = "<Leader>ndn",
+
+                ---Navigate to tomorrow's note.
+                goto_tomorrow = "<Leader>ndt",
+
+                ---Navigate to yesterday's note.
+                goto_yesterday = "<Leader>ndy",
+            },
+
             ---Settings tied to org-roam capture templates.
             ---@class org-roam.config.extensions.dailies.Templates
             ---@field [string] OrgCaptureTemplateOpts
