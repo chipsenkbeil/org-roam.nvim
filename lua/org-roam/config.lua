@@ -98,7 +98,7 @@ local DEFAULT_CONFIG = {
     immediate = {
         ---Target where the immediate-mode node should be written.
         ---@type string
-        target = "%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org",
+        target = "%<%Y%m%d%H%M%S>-%[slug].org",
 
         ---Template to use for the immediate-mode node's content.
         ---@type string
@@ -112,7 +112,7 @@ local DEFAULT_CONFIG = {
         d = {
             description = "default",
             template = "%?",
-            target = "%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org",
+            target = "%<%Y%m%d%H%M%S>-%[slug].org",
         },
     },
 
