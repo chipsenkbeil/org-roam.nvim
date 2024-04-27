@@ -241,7 +241,7 @@ describe("org-roam.ui.select-node", function()
         }, read_trimmed_sorted_buf_lines())
 
         -- Hit enter to select the input
-        utils.trigger_mapping("i", "<CR>", { buf = 0, wait = 100 })
+        utils.trigger_mapping("i", "<CR>", { buf = 0, wait = utils.wait_time() })
 
         -- Should have selected "four" from our input
         assert.are.equal(win, vim.api.nvim_get_current_win())
@@ -283,7 +283,7 @@ describe("org-roam.ui.select-node", function()
         }, read_trimmed_sorted_buf_lines())
 
         -- Hit enter to select the input
-        utils.trigger_mapping("i", "<CR>", { buf = 0, wait = 100 })
+        utils.trigger_mapping("i", "<CR>", { buf = 0, wait = utils.wait_time() })
 
         -- Should not have selected "four" and still be at the dialog
         assert.are_not.equal(win, vim.api.nvim_get_current_win())

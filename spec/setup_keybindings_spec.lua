@@ -46,7 +46,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.add_alias, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         assert.are.same({
@@ -97,7 +97,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.remove_alias, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         assert.are.same({
@@ -147,7 +147,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.add_origin, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         assert.are.same({
@@ -195,7 +195,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.remove_origin, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         assert.are.same({
@@ -241,7 +241,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.goto_prev_node, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Review that we moved to the origin
@@ -277,7 +277,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.goto_next_node, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Review that we moved to the next node
@@ -327,7 +327,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.goto_next_node, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Review that we moved to the next node
@@ -364,7 +364,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.quickfix_backlinks, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Verify the quickfix contents
@@ -394,7 +394,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.toggle_roam_buffer, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Verify we have switched to the appropriate buffer
@@ -435,7 +435,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.toggle_roam_buffer_fixed, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Verify we have switched to the appropriate buffer
@@ -480,7 +480,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.complete_at_point, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Verify we have switched to the appropriate buffer
@@ -519,7 +519,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.capture, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Capture the lines of the capture buffer
@@ -582,7 +582,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.capture, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Capture the lines of the capture buffer
@@ -631,7 +631,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.find_node, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Verify we loaded the buffer for the selected node
@@ -683,7 +683,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.find_node, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Verify we loaded the buffer for the selected node
@@ -722,7 +722,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.insert_node, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Verify we inserted the link
@@ -767,7 +767,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.insert_node, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Verify we inserted the link, replacing the visual selection
@@ -799,7 +799,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.insert_node_immediate, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Verify we inserted the link to the new node
@@ -839,7 +839,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.insert_node_immediate, {
-            wait = 100,
+            wait = utils.wait_time(),
         })
 
         -- Verify we inserted the link to the new node
