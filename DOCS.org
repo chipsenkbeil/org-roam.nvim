@@ -729,6 +729,8 @@
    Creates a node if it does not exist, prompting for a template to use, and
    restores the current window configuration upon completion.
 
+   If =templates= is provided, will be used instead of =roam.config.templates=.
+
    Parameters:
 
    - {opts} optional table.
@@ -737,6 +739,9 @@
                   If title is also provided, it is used as the title of the
                   created node.
      - origin: optional, id of node acting as origin of this node.
+     - templates: optional, dictionary of key -> opts where key is a string of
+                  exactly one character and opts is the orgmode template. Note
+                  that the target MUST be specified for each template!
      - title: optional, seeds the capture dialog with the title string.
    - {cb}   optional callback when finished. Is passed the id
             of the created node, or nil if capture was canceled.
@@ -745,7 +750,15 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.capture_node({}, function(id)
+   roam.api.capture_node({
+     templates = {
+       c = {
+         description = "custom",
+         template = "%?",
+         target = "custom-%<%Y%m%d>.org",
+       },
+     },
+   }, function(id)
      if id then
        print("Captured node: " .. id)
      else
@@ -789,10 +802,16 @@
    Creates a node if it does not exist, and then visits the node in
    the current window.
 
+   If =templates= is provided, will be used instead of =roam.config.templates=
+   when capturing a new node for visiting.
+
    Parameters:
 
    - {opts} optional table.
      - origin: optional, id of node acting as origin of this node (creation-only).
+     - templates: optional, dictionary of key -> opts where key is a string of
+                  exactly one character and opts is the orgmode template. Note
+                  that the target MUST be specified for each template!
      - title: optional, seeds the select dialog with the title string.
 
    Example:
@@ -859,6 +878,9 @@
    instead the node will be created with the minimum information and the link
    injected without navigating to another buffer.
 
+   If =templates= is provided, will be used instead of =roam.config.templates=
+   when capturing a new node for insertion.
+
    If =ranges= is provided, will replace the given ranges within the buffer
    versus inserting at point, where everything uses 1-based indexing and
    inclusive.
@@ -871,6 +893,9 @@
                   If title is also provided, it is used as the title of the
                   created node.
      - origin: optional, id of node acting as origin of this node (creation-only).
+     - templates: optional, dictionary of key -> opts where key is a string of
+                  exactly one character and opts is the orgmode template. Note
+                  that the target MUST be specified for each template!
      - title: optional, seeds the select dialog with the title string.
      - ranges: optional, list of ranges to replace. Each range is comprised of
                the following fields:

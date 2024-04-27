@@ -206,15 +206,16 @@ end
 
 ---Construct org-roam templates with custom expansions applied.
 ---@param roam OrgRoam
----@param opts? {origin?:string, title?:string}
+---@param opts? {origin?:string, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
 ---@return OrgCaptureTemplates
 local function build_templates(roam, opts)
     opts = opts or {}
     local Templates = require("orgmode.capture.templates")
 
     -- Build our templates such that they include titles and org-ids
-    local templates = Templates:new(roam.config.templates)
-    for key, template in pairs(roam.config.templates) do
+    ---@diagnostic disable-next-line:param-type-mismatch
+    local templates = Templates:new(opts.templates or roam.config.templates)
+    for key, template in pairs(opts.templates or roam.config.templates) do
         templates.templates[key] = build_template(roam, template, opts)
     end
 
@@ -323,7 +324,7 @@ local function roam_capture_immediate(roam, opts, cb)
 end
 
 ---@param roam OrgRoam
----@param opts? {immediate?:boolean, origin?:string, title?:string}
+---@param opts? {immediate?:boolean, origin?:string, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
 ---@param cb? fun(id:org-roam.core.database.Id|nil)
 local function roam_capture(roam, opts, cb)
     opts = opts or {}
@@ -339,6 +340,7 @@ local function roam_capture(roam, opts, cb)
         local templates = build_templates(roam, {
             origin = opts.origin,
             title = opts.title,
+            templates = opts.templates,
         })
         local on_pre_refile = make_on_pre_refile(roam, opts)
         local on_post_refile = make_on_post_refile(roam, cb)
@@ -357,7 +359,7 @@ local function roam_capture(roam, opts, cb)
 end
 
 ---@param roam OrgRoam
----@param opts? {immediate?:boolean, origin?:string, title?:string, ranges?:org-roam.utils.Range[]}
+---@param opts? {immediate?:boolean, origin?:string, title?:string, ranges?:org-roam.utils.Range[], templates?:table<string,OrgCaptureTemplateOpts>}
 ---@param cb? fun(id:org-roam.core.database.Id|nil)
 local function roam_insert(roam, opts, cb)
     opts = opts or {}
@@ -449,6 +451,7 @@ local function roam_insert(roam, opts, cb)
                 immediate = opts.immediate,
                 origin = opts.origin,
                 title = label,
+                templates = opts.templates,
             }, function(id)
                 do_cb(id)
                 if id then
@@ -461,7 +464,7 @@ local function roam_insert(roam, opts, cb)
 end
 
 ---@param roam OrgRoam
----@param opts? {origin?:string, title?:string}
+---@param opts? {origin?:string, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
 ---@param cb? fun(id:org-roam.core.database.Id|nil)
 local function roam_find(roam, opts, cb)
     opts = opts or {}
@@ -510,6 +513,7 @@ local function roam_find(roam, opts, cb)
             roam_capture(roam, {
                 origin = opts.origin,
                 title = label,
+                templates = opts.templates,
             }, function(id)
                 do_cb(id)
                 if id then
@@ -529,7 +533,7 @@ return function(roam)
 
     ---Creates a node if it does not exist, and restores the current window
     ---configuration upon completion.
-    ---@param opts? {immediate?:boolean, origin?:string, title?:string}
+    ---@param opts? {immediate?:boolean, origin?:string, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
     ---@param cb? fun(id:org-roam.core.database.Id|nil)
     function M.capture(opts, cb)
         return roam_capture(roam, opts, cb)
@@ -545,14 +549,14 @@ return function(roam)
     ---If `ranges` is provided, will replace the given ranges within the buffer
     ---versus inserting at point.
     ---where everything uses 1-based indexing and inclusive.
-    ---@param opts? {immediate?:boolean, origin?:string, title?:string, ranges?:org-roam.utils.Range[]}
+    ---@param opts? {immediate?:boolean, origin?:string, title?:string, ranges?:org-roam.utils.Range[], templates?:table<string,OrgCaptureTemplateOpts>}
     ---@param cb? fun(id:org-roam.core.database.Id|nil)
     function M.insert(opts, cb)
         return roam_insert(roam, opts, cb)
     end
 
     ---Creates a node if it does not exist, and visits the node.
-    ---@param opts? {origin?:string, title?:string}
+    ---@param opts? {origin?:string, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
     ---@param cb? fun(id:org-roam.core.database.Id|nil)
     function M.find(opts, cb)
         return roam_find(roam, opts, cb)
