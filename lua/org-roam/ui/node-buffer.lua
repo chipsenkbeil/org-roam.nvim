@@ -168,9 +168,16 @@ return function(roam)
         -- If we are to focus on the window, do so post-open
         if opts.focus then
             promise = promise:next(function(win)
+                print("---<TOGGLE>---")
+                print("--> CREATED")
+                print("--> BUFFERS", vim.inspect(vim.api.nvim_list_wins()))
+                print("--> WINDOWS", vim.inspect(vim.api.nvim_list_wins()))
+                print("--> NEW WIN", vim.inspect(win))
                 if win then
+                    print("--> SETTING FOCUSED WIN", vim.inspect(win))
                     vim.api.nvim_set_current_win(win)
                 end
+                print("---</TOGGLE>---")
 
                 return win
             end)
