@@ -330,6 +330,58 @@
     })
     #+end_src
 
+** extensions
+
+   Configuration settings tied to roam extensions.
+
+*** dailies
+
+    Configuration settings tied to the roam dailies extension.
+
+**** directory
+
+     Path to the directory containing daily org-roam files.
+
+     Takes a string representing the path to the directory.
+     Defaults to =daily=.
+
+     #+begin_src lua
+     require("org-roam").setup({
+       extensions = {
+         dailies = {
+           directory = "journal",
+         },
+       },
+     })
+     #+end_src
+
+**** templates
+
+     A map of templates associated with roam. These have the exact same format
+     as =nvim-orgmode='s templates, but include additional variables and are
+     only displayed and used during roam's capture dialog. 
+
+     See [[#org-roam-configuration-templates][templates]] for more details.
+
+     Takes a =table<string, table>=.
+     Defaults to the following:
+
+     #+begin_src lua
+     require("org-roam").setup({
+       extensions = {
+         dailies = {
+           templates = {
+             d = {
+               description = "default",
+               template = "%?",
+               target = "%<%Y%m%d>.org",
+             },
+           },
+         },
+       },
+     })
+     #+end_src
+
 ** immediate
 
    Configuration settings tied to immediate mode.
