@@ -26,8 +26,11 @@ local STATE = {
 ---If one already exists and is visible, closes it.
 ---If one exists and is hidden, open a window and show it.
 ---@param roam OrgRoam
+---@param opts? {focus?:boolean}
 ---@return OrgPromise<integer|nil>
-local function roam_toggle_buffer(roam)
+local function roam_toggle_buffer(roam, opts)
+    opts = opts or {}
+
     -- Create our handler for node changes if we haven't done so before
     if not STATE.cursor_update_initialized then
         STATE.cursor_update_initialized = true
@@ -61,6 +64,10 @@ local function roam_toggle_buffer(roam)
                     open = roam.config.ui.node_buffer.open,
                 }):open()
 
+                if opts.focus then
+                    vim.api.nvim_set_current_win(win)
+                end
+
                 resolve(win)
             end)
         end)
@@ -80,9 +87,10 @@ end
 ---
 ---If an `id` is not specified, a prompt will appear to specify the id.
 ---@param roam OrgRoam
----@param id? org-roam.core.database.Id
+---@param opts? {id?:org-roam.core.database.Id, focus?:boolean}
 ---@return OrgPromise<integer|nil>
-local function roam_toggle_fixed_buffer(roam, id)
+local function roam_toggle_fixed_buffer(roam, opts)
+    opts = opts or {}
     return Promise.new(function(resolve)
         ---@param id org-roam.core.database.Id
         ---@diagnostic disable-next-line:redefined-local
@@ -109,6 +117,10 @@ local function roam_toggle_fixed_buffer(roam, id)
                     open = roam.config.ui.node_buffer.open,
                 }):open()
 
+                if opts.focus then
+                    vim.api.nvim_set_current_win(win)
+                end
+
                 resolve(win)
             else
                 for _, win in ipairs(windows) do
@@ -119,8 +131,8 @@ local function roam_toggle_fixed_buffer(roam, id)
             end
         end
 
-        if id then
-            toggle_node_buffer(id)
+        if opts.id then
+            toggle_node_buffer(opts.id)
         else
             roam.ui.select_node()
                 :on_choice(function(choice)
@@ -155,28 +167,13 @@ return function(roam)
 
         local fixed = opts.fixed
 
-        ---@type OrgPromise<integer|nil>
-        local promise
         if type(fixed) == "boolean" and fixed then
-            promise = roam_toggle_fixed_buffer(roam)
+            return roam_toggle_fixed_buffer(roam, { focus = opts.focus })
         elseif type(fixed) == "string" then
-            promise = roam_toggle_fixed_buffer(roam, fixed)
+            return roam_toggle_fixed_buffer(roam, { id = fixed, focus = opts.focus })
         else
-            promise = roam_toggle_buffer(roam)
+            return roam_toggle_buffer(roam, { focus = opts.focus })
         end
-
-        -- If we are to focus on the window, do so post-open
-        if opts.focus then
-            promise = promise:next(function(win)
-                if win then
-                    vim.api.nvim_set_current_win(win)
-                end
-
-                return win
-            end)
-        end
-
-        return promise
     end
 
     return M
