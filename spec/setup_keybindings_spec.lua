@@ -413,7 +413,6 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("toggle_roam_buffer_fixed keybinding should open roam buffer for selected node", function()
-        print("<<<START TOGGLE FIXED TEST>>>")
         local directory = utils.make_temp_org_files_directory()
 
         -- Configure plugin to update database on write
@@ -438,15 +437,6 @@ describe("org-roam.setup.keybindings", function()
         utils.trigger_mapping("n", roam.config.bindings.toggle_roam_buffer_fixed, {
             wait = utils.wait_time(),
         })
-
-        print("---<TEST>---")
-        print("SELECTED BUFFER: " .. vim.api.nvim_get_current_buf())
-        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-            print("--- BUFFER " .. buf .. " ---")
-            print(vim.inspect(utils.read_buffer(buf)))
-        end
-        print("---</TEST>---")
-        print("<<<END TOGGLE FIXED TEST>>>")
 
         -- Verify we have switched to the appropriate buffer
         assert.are.same({
