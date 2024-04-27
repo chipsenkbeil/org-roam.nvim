@@ -110,7 +110,12 @@ local function make_target_expander(roam, file, opts)
     }
 
     return function(target)
-        return fill_expansions(roam, target, expansions)
+        -- Resolve target-specific expansions and ensure that
+        -- the target is relative to our roam directory
+        return path_utils.join(
+            roam.config.directory,
+            fill_expansions(roam, target, expansions)
+        )
     end
 end
 
@@ -125,8 +130,12 @@ local function build_template(roam, template_opts, opts)
     local template = Template:new(template_opts)
 
     -- Resolve our general expansions in the target
+    -- and update the target to be relative to our roam directory
     if template.target then
-        template.target = fill_expansions(roam, template.target)
+        template.target = path_utils.join(
+            roam.config.directory,
+            fill_expansions(roam, template.target)
+        )
     end
 
     -- Always include the entire capture contents, not just
@@ -330,7 +339,7 @@ local function roam_capture(roam, opts, cb)
             origin = opts.origin,
             title = opts.title,
         })
-        local on_pre_refile = make_on_pre_refile(opts)
+        local on_pre_refile = make_on_pre_refile(roam, opts)
         local on_post_refile = make_on_post_refile(roam, cb)
         roam.database:files():next(function(files)
             local Capture = require("orgmode.capture")
