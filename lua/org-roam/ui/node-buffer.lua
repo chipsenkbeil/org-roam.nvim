@@ -169,7 +169,7 @@ return function(roam)
         if opts.focus then
             promise = promise:next(function(win)
                 print("---<TOGGLE>---")
-                print("--> CREATED")
+                print("--> OPTS", vim.inspect(opts))
                 print("--> BUFFERS", vim.inspect(vim.api.nvim_list_wins()))
                 print("--> WINDOWS", vim.inspect(vim.api.nvim_list_wins()))
                 print("--> NEW WIN", vim.inspect(win))
