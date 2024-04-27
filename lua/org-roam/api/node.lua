@@ -366,7 +366,8 @@ local function roam_insert(roam, opts, cb)
     end
 
     ---@param id org-roam.core.database.Id
-    local function insert_link(id)
+    ---@param label? string
+    local function insert_link(id, label)
         local node = roam.database:get_sync(id)
         if not node then
             log.fmt_warn("node %s does not exist, so not inserting link", id)
@@ -413,7 +414,7 @@ local function roam_insert(roam, opts, cb)
 
         -- Replace or insert the link
         vim.api.nvim_buf_set_text(bufnr, start_row, start_col, end_row, end_col, {
-            string.format("[[id:%s][%s]]", node.id, node.title),
+            string.format("[[id:%s][%s]]", node.id, label or node.title),
         })
 
         -- Force ourselves back into normal mode
@@ -426,7 +427,7 @@ local function roam_insert(roam, opts, cb)
         init_input = opts.title,
     })
         :on_choice(function(choice)
-            insert_link(choice.id)
+            insert_link(choice.id, choice.label)
             do_cb(choice.id)
         end)
         :on_choice_missing(function(label)
