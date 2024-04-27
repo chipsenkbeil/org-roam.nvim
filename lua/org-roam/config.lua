@@ -93,6 +93,30 @@ local DEFAULT_CONFIG = {
         update_on_save = true,
     },
 
+    ---Settings tied to org-roam extensions.
+    ---@class org-roam.config.Extensions
+    extensions = {
+        ---Settings tied to the dailies extension.
+        ---@class org-roam.config.extensions.Dailies
+        dailies = {
+            ---Path to the directory within the org-roam directory where
+            ---daily entries will be stored.
+            ---@type string
+            directory = "daily",
+
+            ---Settings tied to org-roam capture templates.
+            ---@class org-roam.config.extensions.dailies.Templates
+            ---@field [string] OrgCaptureTemplateOpts
+            templates = {
+                d = {
+                    description = "default",
+                    template = "%?",
+                    target = "%<%Y%m%d>.org",
+                },
+            },
+        },
+    },
+
     ---Settings tied to org-roam immediate mode.
     ---@class org-roam.config.Immediate
     immediate = {
