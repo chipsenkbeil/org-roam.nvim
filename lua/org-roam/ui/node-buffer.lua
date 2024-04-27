@@ -108,6 +108,7 @@ local function roam_toggle_fixed_buffer(roam, id)
             -- If we have no window containing the buffer, create one; otherwise,
             -- close all of the windows containing the buffer
             if #windows == 0 then
+                print("... CREATING WIN FOR BUF " .. buffer:bufnr())
                 local win = Window:new({
                     buffer = buffer:to_internal_buffer(),
                     open = roam.config.ui.node_buffer.open,
