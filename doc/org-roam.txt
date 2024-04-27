@@ -1,4 +1,4 @@
-*org-roam.txt*            For NVIM v0.9.2           Last change: 2024 April 24
+*org-roam.txt*            For NVIM v0.9.2           Last change: 2024 April 27
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -442,12 +442,12 @@ TARGET ~
 
 Target where the immediate-mode node should be written.
 
-Takes a string. Defaults to `%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org`.
+Takes a string. Defaults to `%<%Y%m%d%H%M%S>-%[slug].org`.
 
 >lua
     require("org-roam").setup({
       immediate = {
-        target = "%r%[sep]%[slug].org",
+        target = "%[slug].org",
       },
     })
 <
@@ -482,7 +482,7 @@ Takes a `table<string, table>`. Defaults to the following:
         d = {
           description = "default",
           template = "%?",
-          target = "%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org",
+          target = "%<%Y%m%d%H%M%S>-%[slug].org",
         },
       },
     })
