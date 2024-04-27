@@ -87,8 +87,10 @@ local function roam_toggle_fixed_buffer(roam, id)
         ---@param id org-roam.core.database.Id
         ---@diagnostic disable-next-line:redefined-local
         local function toggle_node_buffer(id)
+            print("... TOGGLE NODE BUFFER: " .. id)
             ---@type org-roam.ui.NodeBuffer|nil
             local buffer = STATE.fixed_node_buffers[id]
+            print("... BUFFER EXISTS: " .. (buffer and "yes" or "no"))
 
             -- Create the buffer if it does not exist or is deleted
             if not buffer or not buffer:is_valid() then
@@ -97,9 +99,11 @@ local function roam_toggle_fixed_buffer(roam, id)
                 })
 
                 STATE.fixed_node_buffers[id] = buffer
+                print("... CREATED NEW BUFFER")
             end
 
             local windows = buffer:windows_for_tabpage(0)
+            print("... WINDOWS FOR BUFFER: " .. vim.inspect(windows))
 
             -- If we have no window containing the buffer, create one; otherwise,
             -- close all of the windows containing the buffer
@@ -109,12 +113,14 @@ local function roam_toggle_fixed_buffer(roam, id)
                     open = roam.config.ui.node_buffer.open,
                 }):open()
 
+                print("... CREATED NEW WIN: " .. vim.inspect(win))
                 resolve(win)
             else
                 for _, win in ipairs(windows) do
                     vim.api.nvim_win_close(win, true)
                 end
 
+                print("... CLOSED WINS")
                 resolve(nil)
             end
         end
