@@ -142,7 +142,7 @@ local DEFAULT_CONFIG = {
                 d = {
                     description = "default",
                     template = "%?",
-                    target = "%<%Y%m%d>.org",
+                    target = "%<%Y-%m-%d>.org",
                 },
             },
         },

@@ -361,7 +361,8 @@
      as =nvim-orgmode='s templates, but include additional variables and are
      only displayed and used during roam's capture dialog. 
 
-     See [[#org-roam-configuration-templates][templates]] for more details.
+     Note that the target must be provided and must contain a date in the form
+     of =YYYY-MM-DD=. See [[#org-roam-configuration-templates][templates]] for more details.
 
      Takes a =table<string, table>=.
      Defaults to the following:
@@ -374,7 +375,7 @@
              d = {
                description = "default",
                template = "%?",
-               target = "%<%Y%m%d>.org",
+               target = "%<%Y-%m-%d>.org",
              },
            },
          },
