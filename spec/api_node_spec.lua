@@ -148,6 +148,53 @@ describe("org-roam.api.node", function()
         }, utils.read_buffer())
     end)
 
+    it("should insert link to existing node using alias if alias selected", function()
+        -- Create a node with a distinct alias
+        local test_path = utils.join_path(roam.config.directory, "test-file.org")
+        utils.write_to(test_path, {
+            ":PROPERTIES:",
+            ":ID: test-node-id",
+            ":ROAM_ALIASES: \"some test alias\"",
+            ":END:",
+        })
+
+        -- Load files into the database (scan to pick up new file)
+        roam.database:load({ force = "scan" }):wait()
+
+        -- Open a file buffer so we avoid capture closing neovim
+        vim.cmd.edit(one_path)
+
+        -- Pick node "some test alias" when given choices
+        utils.mock_select_pick(function(_, _, helpers)
+            return helpers.pick_with_label("some test alias")
+        end)
+
+        -- Move cursor to the bottom of the buffer, in front of the text
+        local row = vim.api.nvim_buf_line_count(0)
+        vim.api.nvim_win_set_cursor(0, { row, 0 })
+
+        -- Trigger node insertion, which will bring up the dialog
+        local id
+        roam.api.insert_node({}, function(_id) id = _id end)
+
+        -- Wait a bit for the capture to be processed
+        utils.wait()
+
+        -- We should have an id for a valid insertion
+        assert.are.equal("test-node-id", id)
+
+        -- Verify we inserted a link to the specified node
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 1",
+            ":ROAM_ALIASES: one",
+            ":END:",
+            "#+FILETAGS: :one:",
+            "",
+            "[[id:test-node-id][some test alias]][[id:2]]",
+        }, utils.read_buffer())
+    end)
+
     it("should create a new node and insert it if selected non-existing node", function()
         -- Load files into the database
         roam.database:load():wait()
