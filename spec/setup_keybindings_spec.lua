@@ -438,6 +438,12 @@ describe("org-roam.setup.keybindings", function()
             wait = utils.wait_time(),
         })
 
+        print("SELECTED BUFFER: " .. vim.api.nvim_get_current_buf())
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+            print("--- BUFFER " .. buf .. " ---")
+            print(vim.inspect(utils.read_buffer(buf)))
+        end
+
         -- Verify we have switched to the appropriate buffer
         assert.are.same({
             "Press <Enter> to open a link in another window",
