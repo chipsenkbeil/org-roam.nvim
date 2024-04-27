@@ -338,12 +338,12 @@
     
     Target where the immediate-mode node should be written.
 
-    Takes a string. Defaults to =%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org=.
+    Takes a string. Defaults to =%<%Y%m%d%H%M%S>-%[slug].org=.
 
     #+begin_src lua
     require("org-roam").setup({
       immediate = {
-        target = "%r%[sep]%[slug].org",
+        target = "%[slug].org",
       },
     })
     #+end_src
@@ -377,7 +377,7 @@
        d = {
          description = "default",
          template = "%?",
-         target = "%r%[sep]%<%Y%m%d%H%M%S>-%[slug].org",
+         target = "%<%Y%m%d%H%M%S>-%[slug].org",
        },
      },
    })
