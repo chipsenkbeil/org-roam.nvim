@@ -116,7 +116,7 @@ describe("org-roam.ui.node-buffer", function()
         end)
 
         -- Trigger our buffer-local mapping, waiting a bit for the node to load
-        utils.trigger_mapping("n", "<CR>", { buf = 0, wait = 100 })
+        utils.trigger_mapping("n", "<CR>", { buf = 0, wait = utils.wait_time() })
 
         -- Load the non-node buffer that is visible
         local buf = vim.api.nvim_win_get_buf(node_win)
@@ -156,7 +156,7 @@ describe("org-roam.ui.node-buffer", function()
         end)
 
         -- Trigger our buffer-local mapping, waiting a bit for the node to load
-        utils.trigger_mapping("n", "<CR>", { buf = 0, wait = 100 })
+        utils.trigger_mapping("n", "<CR>", { buf = 0, wait = utils.wait_time() })
 
         -- Load the non-node buffer that is visible
         local buf = vim.api.nvim_win_get_buf(node_win)
@@ -196,7 +196,7 @@ describe("org-roam.ui.node-buffer", function()
         end)
 
         -- Trigger our buffer-local mapping, waiting a bit for the preview
-        utils.trigger_mapping("n", "<Tab>", { buf = 0, wait = 100 })
+        utils.trigger_mapping("n", "<Tab>", { buf = 0, wait = utils.wait_time() })
 
         assert.are.same({
             "Press <Enter> to open a link in another window",
@@ -229,7 +229,8 @@ describe("org-roam.ui.node-buffer", function()
         -- Trigger our buffer-local mapping, waiting a bit for the preview
         -- NOTE: With a wait of 100, sometimes hasn't loaded preview yet;
         --       so, we're using a longer wait time to give it a better chance.
-        utils.trigger_mapping("n", "<S-Tab>", { buf = 0, wait = 500 })
+        local wait_time = math.max(500, utils.wait_time())
+        utils.trigger_mapping("n", "<S-Tab>", { buf = 0, wait = wait_time })
 
         assert.are.same({
             "Press <Enter> to open a link in another window",
