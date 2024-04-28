@@ -24,6 +24,15 @@ return function(roam)
         M.__define_commands()
         M.__define_keybindings()
         M.__modify_orgmode_plugin()
+
+        -- Create the directories if they are missing
+        local path = require("org-roam.core.utils.path")
+        vim.fn.mkdir(roam.config.directory, "p")
+        vim.fn.mkdir(path.join(
+            roam.config.directory,
+            roam.config.extensions.dailies.directory
+        ), "p")
+
         return M.__initialize_database():next(function()
             return roam
         end)

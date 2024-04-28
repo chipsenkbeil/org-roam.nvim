@@ -6,9 +6,115 @@
 -- See https://www.orgroam.com/manual.html#org_002droam_002ddailies
 -------------------------------------------------------------------------------
 
-
+local io = require("org-roam.core.utils.io")
 local join_path = require("org-roam.core.utils.path").join
-local walk = require("org-roam.core.utils.io").walk
+local notify = require("org-roam.core.ui.notify")
+
+local Date = require("orgmode.objects.date")
+local Calendar = require("orgmode.objects.calendar")
+local Promise = require("orgmode.utils.promise")
+
+---Returns the full path to the roam dailies directory.
+---@param roam OrgRoam
+---@return string
+local function roam_dailies_dir(roam)
+    return vim.fs.normalize(join_path(
+        roam.config.directory,
+        roam.config.extensions.dailies.directory
+    ))
+end
+
+---Converts date to YYYY-MM-DD format.
+---@param date OrgDate
+---@return string
+local function date_string(date)
+    ---@diagnostic disable-next-line:return-type-mismatch
+    return os.date("%Y-%m-%d", date.timestamp)
+end
+
+---Converts a date into a full file path.
+---@param roam OrgRoam
+---@param date OrgDate
+---@return string
+local function date_to_path(roam, date)
+    -- Should produce YYYY-MM-DD.org
+    local filename = date_string(date) .. ".org"
+    return join_path(roam_dailies_dir(roam), filename)
+end
+
+---Converts a path into a date.
+---@param path string
+---@return OrgDate|nil
+local function path_to_date(path)
+    local filename = vim.fn.fnamemodify(path, ":t:r")
+    return Date.from_string(filename)
+end
+
+---Converts buffer's name into a date.
+---@param buf integer
+---@return OrgDate|nil
+local function buf_to_date(buf)
+    local bufname = vim.api.nvim_buf_get_name(buf)
+    return path_to_date(bufname)
+end
+
+---Returns list of file paths representing org files within dailies
+---that meet the date format of `YYYY-MM-DD`.
+---@param roam OrgRoam
+---@return string[]
+local function roam_dailies_files(roam)
+    return io.walk(roam_dailies_dir(roam)):filter(function(entry)
+        ---@cast entry org-roam.core.utils.io.WalkEntry
+        local filename = vim.fn.fnamemodify(entry.filename, ":t:r")
+        local ext = vim.fn.fnamemodify(entry.filename, ":e")
+        local is_org = ext == "org" or ext == "org_archive"
+        local is_date = Date.is_valid_date(filename) ~= nil
+        return entry.type == "file" and is_org and is_date
+    end):map(function(entry)
+        ---@cast entry org-roam.core.utils.io.WalkEntry
+        return entry.path
+    end):collect()
+end
+
+---Returns list of file paths representing org files within dailies
+---that meet the date format of `YYYY-MM-DD`, sorted alphabetically.
+---@param roam OrgRoam
+---@return string[]
+local function roam_dailies_files_sorted(roam)
+    local files = roam_dailies_files(roam)
+    table.sort(files)
+    return files
+end
+
+---Creates a new buffer representing an org roam daily note.
+---@param roam OrgRoam
+---@param date OrgDate
+---@param title? string
+---@return integer buf
+local function make_daily_buffer(roam, date, title)
+    local buf = vim.api.nvim_create_buf(true, false)
+    assert(buf ~= 0, "failed to create daily buffer")
+
+    -- Update the filename of the buffer to be `path/to/{DATE}.org`
+    vim.api.nvim_buf_set_name(buf, join_path(
+        roam_dailies_dir(roam),
+        date_string(date) .. ".org"
+    ))
+
+    -- Set filetype to org
+    vim.api.nvim_buf_set_option(buf, "filetype", "org")
+
+    -- Populate the buffer
+    vim.api.nvim_buf_set_lines(buf, 0, -1, true, {
+        ":PROPERTIES:",
+        ":ID: " .. require("orgmode.org.id").new(),
+        ":END:",
+        "#+TITLE: " .. (title or date_string(date)),
+        "",
+    })
+
+    return buf
+end
 
 ---Creates a copy of the template options for dailies and pre-fills the
 ---target and content date expansions with the specified date, or current
@@ -61,15 +167,6 @@ end
 ---@param roam OrgRoam
 ---@return org-roam.extensions.Dailies
 return function(roam)
-    local Calendar = require("orgmode.objects.calendar")
-    local Date = require("orgmode.objects.date")
-    local Promise = require("orgmode.utils.promise")
-
-    local ROAM_DAILIES_DIR = join_path(
-        roam.config.directory,
-        roam.config.extensions.dailies.directory
-    )
-
     ---@class org-roam.extensions.Dailies
     ---@field private __dates table<string, {date:OrgDate, file:string}>|nil
     local M = {}
@@ -87,7 +184,7 @@ return function(roam)
         p:next(function(date)
             if date then
                 roam.api.capture_node({
-                    title = opts.title or date:to_date_string(),
+                    title = opts.title or date_string(date),
                     templates = make_dailies_templates(roam, date),
                 }, cb)
             end
@@ -115,95 +212,156 @@ return function(roam)
 
     ---Opens the roam dailies directory in the current window.
     function M.find_directory()
-        vim.cmd.edit(ROAM_DAILIES_DIR)
+        vim.cmd.edit(roam_dailies_dir(roam))
     end
 
     ---Navigates to the note with the specified date.
-    ---@param date string|OrgDate|nil
-    ---@return OrgPromise<OrgDate>
-    function M.goto_date(date)
-        return nil
+    ---If no `date` is specified, opens up the calendar.
+    ---@param opts? {date?:string|OrgDate, win?:integer}
+    ---@return OrgPromise<OrgDate|nil>
+    function M.goto_date(opts)
+        opts = opts or {}
+
+        ---@type OrgPromise<OrgDate|nil>
+        local date_promise
+
+        local date = opts.date
+        if type(date) == "string" then
+            date = Date.from_string(date)
+            if not date then
+                return Promise.reject("invalid date string")
+            end
+        end
+
+        if type(date) == "table" then
+            date_promise = Promise.resolve(date)
+        else
+            date_promise = Calendar.new({}):open()
+        end
+
+        local win = opts.win or vim.api.nvim_get_current_win()
+        return date_promise:next(function(date)
+            -- If the date is valid, then we want to either open
+            -- the file or create a buffer with some basic contents
+            -- WITHOUT saving it
+            if date then
+                local path = date_to_path(roam, date)
+                return Promise.new(function(resolve)
+                    io.stat(path, function(err, stat)
+                        vim.schedule(function()
+                            if err or not stat then
+                                local buf = make_daily_buffer(roam, date)
+                                vim.api.nvim_win_set_buf(win, buf)
+
+                                -- NOTE: Must perform detection when buffer
+                                --       is first created in order for folding
+                                --       and other functionality to work!
+                                vim.api.nvim_buf_call(buf, function()
+                                    vim.cmd("filetype detect")
+                                end)
+
+                                return resolve(date)
+                            else
+                                vim.api.nvim_set_current_win(win)
+                                vim.cmd.edit(path)
+                                return resolve(date)
+                            end
+                        end)
+                    end)
+                end)
+            else
+                return date
+            end
+        end)
     end
 
     ---Navigates to today's note.
-    ---@return OrgPromise<OrgDate>
+    ---@return OrgPromise<OrgDate|nil>
     function M.goto_today()
-        return M.goto_date(Date.today())
+        return M.goto_date({ date = Date.today() })
     end
 
     ---Navigates to tomorrow's note.
-    ---@return OrgPromise<OrgDate>
+    ---@return OrgPromise<OrgDate|nil>
     function M.goto_tomorrow()
-        return M.goto_date(Date.tomorrow())
+        return M.goto_date({ date = Date.tomorrow() })
     end
 
     ---Navigates to yesterday's note.
-    ---@return OrgPromise<OrgDate>
+    ---@return OrgPromise<OrgDate|nil>
     function M.goto_yesterday()
         local yesterday = Date.today():subtract({ day = 1 })
-        return M.goto_date(yesterday)
+        return M.goto_date({ date = yesterday })
     end
 
     ---Navigates to the next date based on the node under cursor.
     ---
-    ---If `n` specified, will go `n days in the future.
+    ---If `n` specified, will go `n` days in the future.
     ---If `n` is negative, find note `n` days in the past.
-    ---@param n? integer
-    ---@return OrgPromise<OrgDate>
-    function M.goto_next_date(n)
-        local date = Date.today():add({ day = n or 1 })
-        return M.goto_date(date)
+    ---
+    ---If there is no existing note within range that exists,
+    ---nil is returned from the promise, and nothing happens.
+    ---@param opts? {n?:integer, suppress?:boolean}
+    ---@return OrgPromise<OrgDate|nil>
+    function M.goto_next_date(opts)
+        opts = opts or {}
+        local n = opts.n or 1
+
+        -- local date = Date.today():add({ day = n or 1 })
+        local date = buf_to_date(0)
+        if not date then
+            return Promise.resolve(nil)
+        end
+
+        -- Figure out our position among the files, adjust
+        -- position using our offset, and resolve as a date
+        local files = roam_dailies_files_sorted(roam)
+        for i, file in ipairs(files) do
+            local file_date = path_to_date(file)
+
+            -- Use a diff check by day to ensure same date
+            if file_date and date:diff(file_date) == 0 then
+                -- Update our index to the new file
+                local idx = i + n
+
+                if idx < 1 then
+                    if not opts.suppress then
+                        notify.echo_info("Cannot go further back")
+                    end
+                    return Promise.resolve(nil)
+                end
+
+                if idx > #files then
+                    if not opts.suppress then
+                        notify.echo_info("Cannot go further forward")
+                    end
+                    return Promise.resolve(nil)
+                end
+
+                local target_date = path_to_date(files[idx])
+                if not target_date then
+                    return Promise.reject("invalid file: " .. vim.inspect(files[idx]))
+                end
+                return M.goto_date({ date = target_date })
+            end
+        end
+
+        return Promise.resolve(nil)
     end
 
     ---Navigates to the previous date based on the node under cursor.
     ---
-    ---If `n` specified, will go `n days in the past.
+    ---If `n` specified, will go `n` days in the past.
     ---If `n` is negative, find note `n` days in the future.
-    ---@param n? integer
-    ---@return OrgPromise<OrgDate>
-    function M.goto_prev_date(n)
-        return M.goto_next_date(n and -n or -1)
-    end
-
-    ---@private
-    ---Returns a table of dates and files where the keys are in the form
-    ---`YYYY-MM-DD` and the values are a table containing the date and path.
-    ---@param opts? {force?:boolean}
-    ---@return table<string, {date:OrgDate, file:string}>
-    function M.__list_dates(opts)
+    ---@param opts? {n?:integer, suppress?:boolean}
+    ---@return OrgPromise<OrgDate|nil>
+    function M.goto_prev_date(opts)
         opts = opts or {}
-
-        -- If forcing or not yet cached, retrieve files
-        if opts.force or not M.__dates then
-            ---@type {date:OrgDate, file:string}[]
-            local files = walk(ROAM_DAILIES_DIR)
-                :filter(function(entry)
-                    ---@cast entry org-roam.core.utils.io.WalkEntry
-                    local ext = vim.fn.fnamemodify(entry.filename, ":e")
-                    local is_org = ext == "org" or ext == "org_archive"
-                    return entry.type == "file" and is_org
-                end)
-                :map(function(entry)
-                    local filename = vim.fn.fnamemodify(entry.filename, ":t:r")
-
-                    ---@type OrgDate|nil
-                    local date = Date.from_string(filename)
-
-                    return date and { date = date, file = entry.filename }
-                end)
-                :filter(function(x) return x ~= nil end)
-                :collect()
-
-            -- Build our mapping using date string as key
-            local dates = {}
-            for _, file in ipairs(files) do
-                dates[file.date:to_date_string()] = file
-            end
-
-            M.__dates = dates
-        end
-
-        return M.__dates
+        local n = opts.n or 1
+        return M.goto_next_date({
+            n = -n,
+            suppress = opts.suppress,
+        })
     end
 
     return M
