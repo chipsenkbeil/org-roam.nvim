@@ -123,7 +123,7 @@ end
 ---Construct org-roam template with custom expansions applied.
 ---@param roam OrgRoam
 ---@param template_opts OrgCaptureTemplateOpts
----@param opts? {origin?:string, title?:string}
+---@param opts? {origin?:string|false, title?:string}
 ---@return OrgCaptureTemplate
 local function build_template(roam, template_opts, opts)
     opts = opts or {}
@@ -271,7 +271,7 @@ local function make_on_post_refile(roam, cb)
 end
 
 ---@param roam OrgRoam
----@param opts {origin:string|nil, title:string|nil}
+---@param opts {origin:string|false|nil, title:string|nil}
 ---@param cb fun(id:org-roam.core.database.Id|nil)
 local function roam_capture_immediate(roam, opts, cb)
     local template = build_template(roam, {
@@ -324,13 +324,15 @@ local function roam_capture_immediate(roam, opts, cb)
 end
 
 ---@param roam OrgRoam
----@param opts? {immediate?:boolean, origin?:string, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
+---@param opts? {immediate?:boolean, origin?:string|false, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
 ---@param cb? fun(id:org-roam.core.database.Id|nil)
 local function roam_capture(roam, opts, cb)
     opts = opts or {}
     cb = cb or function() end
 
-    if roam.config.capture.include_origin and not opts.origin then
+    -- If not provided an origin and want to include the origin,
+    -- use the node under the cursor; skip this if origin is false
+    if roam.config.capture.include_origin and opts.origin == nil then
         opts.origin = node_id_under_cursor_sync()
     end
 
@@ -533,7 +535,7 @@ return function(roam)
 
     ---Creates a node if it does not exist, and restores the current window
     ---configuration upon completion.
-    ---@param opts? {immediate?:boolean, origin?:string, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
+    ---@param opts? {immediate?:boolean, origin?:string|false, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
     ---@param cb? fun(id:org-roam.core.database.Id|nil)
     function M.capture(opts, cb)
         return roam_capture(roam, opts, cb)

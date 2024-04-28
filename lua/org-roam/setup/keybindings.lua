@@ -315,6 +315,22 @@ local function assign_dailies_keybindings(roam)
             roam.extensions.dailies.goto_yesterday()
         end
     )
+
+    assign(
+        bindings.goto_next_date,
+        "Navigate to the next available note",
+        function()
+            roam.extensions.dailies.goto_next_date()
+        end
+    )
+
+    assign(
+        bindings.goto_prev_date,
+        "Navigate to the previous available note",
+        function()
+            roam.extensions.dailies.goto_prev_date()
+        end
+    )
 end
 
 ---@param roam OrgRoam

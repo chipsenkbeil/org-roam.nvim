@@ -125,6 +125,12 @@ local DEFAULT_CONFIG = {
                 ---Navigate to specific date's note.
                 goto_date = "<Leader>ndd",
 
+                ---Navigate to the next note in date sequence.
+                goto_next_date = "<Leader>ndf",
+
+                ---Navigate to the previous note in date sequence.
+                goto_prev_date = "<Leader>ndb",
+
                 ---Navigate to today's note.
                 goto_today = "<Leader>ndn",
 

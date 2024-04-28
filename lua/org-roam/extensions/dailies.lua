@@ -184,6 +184,7 @@ return function(roam)
         p:next(function(date)
             if date then
                 roam.api.capture_node({
+                    origin = false,
                     title = opts.title or date_string(date),
                     templates = make_dailies_templates(roam, date),
                 }, cb)
@@ -221,6 +222,7 @@ return function(roam)
     ---@return OrgPromise<OrgDate|nil>
     function M.goto_date(opts)
         opts = opts or {}
+        local win = opts.win or vim.api.nvim_get_current_win()
 
         ---@type OrgPromise<OrgDate|nil>
         local date_promise
@@ -239,7 +241,6 @@ return function(roam)
             date_promise = Calendar.new({}):open()
         end
 
-        local win = opts.win or vim.api.nvim_get_current_win()
         return date_promise:next(function(date)
             -- If the date is valid, then we want to either open
             -- the file or create a buffer with some basic contents
@@ -251,7 +252,7 @@ return function(roam)
                         vim.schedule(function()
                             if err or not stat then
                                 local buf = make_daily_buffer(roam, date)
-                                vim.api.nvim_win_set_buf(win, buf)
+                                pcall(vim.api.nvim_win_set_buf, win, buf)
 
                                 -- NOTE: Must perform detection when buffer
                                 --       is first created in order for folding
@@ -262,7 +263,7 @@ return function(roam)
 
                                 return resolve(date)
                             else
-                                vim.api.nvim_set_current_win(win)
+                                pcall(vim.api.nvim_set_current_win, win)
                                 vim.cmd.edit(path)
                                 return resolve(date)
                             end
