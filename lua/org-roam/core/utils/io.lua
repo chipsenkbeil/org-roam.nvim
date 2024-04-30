@@ -15,7 +15,7 @@ local path_utils = require("org-roam.core.utils.path")
 -- Group can read.
 -- Other can read.
 ---@diagnostic disable-next-line:param-type-mismatch
-local DEFAULT_WRITE_PERMISSIONS = tonumber(644, 8)
+local DEFAULT_FILE_PERMISSIONS = tonumber(644, 8)
 
 ---@class org-roam.core.utils.IO
 local M = {}
@@ -56,13 +56,16 @@ end
 ---@param data string|string[]
 ---@param cb fun(err:string|nil)
 function M.write_file(path, data, cb)
-    -- Create file directory with 0o644 (rw-r--r--) if not exist
     local dir = vim.fs.dirname(path)
+
+    -- If the parent directory does not exist, create it
+    -- using the default permissions of 0o755 (rwxr-xr-x)
     if 0 == vim.fn.isdirectory(dir) then
-        vim.fn.mkdir(dir, "p", DEFAULT_WRITE_PERMISSIONS)
+        vim.fn.mkdir(dir, "p")
     end
+
     -- Open or create file with 0o644 (rw-r--r--)
-    uv.fs_open(path, "w", DEFAULT_WRITE_PERMISSIONS, function(err, fd)
+    uv.fs_open(path, "w", DEFAULT_FILE_PERMISSIONS, function(err, fd)
         if err then
             cb(err)
             return
