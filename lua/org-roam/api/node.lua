@@ -21,7 +21,7 @@ local function make_expansions(roam)
             return roam.config.directory
         end,
         ["%R"] = function()
-            return vim.fs.normalize(vim.fn.resolve(roam.config.directory))
+            return roam.utils.normalize(vim.fn.resolve(roam.config.directory))
         end,
     }
 end

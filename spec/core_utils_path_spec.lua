@@ -42,17 +42,27 @@ describe("org-roam.core.utils.path", function()
             -- Restore old separator function
             path.separator = sep
 
-            assert.are.equal(
-                "C:/Users/senkwich/orgfiles/roam/20240429235641-test.org",
-                actual
-            )
+            -- On Mac/Linux, we don't escape \ into /
+            if path.separator() == "\\" then
+                assert.are.equal(
+                    "C:/Users/senkwich/orgfiles/roam/20240429235641-test.org",
+                    actual
+                )
+            else
+                assert.are.equal(
+                    "C:\\\\Users\\senkwich\\orgfiles\\roam\\20240429235641-test.org",
+                    actual
+                )
+            end
         end)
 
-        it("should convert \\ to / when joining paths", function()
-            assert.are.equal(
-                "C:/some/path",
-                path.join("C:\\some\\path")
-            )
+        it("should convert \\ to / when joining paths on Windows", function()
+            local test_path = path.join("C:\\some\\path")
+            if path.separator() == "\\" then
+                assert.are.equal("C:/some/path", test_path)
+            elseif path.separator() == "/" then
+                assert.are.equal("C:\\some\\path", test_path)
+            end
         end)
     end)
 end)
