@@ -100,6 +100,12 @@ local CACHE = setmetatable({ files = {}, hashes = {} }, { __mode = "k" })
 function M:from_org_file(file)
     local nodes = {}
 
+    ---@param s string|nil
+    ---@return string|nil
+    local function trim(s)
+        return s and vim.trim(s)
+    end
+
     -- Check if we have a cached value for this file specifically
     local key = vim.fn.sha256(file.content)
     if CACHE.files[key] and CACHE.hashes[file.filename] == key then
@@ -108,16 +114,12 @@ function M:from_org_file(file)
 
     -- Build up our file-level node
     -- Get the id and strip whitespace, which incldues \r on windows
-    local id = file:get_property(KEYS.PROP_ID)
-    id = id and vim.trim(id)
-
+    local id = trim(file:get_property(KEYS.PROP_ID))
     if id then
         local tags = file:get_filetags()
         table.sort(tags)
 
-        local origin = file:get_property(KEYS.PROP_ORIGIN)
-        origin = origin and vim.trim(origin)
-
+        local origin = trim(file:get_property(KEYS.PROP_ORIGIN))
         table.insert(nodes, Node:new({
             id = id,
             origin = origin,
@@ -127,8 +129,8 @@ function M:from_org_file(file)
             ),
             file = file.filename,
             mtime = file.metadata.mtime,
-            title = file:get_directive(KEYS.DIR_TITLE),
-            aliases = utils.parse_property_value(file:get_property(KEYS.PROP_ALIASES) or ""),
+            title = trim(file:get_directive(KEYS.DIR_TITLE)),
+            aliases = utils.parse_property_value(trim(file:get_property(KEYS.PROP_ALIASES)) or ""),
             tags = tags,
             level = 0,
             linked = {},
@@ -138,9 +140,7 @@ function M:from_org_file(file)
     -- Build up our section-level nodes
     for _, headline in ipairs(file:get_headlines()) do
         -- Get the id and strip whitespace, which incldues \r on windows
-        local id = headline:get_property(KEYS.PROP_ID)
-        id = id and vim.trim(id)
-
+        local id = trim(headline:get_property(KEYS.PROP_ID))
         if id then
             -- NOTE: By default, this will get filetags and respect tag inheritance
             --       for nested headlines. If this is turned off in orgmode, then
@@ -149,9 +149,7 @@ function M:from_org_file(file)
             local tags = headline:get_tags()
             table.sort(tags)
 
-            local origin = headline:get_property(KEYS.PROP_ORIGIN)
-            origin = origin and vim.trim(origin)
-
+            local origin = trim(headline:get_property(KEYS.PROP_ORIGIN))
             table.insert(nodes, Node:new({
                 id = id,
                 origin = origin,
@@ -159,7 +157,7 @@ function M:from_org_file(file)
                 file = file.filename,
                 mtime = file.metadata.mtime,
                 title = headline:get_title(),
-                aliases = utils.parse_property_value(headline:get_property(KEYS.PROP_ALIASES) or ""),
+                aliases = utils.parse_property_value(trim(headline:get_property(KEYS.PROP_ALIASES)) or ""),
                 tags = tags,
                 level = headline:get_level(),
                 linked = {},
@@ -176,7 +174,7 @@ function M:from_org_file(file)
     -- Build links with full ranges and connect them to nodes
     local links = {}
     for _, link in ipairs(file:get_links()) do
-        local id = link.url:get_id()
+        local id = trim(link.url:get_id())
         local range = link.range
         if id and range then
             -- Figure out the full range from the file and add the link to our list
