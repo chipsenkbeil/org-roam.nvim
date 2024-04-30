@@ -9,6 +9,7 @@
 local io = require("org-roam.core.utils.io")
 local join_path = require("org-roam.core.utils.path").join
 local notify = require("org-roam.core.ui.notify")
+local random = require("org-roam.core.utils.random")
 
 local Date = require("orgmode.objects.date")
 local Calendar = require("orgmode.objects.calendar")
@@ -107,7 +108,7 @@ local function make_daily_buffer(roam, date, title)
     -- Populate the buffer
     vim.api.nvim_buf_set_lines(buf, 0, -1, true, {
         ":PROPERTIES:",
-        ":ID: " .. require("orgmode.org.id").new(),
+        ":ID: " .. random.id(),
         ":END:",
         "#+TITLE: " .. (title or date_string(date)),
         "",
