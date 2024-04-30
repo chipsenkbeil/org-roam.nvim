@@ -433,6 +433,9 @@ function M.cleanup_after_test()
     -- If select was mocked, unmock it
     M.unmock_select()
 
+    -- If calendar was mocked, unmock it
+    M.unmock_calendar()
+
     -- If inputs were mocked, unmock them
     M.unmock_vim_inputs()
 end
@@ -474,6 +477,12 @@ function M.clear_buffers()
             vim.api.nvim_buf_delete(buf, { force = true })
         end
     end
+end
+
+---@param s string
+---@return OrgDate|nil
+function M.date_from_string(s)
+    return OrgDate.from_string(s)
 end
 
 ---@alias spec.utils.MockCalendar
