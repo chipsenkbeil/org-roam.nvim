@@ -281,7 +281,7 @@ function M.walk(path, opts)
                 entry_path = vim.fn.resolve(entry_path)
             end
 
-            entry_path = vim.fs.normalize(entry_path, { expand_env = true })
+            entry_path = path_utils.normalize(entry_path, { expand_env = true })
 
             return {
                 name     = name,

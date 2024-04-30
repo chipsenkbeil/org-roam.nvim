@@ -27,7 +27,7 @@ local function merge_config(roam, config)
 
     -- Normalize the roam directory before storing it
     ---@diagnostic disable-next-line:inject-field
-    config.directory = vim.fs.normalize(config.directory)
+    config.directory = roam.utils.normalize(config.directory)
 
     -- Merge our configuration options into our global config
     roam.config:replace(config)
