@@ -107,7 +107,10 @@ function M:from_org_file(file)
     end
 
     -- Build up our file-level node
+    -- Get the id and strip whitespace, which incldues \r on windows
     local id = file:get_property(KEYS.PROP_ID)
+    id = id and vim.trim(id)
+
     if id then
         local tags = file:get_filetags()
         table.sort(tags)
@@ -134,7 +137,10 @@ function M:from_org_file(file)
 
     -- Build up our section-level nodes
     for _, headline in ipairs(file:get_headlines()) do
+        -- Get the id and strip whitespace, which incldues \r on windows
         local id = headline:get_property(KEYS.PROP_ID)
+        id = id and vim.trim(id)
+
         if id then
             -- NOTE: By default, this will get filetags and respect tag inheritance
             --       for nested headlines. If this is turned off in orgmode, then
