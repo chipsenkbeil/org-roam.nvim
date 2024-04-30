@@ -4,11 +4,12 @@
 -- Utilities to do input/output operations.
 -------------------------------------------------------------------------------
 
-local uv = vim.loop
+local uv = vim.uv or vim.loop
 
-local async = require("org-roam.core.utils.async")
 local Iterator = require("org-roam.core.utils.iterator")
 local path_utils = require("org-roam.core.utils.path")
+
+local Promise = require("orgmode.utils.promise")
 
 -- 0o644 (rw-r--r--)
 -- Owner can read and write.
@@ -22,40 +23,21 @@ local M = {}
 
 ---Write some data synchronously to disk, creating the file or overwriting
 ---if it exists.
----
----Note: cannot be called within fast callbacks.
----
----Accepts options to configure how to wait.
----
----* `time`: the milliseconds to wait for writing to finish.
----  Defaults to waiting forever.
----* `interval`: the millseconds between attempts to check that writing
----  has finished. Defaults to 200 milliseconds.
 ---@param path string
 ---@param data string|string[]
----@param opts? {time?:integer,interval?:integer}
+---@param opts? {timeout?:integer}
 ---@return string|nil err
 function M.write_file_sync(path, data, opts)
     opts = opts or {}
-
-    local f = async.wrap(
-        M.write_file,
-        {
-            time = opts.time,
-            interval = opts.interval,
-            n = 2,
-        }
-    )
-
-    return f(path, data)
+    return M.write_file(path, data):wait(opts.timeout)
 end
 
 ---Write some data asynchronously to disk, creating the file or overwriting
 ---if it exists.
 ---@param path string
 ---@param data string|string[]
----@param cb fun(err:string|nil)
-function M.write_file(path, data, cb)
+---@return OrgPromise<nil>
+function M.write_file(path, data)
     local dir = vim.fs.dirname(path)
 
     -- If the parent directory does not exist, create it
@@ -64,37 +46,33 @@ function M.write_file(path, data, cb)
         vim.fn.mkdir(dir, "p")
     end
 
-    -- Open or create file with 0o644 (rw-r--r--)
-    uv.fs_open(path, "w", DEFAULT_FILE_PERMISSIONS, function(err, fd)
-        if err then
-            cb(err)
-            return
-        end
-
-        assert(fd, "Impossible: file descriptor missing")
-
-        uv.fs_write(fd, data, -1, function(err)
+    return Promise.new(function(resolve, reject)
+        uv.fs_open(path, "w", DEFAULT_FILE_PERMISSIONS, function(err, fd)
             if err then
-                cb(err)
-                return
+                return vim.schedule(function() reject(err) end)
             end
 
-            -- Force writing of data to avoid situations where
-            -- we write and then immediately try to read and get
-            -- the old file contents
-            uv.fs_fsync(fd, function(err)
+            ---@cast fd -nil
+            uv.fs_write(fd, data, -1, function(err)
                 if err then
-                    cb(err)
-                    return
+                    return vim.schedule(function() reject(err) end)
                 end
 
-                uv.fs_close(fd, function(err)
+                -- Force writing of data to avoid situations where
+                -- we write and then immediately try to read and get
+                -- the old file contents
+                uv.fs_fsync(fd, function(err)
                     if err then
-                        cb(err)
-                        return
+                        return vim.schedule(function() reject(err) end)
                     end
 
-                    cb(nil)
+                    uv.fs_close(fd, function(err)
+                        if err then
+                            return vim.schedule(function() reject(err) end)
+                        end
+
+                        vim.schedule(function() resolve(nil) end)
+                    end)
                 end)
             end)
         end)
@@ -102,66 +80,43 @@ function M.write_file(path, data, cb)
 end
 
 ---Reads data synchronously to disk.
----
----Note: cannot be called within fast callbacks.
----
----Accepts options to configure how to wait.
----
----* `time`: the milliseconds to wait for writing to finish.
----  Defaults to waiting forever.
----* `interval`: the millseconds between attempts to check that writing
----  has finished. Defaults to 200 milliseconds.
 ---@param path string
----@param opts? {time?:integer,interval?:integer}
+---@param opts? {timeout?:integer}
 ---@return string|nil err, string|nil data
 function M.read_file_sync(path, opts)
     opts = opts or {}
-
-    local f = async.wrap(
-        M.read_file,
-        {
-            time = opts.time,
-            interval = opts.interval,
-            n = 1,
-        }
-    )
-
-    return f(path)
+    return M.read_file(path):wait(opts.timeout)
 end
 
 ---Read some data asynchronously from disk.
 ---@param path string
----@param cb fun(err:string|nil, data:string|nil)
-function M.read_file(path, cb)
-    uv.fs_open(path, "r", 0, function(err, fd)
-        if err then
-            cb(err)
-            return
-        end
-
-        assert(fd, "Impossible: file descriptor missing")
-
-        uv.fs_fstat(fd, function(err, stat)
+---@return OrgPromise<string>
+function M.read_file(path)
+    return Promise.new(function(resolve, reject)
+        uv.fs_open(path, "r", 0, function(err, fd)
             if err then
-                cb(err)
-                return
+                return vim.schedule(function() reject(err) end)
             end
 
-            assert(stat, "Impossible: file stat missing")
-
-            uv.fs_read(fd, stat.size, 0, function(err, data)
+            ---@cast fd -nil
+            uv.fs_fstat(fd, function(err, stat)
                 if err then
-                    cb(err)
-                    return
+                    return vim.schedule(function() reject(err) end)
                 end
 
-                uv.fs_close(fd, function(err)
+                ---@cast stat -nil
+                uv.fs_read(fd, stat.size, 0, function(err, data)
                     if err then
-                        cb(err)
-                        return
+                        return vim.schedule(function() reject(err) end)
                     end
 
-                    cb(nil, data)
+                    uv.fs_close(fd, function(err)
+                        if err then
+                            return vim.schedule(function() reject(err) end)
+                        end
+
+                        vim.schedule(function() resolve(data) end)
+                    end)
                 end)
             end)
         end)
@@ -171,75 +126,53 @@ end
 ---Obtains information about the file pointed to by `path`. Read, write, or
 ---execute permission of the named file is not required, but all directories
 ---listed in the path name leading to the file must be searchable.
----
----Note: cannot be called within fast callbacks.
----
----Accepts options to configure how to wait.
----
----* `time`: the milliseconds to wait for writing to finish.
----  Defaults to waiting forever.
----* `interval`: the millseconds between attempts to check that writing
----  has finished. Defaults to 200 milliseconds.
 ---@param path string
----@param opts? {time?:integer,interval?:integer}
+---@param opts? {timeout?:integer}
 ---@return string|nil err, uv.aliases.fs_stat_table|nil stat
 function M.stat_sync(path, opts)
     opts = opts or {}
-
-    local f = async.wrap(
-        M.stat,
-        {
-            time = opts.time,
-            interval = opts.interval,
-            n = 1,
-        }
-    )
-
-    return f(path)
+    return M.stat(path):wait(opts.timeout)
 end
 
 ---Obtains information about the file pointed to by `path`. Read, write, or
 ---execute permission of the named file is not required, but all directories
 ---listed in the path name leading to the file must be searchable.
 ---@param path string
----@param cb fun(err:string|nil, stat:uv.aliases.fs_stat_table|nil)
-function M.stat(path, cb)
-    uv.fs_stat(path, cb)
+---@return OrgPromise<uv.aliases.fs_stat_table>
+function M.stat(path)
+    return Promise.new(function(resolve, reject)
+        uv.fs_stat(path, function(err, stat)
+            if err then
+                return vim.schedule(function() reject(err) end)
+            end
+
+            vim.schedule(function() resolve(stat) end)
+        end)
+    end)
 end
 
 ---Removes the file specified by `path`.
----
----Note: cannot be called within fast callbacks.
----
----Accepts options to configure how to wait.
----
----* `time`: the milliseconds to wait for writing to finish.
----  Defaults to waiting forever.
----* `interval`: the millseconds between attempts to check that writing
----  has finished. Defaults to 200 milliseconds.
 ---@param path string
----@param opts? {time?:integer,interval?:integer}
+---@param opts? {timeout?:integer}
 ---@return string|nil err, boolean|nil success
 function M.unlink_sync(path, opts)
     opts = opts or {}
-
-    local f = async.wrap(
-        M.unlink,
-        {
-            time = opts.time,
-            interval = opts.interval,
-            n = 1,
-        }
-    )
-
-    return f(path)
+    return M.unlink(path):wait(opts.timeout)
 end
 
 ---Removes the file specified by `path`.
 ---@param path string
----@param cb fun(err:string|nil, success:boolean|nil)
-function M.unlink(path, cb)
-    uv.fs_unlink(path, cb)
+---@return OrgPromise<boolean>
+function M.unlink(path)
+    return Promise.new(function(resolve, reject)
+        uv.fs_unlink(path, function(err, success)
+            if err then
+                return vim.schedule(function() reject(err) end)
+            end
+
+            vim.schedule(function() resolve(success) end)
+        end)
+    end)
 end
 
 ---@alias org-roam.core.utils.io.WalkEntryType
