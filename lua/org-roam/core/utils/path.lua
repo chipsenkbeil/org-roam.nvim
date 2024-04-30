@@ -33,25 +33,32 @@ end
 function M.join(...)
     local path = ""
 
+    -- NOTE: We grab the separator using a function so we can
+    --       overwrite it in tests to verify what we expect.
+    local sep = M.separator()
+
     --- From plenary.nvim, determines if the path is absolute.
     ---@param filename string
     ---@return boolean
     local is_absolute = function(filename)
-        if SEP == "\\" then
-            return string.match(filename, "^[%a]:\\.*$") ~= nil
+        if sep == "\\" then
+            return string.match(filename, "^[%a]:[\\/].*$") ~= nil
         end
-        return string.sub(filename, 1, 1) == SEP
+        return string.sub(filename, 1, 1) == sep
     end
 
     for _, p in ipairs({ ... }) do
+        -- Convert \ into /
+        p = vim.fs.normalize(p)
+
         if path == "" or is_absolute(p) then
             path = p
         else
-            path = path .. SEP .. p
+            path = path .. sep .. p
         end
     end
 
-    return path
+    return vim.fs.normalize(path)
 end
 
 return M
