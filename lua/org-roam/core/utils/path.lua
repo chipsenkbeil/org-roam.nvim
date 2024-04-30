@@ -36,12 +36,13 @@ function M.join(...)
     -- NOTE: We grab the separator using a function so we can
     --       overwrite it in tests to verify what we expect.
     local sep = M.separator()
+    local iswin = sep == "\\"
 
     --- From plenary.nvim, determines if the path is absolute.
     ---@param filename string
     ---@return boolean
     local is_absolute = function(filename)
-        if sep == "\\" then
+        if iswin then
             return string.match(filename, "^[%a]:[\\/].*$") ~= nil
         end
         return string.sub(filename, 1, 1) == sep

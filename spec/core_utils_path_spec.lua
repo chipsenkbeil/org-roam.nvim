@@ -47,5 +47,12 @@ describe("org-roam.core.utils.path", function()
                 actual
             )
         end)
+
+        it("should convert \\ to / when joining paths", function()
+            assert.are.equal(
+                "C:/some/path",
+                path.join("C:\\some\\path")
+            )
+        end)
     end)
 end)
