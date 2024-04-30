@@ -56,7 +56,7 @@ end
 ---@param data string|string[]
 ---@param cb fun(err:string|nil)
 function M.write_file(path, data, cb)
-    -- Creat file directory with 0o644 (rw-r--r--) if not exist
+    -- Create file directory with 0o644 (rw-r--r--) if not exist
     local dir = vim.fs.dirname(path)
     if 0 == vim.fn.isdirectory(dir) then
         vim.fn.mkdir(dir, "p", DEFAULT_WRITE_PERMISSIONS)
