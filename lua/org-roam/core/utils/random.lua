@@ -14,6 +14,20 @@ function M.random(m, n)
     return math.random(m, n)
 end
 
+---Generates a new id. Attempts to use orgmode's id generator, but if uuid
+---is desired and uuidgen is missing, will use the Lua-native implementation.
+---@return string
+function M.id()
+    local config = require("orgmode.config")
+    local is_uuid_method = config.org_id_method == "uuid"
+    local has_uuidgen = vim.fn.executable(config.org_id_uuid_program) == 1
+    if is_uuid_method and not has_uuidgen then
+        return M.uuid_v4()
+    else
+        return require("orgmode.org.id").new()
+    end
+end
+
 ---@return string #random uuid (v4)
 function M.uuid_v4()
     ---@type integer[]

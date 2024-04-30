@@ -9,6 +9,7 @@ local log = require("org-roam.core.log")
 local notify = require("org-roam.core.ui.notify")
 local path_utils = require("org-roam.core.utils.path")
 local Promise = require("orgmode.utils.promise")
+local random = require("org-roam.core.utils.random")
 local utils = require("org-roam.utils")
 
 ---General-purpose expansions tied to org roam.
@@ -166,7 +167,7 @@ local function build_template(roam, template_opts, opts)
         if not exists then
             local prefix = {
                 ":PROPERTIES:",
-                ":ID: " .. require('orgmode.org.id').new(),
+                ":ID: " .. random.id(),
             }
 
             if opts.origin then
