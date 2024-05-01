@@ -323,7 +323,6 @@ local function roam_capture_immediate(roam, opts)
 end
 
 ---Returns a promise when the capture is completed.
----Note that on cancelation of refile, the promise is not resolved.
 ---@param roam OrgRoam
 ---@param opts? {immediate?:boolean, origin?:string|false, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
 ---@return OrgPromise<org-roam.core.database.Id|nil>
@@ -359,6 +358,7 @@ local function roam_capture(roam, opts)
                     templates = templates,
                     on_pre_refile = on_pre_refile,
                     on_post_refile = on_post_refile,
+                    on_cancel_refile = function() resolve(nil) end,
                 })
 
                 return capture:prompt()
