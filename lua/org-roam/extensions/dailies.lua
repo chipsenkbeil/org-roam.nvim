@@ -249,26 +249,23 @@ return function(roam)
             if date then
                 local path = date_to_path(roam, date)
                 return Promise.new(function(resolve)
-                    io.stat(path, function(err, stat)
-                        vim.schedule(function()
-                            if err or not stat then
-                                local buf = make_daily_buffer(roam, date)
-                                pcall(vim.api.nvim_win_set_buf, win, buf)
+                    io.stat(path):next(function(stat)
+                        pcall(vim.api.nvim_set_current_win, win)
+                        vim.cmd.edit(path)
+                        resolve(date)
+                        return stat
+                    end):catch(function()
+                        local buf = make_daily_buffer(roam, date)
+                        pcall(vim.api.nvim_win_set_buf, win, buf)
 
-                                -- NOTE: Must perform detection when buffer
-                                --       is first created in order for folding
-                                --       and other functionality to work!
-                                vim.api.nvim_buf_call(buf, function()
-                                    vim.cmd("filetype detect")
-                                end)
-
-                                return resolve(date)
-                            else
-                                pcall(vim.api.nvim_set_current_win, win)
-                                vim.cmd.edit(path)
-                                return resolve(date)
-                            end
+                        -- NOTE: Must perform detection when buffer
+                        --       is first created in order for folding
+                        --       and other functionality to work!
+                        vim.api.nvim_buf_call(buf, function()
+                            vim.cmd("filetype detect")
                         end)
+
+                        return resolve(date)
                     end)
                 end)
             else

@@ -29,7 +29,13 @@ local M = {}
 ---@return string|nil err
 function M.write_file_sync(path, data, opts)
     opts = opts or {}
-    return M.write_file(path, data):wait(opts.timeout)
+
+    ---@type boolean, string|nil
+    local _, err = pcall(function()
+        M.write_file(path, data):wait(opts.timeout)
+    end)
+
+    return err
 end
 
 ---Write some data asynchronously to disk, creating the file or overwriting
@@ -85,7 +91,13 @@ end
 ---@return string|nil err, string|nil data
 function M.read_file_sync(path, opts)
     opts = opts or {}
-    return M.read_file(path):wait(opts.timeout)
+
+    ---@type boolean, string
+    local ok, data = pcall(function()
+        return M.read_file(path):wait(opts.timeout)
+    end)
+
+    return not ok and data or nil, ok and data or nil
 end
 
 ---Read some data asynchronously from disk.
@@ -131,7 +143,19 @@ end
 ---@return string|nil err, uv.aliases.fs_stat_table|nil stat
 function M.stat_sync(path, opts)
     opts = opts or {}
-    return M.stat(path):wait(opts.timeout)
+
+    ---@type boolean, string|uv.aliases.fs_stat_table
+    local ok, data = pcall(function()
+        return M.stat(path):wait(opts.timeout)
+    end)
+
+    if ok then
+        ---@cast data -string
+        return nil, data
+    else
+        ---@cast data string
+        return data, nil
+    end
 end
 
 ---Obtains information about the file pointed to by `path`. Read, write, or
@@ -157,7 +181,19 @@ end
 ---@return string|nil err, boolean|nil success
 function M.unlink_sync(path, opts)
     opts = opts or {}
-    return M.unlink(path):wait(opts.timeout)
+
+    ---@type boolean, string|boolean
+    local ok, data = pcall(function()
+        return M.unlink(path):wait(opts.timeout)
+    end)
+
+    if ok then
+        ---@cast data -string
+        return nil, data
+    else
+        ---@cast data string
+        return data, nil
+    end
 end
 
 ---Removes the file specified by `path`.

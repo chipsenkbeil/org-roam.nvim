@@ -73,9 +73,12 @@ describe("org-roam.core.utils.io", function()
             local is_done = false
 
             local path = vim.fn.tempname()
-            utils_io.read_file(path, function(err, d)
-                error = err
+            utils_io.read_file(path):next(function(d)
                 data = d
+                return d
+            end):catch(function(err)
+                error = err
+            end):finally(function()
                 is_done = true
             end)
 
@@ -90,9 +93,12 @@ describe("org-roam.core.utils.io", function()
             local is_done = false
 
             local path = create_temp_file("hello world")
-            utils_io.read_file(path, function(err, d)
-                error = err
+            utils_io.read_file(path):next(function(d)
                 data = d
+                return d
+            end):catch(function(err)
+                error = err
+            end):finally(function()
                 is_done = true
             end)
 
@@ -131,8 +137,9 @@ describe("org-roam.core.utils.io", function()
             local is_done = false
 
             local path = vim.fn.tempname()
-            utils_io.write_file(path, "hello world", function(err)
+            utils_io.write_file(path, "hello world"):catch(function(err)
                 error = err
+            end):finally(function()
                 is_done = true
             end)
 
@@ -150,8 +157,9 @@ describe("org-roam.core.utils.io", function()
 
             local path = create_temp_file("test")
 
-            utils_io.write_file(path, "hello world", function(err)
+            utils_io.write_file(path, "hello world"):catch(function(err)
                 error = err
+            end):finally(function()
                 is_done = true
             end)
 
@@ -191,9 +199,12 @@ describe("org-roam.core.utils.io", function()
             local is_done = false
 
             local path = vim.fn.tempname()
-            utils_io.stat(path, function(err, s)
-                error = err
+            utils_io.stat(path):next(function(s)
                 stat = s
+                return s
+            end):catch(function(err)
+                error = err
+            end):finally(function()
                 is_done = true
             end)
 
@@ -208,9 +219,12 @@ describe("org-roam.core.utils.io", function()
             local is_done = false
 
             local path = create_temp_file("test")
-            utils_io.stat(path, function(err, s)
-                error = err
+            utils_io.stat(path):next(function(s)
                 stat = s
+                return s
+            end):catch(function(err)
+                error = err
+            end):finally(function()
                 is_done = true
             end)
 

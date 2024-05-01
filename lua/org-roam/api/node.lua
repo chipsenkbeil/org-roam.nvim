@@ -270,17 +270,19 @@ local function make_on_post_refile(roam, cb)
     end
 end
 
+---Returns a promise when the capture is completed.
+---If canceled or invalid, promise yields nil.
 ---@param roam OrgRoam
 ---@param opts {origin:string|false|nil, title:string|nil}
----@param cb fun(id:org-roam.core.database.Id|nil)
-local function roam_capture_immediate(roam, opts, cb)
+---@return OrgPromise<org-roam.core.database.Id|nil>
+local function roam_capture_immediate(roam, opts)
     local template = build_template(roam, {
         target = roam.config.immediate.target,
         template = roam.config.immediate.template,
     }, opts)
 
     ---@param content string[]|nil
-    template:compile():next(function(content)
+    return template:compile():next(function(content)
         if not content then
             return notify.echo_info("canceled")
         end
@@ -291,44 +293,42 @@ local function roam_capture_immediate(roam, opts, cb)
         local expander = make_target_expander(roam, nil, opts)
         local path = expander(template.target)
 
-        io.write_file(path, content_str, function(err)
-            if err then
-                notify.error(err)
-                log.error(err)
-                return
-            end
-
-            vim.schedule(function()
-                roam.database:load_file({ path = path }):next(function(result)
-                    local file = result.file
-
-                    -- Look for the id of the newly-captured file
-                    local id = file:get_property("id")
-
-                    -- If we don't find a file-level node, look for headline nodes
-                    if not id then
-                        for _, headline in ipairs(file:get_headlines()) do
-                            id = headline:get_property("id", false)
-                            if id then break end
-                        end
-                    end
-
-                    -- Trigger the callback regardless of whether we got an id
-                    vim.schedule(function() cb(id) end)
-
-                    return file
-                end)
-            end)
+        return io.write_file(path, content_str):next(function()
+            return path
         end)
+    end):next(function(path) --[[ @cast path string|nil ]]
+        if not path then return nil end
+        return roam.database:load_file({ path = path })
+    end):next(function(result) --[[ @cast result {file:OrgFile}|nil ]]
+        if not result then return nil end
+
+        local file = result.file
+
+        -- Look for the id of the newly-captured file
+        local id = file:get_property("id")
+
+        -- If we don't find a file-level node, look for headline nodes
+        if not id then
+            for _, headline in ipairs(file:get_headlines()) do
+                id = headline:get_property("id", false)
+                if id then break end
+            end
+        end
+
+        return id
+    end):catch(function(err)
+        notify.error(err)
+        log.error(err)
     end)
 end
 
+---Returns a promise when the capture is completed.
+---Note that on cancelation of refile, the promise is not resolved.
 ---@param roam OrgRoam
 ---@param opts? {immediate?:boolean, origin?:string|false, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
----@param cb? fun(id:org-roam.core.database.Id|nil)
-local function roam_capture(roam, opts, cb)
+---@return OrgPromise<org-roam.core.database.Id|nil>
+local function roam_capture(roam, opts)
     opts = opts or {}
-    cb = cb or function() end
 
     -- If not provided an origin and want to include the origin,
     -- use the node under the cursor; skip this if origin is false
@@ -337,47 +337,45 @@ local function roam_capture(roam, opts, cb)
     end
 
     if opts.immediate then
-        roam_capture_immediate(roam, opts, cb)
+        return roam_capture_immediate(roam, opts)
     else
-        local templates = build_templates(roam, {
-            origin = opts.origin,
-            title = opts.title,
-            templates = opts.templates,
-        })
-        local on_pre_refile = make_on_pre_refile(roam, opts)
-        local on_post_refile = make_on_post_refile(roam, cb)
-        roam.database:files():next(function(files)
-            local Capture = require("orgmode.capture")
-            local capture = Capture:new({
-                files = files,
-                templates = templates,
-                on_pre_refile = on_pre_refile,
-                on_post_refile = on_post_refile,
+        -- TODO: Currently, there is no way in the capture api to support
+        --       detecting when a refile is canceled. This means that we
+        --       have no way of fully resolving the promise. To support
+        --       this properly, we would need to update nvim-orgmode's
+        --       capture to accept an additional callback on cancelation.
+        return Promise.new(function(resolve)
+            local templates = build_templates(roam, {
+                origin = opts.origin,
+                title = opts.title,
+                templates = opts.templates,
             })
+            local on_pre_refile = make_on_pre_refile(roam, opts)
+            local on_post_refile = make_on_post_refile(roam, resolve)
+            roam.database:files():next(function(files)
+                local Capture = require("orgmode.capture")
+                local capture = Capture:new({
+                    files = files,
+                    templates = templates,
+                    on_pre_refile = on_pre_refile,
+                    on_post_refile = on_post_refile,
+                })
 
-            return capture:prompt()
+                return capture:prompt()
+            end)
         end)
     end
 end
 
 ---@param roam OrgRoam
 ---@param opts? {immediate?:boolean, origin?:string, title?:string, ranges?:org-roam.utils.Range[], templates?:table<string,OrgCaptureTemplateOpts>}
----@param cb? fun(id:org-roam.core.database.Id|nil)
-local function roam_insert(roam, opts, cb)
+---@return OrgPromise<org-roam.core.database.Id|nil>
+local function roam_insert(roam, opts)
     opts = opts or {}
     local winnr = vim.api.nvim_get_current_win()
     local bufnr = vim.api.nvim_get_current_buf()
     local changedtick = vim.api.nvim_buf_get_changedtick(bufnr)
     local cursor = vim.api.nvim_win_get_cursor(winnr)
-
-    ---@param id org-roam.core.database.Id|nil
-    local function do_cb(id)
-        if type(cb) == "function" then
-            vim.schedule(function()
-                cb(id)
-            end)
-        end
-    end
 
     ---@param id org-roam.core.database.Id
     ---@param label? string
@@ -435,51 +433,45 @@ local function roam_insert(roam, opts, cb)
         vim.cmd.stopinsert()
     end
 
-    roam.ui.select_node({
-        allow_select_missing = true,
-        auto_select = opts.immediate,
-        init_input = opts.title,
-    })
-        :on_choice(function(choice)
-            insert_link(choice.id, choice.label)
-            do_cb(choice.id)
-        end)
-        :on_choice_missing(function(label)
-            if roam.config.capture.include_origin and not opts.origin then
-                opts.origin = node_id_under_cursor_sync({ win = winnr })
-            end
-
-            roam_capture(roam, {
-                immediate = opts.immediate,
-                origin = opts.origin,
-                title = label,
-                templates = opts.templates,
-            }, function(id)
-                do_cb(id)
-                if id then
-                    insert_link(id)
-                    return
-                end
+    return Promise.new(function(resolve)
+        roam.ui.select_node({
+            allow_select_missing = true,
+            auto_select = opts.immediate,
+            init_input = opts.title,
+        })
+            :on_choice(function(choice)
+                insert_link(choice.id, choice.label)
+                resolve(choice.id)
             end)
-        end)
-        :open()
+            :on_choice_missing(function(label)
+                if roam.config.capture.include_origin and not opts.origin then
+                    opts.origin = node_id_under_cursor_sync({ win = winnr })
+                end
+
+                roam_capture(roam, {
+                    immediate = opts.immediate,
+                    origin = opts.origin,
+                    title = label,
+                    templates = opts.templates,
+                }):next(function(id)
+                    if id then
+                        insert_link(id)
+                    end
+
+                    resolve(id)
+                    return id
+                end)
+            end)
+            :open()
+    end)
 end
 
 ---@param roam OrgRoam
 ---@param opts? {origin?:string, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
----@param cb? fun(id:org-roam.core.database.Id|nil)
-local function roam_find(roam, opts, cb)
+---@return OrgPromise<org-roam.core.database.Id|nil>
+local function roam_find(roam, opts)
     opts = opts or {}
     local winnr = vim.api.nvim_get_current_win()
-
-    ---@param id org-roam.core.database.Id|nil
-    local function do_cb(id)
-        if type(cb) == "function" then
-            vim.schedule(function()
-                cb(id)
-            end)
-        end
-    end
 
     ---@param id org-roam.core.database.Id
     local function visit_node(id)
@@ -499,32 +491,35 @@ local function roam_find(roam, opts, cb)
         vim.cmd.stopinsert()
     end
 
-    roam.ui.select_node({
-        allow_select_missing = true,
-        init_input = opts.title,
-    })
-        :on_choice(function(choice)
-            visit_node(choice.id)
-            do_cb(choice.id)
-        end)
-        :on_choice_missing(function(label)
-            if roam.config.capture.include_origin and not opts.origin then
-                opts.origin = node_id_under_cursor_sync({ win = winnr })
-            end
-
-            roam_capture(roam, {
-                origin = opts.origin,
-                title = label,
-                templates = opts.templates,
-            }, function(id)
-                do_cb(id)
-                if id then
-                    visit_node(id)
-                    return
-                end
+    return Promise.new(function(resolve)
+        roam.ui.select_node({
+            allow_select_missing = true,
+            init_input = opts.title,
+        })
+            :on_choice(function(choice)
+                visit_node(choice.id)
+                resolve(choice.id)
             end)
-        end)
-        :open()
+            :on_choice_missing(function(label)
+                if roam.config.capture.include_origin and not opts.origin then
+                    opts.origin = node_id_under_cursor_sync({ win = winnr })
+                end
+
+                roam_capture(roam, {
+                    origin = opts.origin,
+                    title = label,
+                    templates = opts.templates,
+                }):next(function(id)
+                    if id then
+                        visit_node(id)
+                    end
+
+                    resolve(id)
+                    return id
+                end)
+            end)
+            :open()
+    end)
 end
 
 ---@param roam OrgRoam
@@ -536,9 +531,9 @@ return function(roam)
     ---Creates a node if it does not exist, and restores the current window
     ---configuration upon completion.
     ---@param opts? {immediate?:boolean, origin?:string|false, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
-    ---@param cb? fun(id:org-roam.core.database.Id|nil)
-    function M.capture(opts, cb)
-        return roam_capture(roam, opts, cb)
+    ---@return OrgPromise<org-roam.core.database.Id|nil>
+    function M.capture(opts)
+        return roam_capture(roam, opts)
     end
 
     ---Creates a node if it does not exist, and inserts a link to the node
@@ -552,16 +547,16 @@ return function(roam)
     ---versus inserting at point.
     ---where everything uses 1-based indexing and inclusive.
     ---@param opts? {immediate?:boolean, origin?:string, title?:string, ranges?:org-roam.utils.Range[], templates?:table<string,OrgCaptureTemplateOpts>}
-    ---@param cb? fun(id:org-roam.core.database.Id|nil)
-    function M.insert(opts, cb)
-        return roam_insert(roam, opts, cb)
+    ---@return OrgPromise<org-roam.core.database.Id|nil>
+    function M.insert(opts)
+        return roam_insert(roam, opts)
     end
 
     ---Creates a node if it does not exist, and visits the node.
     ---@param opts? {origin?:string, title?:string, templates?:table<string,OrgCaptureTemplateOpts>}
-    ---@param cb? fun(id:org-roam.core.database.Id|nil)
-    function M.find(opts, cb)
-        return roam_find(roam, opts, cb)
+    ---@return OrgPromise<org-roam.core.database.Id|nil>
+    function M.find(opts)
+        return roam_find(roam, opts)
     end
 
     return M
