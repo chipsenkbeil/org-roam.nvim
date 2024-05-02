@@ -32,8 +32,9 @@ describe("org-roam.core.database", function()
         local is_done = false
 
         local path = vim.fn.tempname()
-        db:write_to_disk(path, function(err)
+        db:write_to_disk(path):catch(function(err)
             error = err
+        end):finally(function()
             is_done = true
         end)
 
@@ -91,9 +92,12 @@ describe("org-roam.core.database", function()
         local is_done = false
 
         -- Load a fresh copy of the database and verify that nodes, edges, and indexes still exist
-        Database:load_from_disk(path, function(err, d)
-            error = err
+        Database:load_from_disk(path):next(function(d)
             new_db = d
+            return d
+        end):catch(function(err)
+            error = err
+        end):finally(function()
             is_done = true
         end)
 

@@ -88,24 +88,15 @@ function M:__update_tick()
 end
 
 ---Synchronously loads database from disk.
----
----Note: cannot be called within fast callbacks.
----
----Accepts options to configure how to wait.
----
----* `time`: the milliseconds to wait for writing to finish.
----  Defaults to waiting forever.
----* `interval`: the millseconds between attempts to check that writing
----  has finished. Defaults to 200 milliseconds.
 ---@param path string where to find the database
----@param opts? {time?:integer,interval?:integer}
+---@param opts? {timeout?:integer}
 ---@return string|nil err, org-roam.core.Database|nil db
 function M:load_from_disk_sync(path, opts)
     opts = opts or {}
 
     ---@type boolean, string|org-roam.core.Database
     local ok, data = pcall(function()
-        return M:load_from_disk(path)
+        return self:load_from_disk(path):wait(opts.timeout)
     end)
 
     if ok then
@@ -169,7 +160,7 @@ function M:write_to_disk_sync(path, opts)
 
     ---@type boolean, string|nil
     local _, err = pcall(function()
-        M:write_to_disk(path):wait(opts.timeout)
+        self:write_to_disk(path):wait(opts.timeout)
     end)
 
     return err
@@ -188,7 +179,7 @@ function M:write_to_disk(path)
     end
 
     if not encode then
-        return Promise.reject("invalid cache type: " .. self.__cache_type)
+        return Promise.reject("invalid cache type: " .. vim.inspect(self.__cache_type))
     end
 
     local db_contents = {

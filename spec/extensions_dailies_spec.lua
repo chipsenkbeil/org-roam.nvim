@@ -25,8 +25,7 @@ describe("org-roam.extensions.dailies", function()
         utils.mock_calendar("2024-04-27")
 
         -- Start the capture process
-        local id
-        roam.extensions.dailies.capture_date({}, function(_id) id = _id end)
+        local id = roam.extensions.dailies.capture_date()
 
         -- Wait a bit for the capture buffer to appear
         utils.wait()
@@ -36,6 +35,9 @@ describe("org-roam.extensions.dailies", function()
 
         -- Wait a bit for the capture to be processed
         utils.wait()
+
+        -- Retrieve the id now that it should be available
+        id = id:wait()
 
         -- We should have an id for a valid capture
         assert.is_not_nil(id)
@@ -67,10 +69,9 @@ describe("org-roam.extensions.dailies", function()
         })
 
         -- Start the capture process
-        local id
-        roam.extensions.dailies.capture_date({
+        local id = roam.extensions.dailies.capture_date({
             date = utils.date_from_string("2024-04-27"),
-        }, function(_id) id = _id end)
+        })
 
         -- Wait a bit for the capture buffer to appear
         utils.wait()
@@ -80,6 +81,9 @@ describe("org-roam.extensions.dailies", function()
 
         -- Wait a bit for the capture to be processed
         utils.wait()
+
+        -- Retrieve the id now that it should be available
+        id = id:wait()
 
         -- We should have an id for a valid capture
         assert.is_not_nil(id)

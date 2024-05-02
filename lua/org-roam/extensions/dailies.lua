@@ -175,41 +175,43 @@ return function(roam)
     ---Opens the capture dialog for a specific date.
     ---If no `date` is specified, will open a calendar to select a date.
     ---@param opts? {date?:OrgDate, title?:string}
-    ---@param cb? fun(id:string|nil)
-    function M.capture_date(opts, cb)
+    ---@return OrgPromise<string|nil>
+    function M.capture_date(opts)
         opts = opts or {}
         local p = opts.date
             and Promise.resolve(opts.date)
             or Calendar.new({ date = opts.date, title = opts.title }):open()
 
-        p:next(function(date)
+        return p:next(function(date)
             if date then
-                roam.api.capture_node({
+                return roam.api.capture_node({
                     origin = false,
                     title = opts.title or date_string(date),
                     templates = make_dailies_templates(roam, date),
-                }, cb)
+                })
+            else
+                return nil
             end
         end)
     end
 
     ---Opens the capture dialog for today's date.
-    ---@param cb? fun(id:string|nil)
-    function M.capture_today(cb)
-        M.capture_date({ date = Date.today() }, cb)
+    ---@return OrgPromise<string|nil>
+    function M.capture_today()
+        return M.capture_date({ date = Date.today() })
     end
 
     ---Opens the capture dialog for tomorrow's date.
-    ---@param cb? fun(id:string|nil)
-    function M.capture_tomorrow(cb)
-        M.capture_date({ date = Date.tomorrow() }, cb)
+    ---@return OrgPromise<string|nil>
+    function M.capture_tomorrow()
+        return M.capture_date({ date = Date.tomorrow() })
     end
 
     ---Opens the capture dialog for yesterday's date.
-    ---@param cb? fun(id:string|nil)
-    function M.capture_yesterday(cb)
+    ---@return OrgPromise<string|nil>
+    function M.capture_yesterday()
         local yesterday = Date.today():subtract({ day = 1 })
-        M.capture_date({ date = yesterday }, cb)
+        return M.capture_date({ date = yesterday })
     end
 
     ---Opens the roam dailies directory in the current window.
