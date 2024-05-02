@@ -174,15 +174,23 @@ return function(roam)
 
     ---Opens the capture dialog for a specific date.
     ---If no `date` is specified, will open a calendar to select a date.
-    ---@param opts? {date?:OrgDate, title?:string}
+    ---@param opts? {date?:OrgDate|string, title?:string}
     ---@return OrgPromise<string|nil>
     function M.capture_date(opts)
         opts = opts or {}
-        local p = opts.date
-            and Promise.resolve(opts.date)
-            or Calendar.new({ date = opts.date, title = opts.title }):open()
 
-        return p:next(function(date)
+        local date = opts.date
+        if type(date) == "string" then
+            date = Date.from_string(date)
+            if not date then
+                return Promise.reject("invalid date string")
+            end
+        end
+
+        return (date
+            and Promise.resolve(date)
+            or Calendar.new({ date = date, title = opts.title }):open()
+        ):next(function(date)
             if date then
                 return roam.api.capture_node({
                     origin = false,
@@ -302,13 +310,13 @@ return function(roam)
     ---
     ---If there is no existing note within range that exists,
     ---nil is returned from the promise, and nothing happens.
-    ---@param opts? {n?:integer, suppress?:boolean}
+    ---@param opts? {n?:integer, suppress?:boolean, win?:integer}
     ---@return OrgPromise<OrgDate|nil>
     function M.goto_next_date(opts)
         opts = opts or {}
         local n = opts.n or 1
 
-        -- local date = Date.today():add({ day = n or 1 })
+        local win = opts.win or vim.api.nvim_get_current_win()
         local date = buf_to_date(0)
         if not date then
             return Promise.resolve(nil)
@@ -343,7 +351,7 @@ return function(roam)
                 if not target_date then
                     return Promise.reject("invalid file: " .. vim.inspect(files[idx]))
                 end
-                return M.goto_date({ date = target_date })
+                return M.goto_date({ date = target_date, win = win })
             end
         end
 
