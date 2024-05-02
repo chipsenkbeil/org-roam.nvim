@@ -766,16 +766,24 @@
      - origin: optional, if provided, added to the node under cursor, otherwise
               prompts for an origin to add to the node under cursor.
 
+   Returns:
+
+   A promise of a boolean, which is true if the origin added, otherwise false.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.add_origin({ origin = "1234" })
+   roam.api.add_origin({ origin = "1234" }):next(function(success)
+     if success then
+       print("Added origin")
+     end
+   end)
    #+end_src
 
 ** Capture Node
 
-   roam.api.capture_node({opts}, {cb})
+   roam.api.capture_node({opts})
 
    Description:
 
@@ -796,8 +804,10 @@
                   exactly one character and opts is the orgmode template. Note
                   that the target MUST be specified for each template!
      - title: optional, seeds the capture dialog with the title string.
-   - {cb}   optional callback when finished. Is passed the id
-            of the created node, or nil if capture was canceled.
+
+   Returns:
+
+   A promise of either the id of the captured node, or nil if capture canceled.
 
    Example:
 
@@ -811,7 +821,7 @@
          target = "custom-%<%Y%m%d>.org",
        },
      },
-   }, function(id)
+   }):next(function(id)
      if id then
        print("Captured node: " .. id)
      else
@@ -839,11 +849,19 @@
    - {opts} optional table.
      - win: optional, id of window where the node link will be completed (default = 0).
 
+   Returns:
+
+   A promise of a boolean, which is true if the node was completed, otherwise false.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.complete_node({ win = 123 })
+   roam.api.complete_node({ win = 123 }):next(function(success)
+     if success then
+       print("Completed node")
+     end
+   end)
    #+end_src
 
 ** Find Node
@@ -867,11 +885,19 @@
                   that the target MUST be specified for each template!
      - title: optional, seeds the select dialog with the title string.
 
+   Returns:
+
+   A promise of either the id of the found node, or nil if canceled.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.find_node({ title = "Some Node" })
+   roam.api.find_node({ title = "Some Node" }):next(function(id)
+     if id then
+       print("Found " .. id)
+     end
+   end)
    #+end_src
 
 ** Goto Next Node
@@ -889,11 +915,20 @@
    - {opts} optional table.
      - win: optional, id of window where buffer will be loaded (default = 0).
 
+   Returns:
+
+   A promise of a boolean, which is true if navigated to the next node,
+   otherwise false.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.goto_next_node({ win = 123 })
+   roam.api.goto_next_node({ win = 123 }):next(function(success)
+     if success then
+       print("Navigated to next node")
+     end
+   end)
    #+end_src
 
 ** Goto Prev Node
@@ -911,11 +946,20 @@
    - {opts} optional table.
      - win: optional, id of window where buffer will be loaded (default = 0).
 
+   Returns:
+
+   A promise of a boolean, which is true if navigated to the previous node,
+   otherwise false.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.goto_prev_node({ win = 123 })
+   roam.api.goto_prev_node({ win = 123 }):next(function(success)
+     if success then
+       print("Navigated to previous node")
+     end
+   end)
    #+end_src
 
 ** Insert Node
@@ -957,6 +1001,10 @@
        - end_row: integer (one-indexed, inclusive)
        - end_col: integer (one-indexed, inclusive)
 
+   Returns:
+
+   A promise of the id of the inserted node, or nil if canceled.
+
    Example:
 
    #+begin_src lua
@@ -964,7 +1012,11 @@
    roam.api.insert_node({ 
      title = "Some Node",
      ranges = { { start_row = 1, end_row = 3, start_col = 5, end_col = 12 } },
-   })
+   }):next(function(id)
+     if id then
+       print("Inserted node " .. id)
+     end
+   end)
    #+end_src
 
 ** Open Quickfix List
@@ -987,11 +1039,20 @@
      - show_preview: optional, if true, loads a preview of content for each
                      list item.
 
+   Returns:
+
+   A promise of a boolean, which is true if the quickfix list is opened
+   for a node, otherwise false (e.g. when no node under cursor).
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.ui.open_quickfix_list({ id = "1234", backlinks = true })
+   roam.ui.open_quickfix_list({ id = "1234", backlinks = true }):next(function(success)
+     if success then
+       print("Opened quickfix list")
+     end
+   end)
    #+end_src
 
 ** Select Node
@@ -1078,11 +1139,19 @@
      - focus: optional, if true, switches the current window to the newly-created
               window that contains the node buffer.
 
+   Returns:
+
+   A promise of the handle of the created window, or nil if window closed.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.ui.open_node_buffer({ fixed = "1234", focus = true })
+   roam.ui.open_node_buffer({ fixed = "1234", focus = true }):next(function(win)
+     if win then
+       print("Opened node buffer in window " .. win)
+     end
+   end)
    #+end_src
 
 ** Remove Alias
@@ -1101,11 +1170,20 @@
      - all: optional, if true, will remove all aliases instead of just one.
             Overrides removing =alias= from node under cursor.
 
+   Returns:
+
+   A promise of a boolean, which is true if the alias was removed,
+   otherwise false.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.remove_alias({ all = true })
+   roam.api.remove_alias({ all = true }):next(function(success)
+     if success then
+       print("Removed alias")
+     end
+   end)
    #+end_src
 
 ** Remove Origin
@@ -1116,11 +1194,20 @@
 
    Removes the origin from the node under cursor.
 
+   Returns:
+
+   A promise of a boolean, which is true if the origin was removed,
+   otherwise false.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.remove_origin()
+   roam.api.remove_origin():next(function(success)
+     if success then
+       print("Removed origin")
+     end
+   end)
    #+end_src
 
 * Database
