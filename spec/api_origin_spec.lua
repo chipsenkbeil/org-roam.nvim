@@ -168,8 +168,8 @@ describe("org-roam.api.origin", function()
         vim.cmd.edit(test_org_file_path)
 
         -- Navigate to the previous node, which is the origin
-        local ok = roam.api.goto_prev_node():wait()
-        assert.is_true(ok)
+        local prev_id = roam.api.goto_prev_node():wait()
+        assert.are.equal("1", prev_id)
 
         -- Review that we moved to the origin
         assert.are.same({
@@ -201,8 +201,8 @@ describe("org-roam.api.origin", function()
         vim.cmd.edit(test_org_file_path)
 
         -- Try to navigate to the previous node, which does nothing
-        local ok = roam.api.goto_prev_node():wait()
-        assert.is_false(ok)
+        local prev_id = roam.api.goto_prev_node():wait()
+        assert.is_nil(prev_id)
 
         -- Review that we did not move
         assert.are.same({
@@ -221,8 +221,8 @@ describe("org-roam.api.origin", function()
         vim.cmd.edit(one_path)
 
         -- Navigate to the next node, which is done automatically
-        local ok = roam.api.goto_next_node():wait()
-        assert.is_true(ok)
+        local next_id = roam.api.goto_next_node():wait()
+        assert.are.equal("2", next_id)
 
         -- Review that we moved to the next node
         assert.are.same({
@@ -284,8 +284,8 @@ describe("org-roam.api.origin", function()
         end)
 
         -- Navigate to the next node, which triggers a selection dialog
-        local ok = roam.api.goto_next_node():wait()
-        assert.is_true(ok)
+        local next_id = roam.api.goto_next_node():wait()
+        assert.are.equal(id_2, next_id)
 
         -- Review that we moved to the next node
         assert.are.same({
@@ -315,8 +315,8 @@ describe("org-roam.api.origin", function()
         vim.cmd.edit(test_org_file_path)
 
         -- Try to navigate to the next node, which does nothing
-        local ok = roam.api.goto_next_node():wait()
-        assert.is_false(ok)
+        local next_id = roam.api.goto_next_node():wait()
+        assert.is_nil(next_id)
 
         -- Review that we did not move
         assert.are.same({

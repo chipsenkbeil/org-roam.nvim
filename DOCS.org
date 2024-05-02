@@ -917,16 +917,15 @@
 
    Returns:
 
-   A promise of a boolean, which is true if navigated to the next node,
-   otherwise false.
+   A promise of the id of the next node, otherwise nil.
 
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.goto_next_node({ win = 123 }):next(function(success)
-     if success then
-       print("Navigated to next node")
+   roam.api.goto_next_node({ win = 123 }):next(function(id)
+     if id then
+       print("Navigated to next node " .. id)
      end
    end)
    #+end_src
@@ -948,16 +947,15 @@
 
    Returns:
 
-   A promise of a boolean, which is true if navigated to the previous node,
-   otherwise false.
+   A promise of the id of the previous node, otherwise nil.
 
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.goto_prev_node({ win = 123 }):next(function(success)
-     if success then
-       print("Navigated to previous node")
+   roam.api.goto_prev_node({ win = 123 }):next(function(id)
+     if id then
+       print("Navigated to previous node " .. id)
      end
    end)
    #+end_src
