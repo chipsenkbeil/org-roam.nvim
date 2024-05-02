@@ -4,6 +4,26 @@ describe("org-roam.extensions.dailies", function()
 
     local Date = require("orgmode.objects.date")
 
+    ---@param date string|OrgDate
+    ---@param ... string|string[]
+    ---@return string path
+    local function write_date_file(date, ...)
+        if type(date) == "table" then
+            ---@diagnostic disable-next-line:cast-local-type
+            date = os.date("%Y-%m-%d", date.timestamp)
+        end
+
+        local path = utils.join_path(
+            roam.config.directory,
+            roam.config.extensions.dailies.directory,
+            date .. ".org"
+        )
+
+        utils.write_to(path, ...)
+
+        return path
+    end
+
     before_each(function()
         utils.init_before_test()
         roam = utils.init_plugin({ setup = true })
@@ -249,11 +269,7 @@ describe("org-roam.extensions.dailies", function()
         roam.database:load():wait()
 
         -- Create a file for the date
-        utils.write_to(utils.join_path(
-            roam.config.directory,
-            roam.config.extensions.dailies.directory,
-            "2024-04-27.org"
-        ), {
+        write_date_file("2024-04-27", {
             "some file",
             "contents",
         })
@@ -300,11 +316,7 @@ describe("org-roam.extensions.dailies", function()
         local date = os.date("%Y-%m-%d", Date.today().timestamp) --[[ @cast date string ]]
 
         -- Create a file for the date
-        utils.write_to(utils.join_path(
-            roam.config.directory,
-            roam.config.extensions.dailies.directory,
-            date .. ".org"
-        ), {
+        write_date_file(date, {
             "some file",
             "contents",
         })
@@ -345,11 +357,7 @@ describe("org-roam.extensions.dailies", function()
         local date = os.date("%Y-%m-%d", Date.tomorrow().timestamp) --[[ @cast date string ]]
 
         -- Create a file for the date
-        utils.write_to(utils.join_path(
-            roam.config.directory,
-            roam.config.extensions.dailies.directory,
-            date .. ".org"
-        ), {
+        write_date_file(date, {
             "some file",
             "contents",
         })
@@ -390,11 +398,7 @@ describe("org-roam.extensions.dailies", function()
         local date = os.date("%Y-%m-%d", Date.today():subtract({ day = 1 }).timestamp) --[[ @cast date string ]]
 
         -- Create a file for the date
-        utils.write_to(utils.join_path(
-            roam.config.directory,
-            roam.config.extensions.dailies.directory,
-            date .. ".org"
-        ), {
+        write_date_file(date, {
             "some file",
             "contents",
         })
@@ -426,5 +430,245 @@ describe("org-roam.extensions.dailies", function()
             "#+TITLE: " .. date,
             "",
         }, lines)
+    end)
+
+    it("should not navigate to the next date if not at buffer that is a date", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        -- Put some content in our current buffer to verify navigation
+        vim.api.nvim_buf_set_lines(0, 0, -1, true, { "test" })
+
+        write_date_file("2024-04-27", "a")
+        write_date_file("2024-04-28", "b")
+        write_date_file("2024-04-29", "c")
+
+        -- Do the navigation without opening the calendar
+        local date = roam.extensions.dailies.goto_next_date():wait()
+        assert.is_nil(date)
+
+        assert.are.same({ "test" }, utils.read_buffer())
+    end)
+
+    it("should not navigate to the next date (n=+1) if at most recent", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        write_date_file("2024-04-27", "a")
+        write_date_file("2024-04-28", "b")
+        local path = write_date_file("2024-04-29", "c")
+
+        vim.cmd.edit(path)
+
+        -- Do the navigation without opening the calendar
+        local date = roam.extensions.dailies.goto_next_date():wait()
+        assert.is_nil(date)
+
+        assert.are.same({ "c" }, utils.read_buffer())
+    end)
+
+    it("should not navigate to the next date (n=-1) if at earliest", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        local path = write_date_file("2024-04-27", "a")
+        write_date_file("2024-04-28", "b")
+        write_date_file("2024-04-29", "c")
+
+        vim.cmd.edit(path)
+
+        -- Do the navigation without opening the calendar
+        local date = roam.extensions.dailies.goto_next_date({ n = -1 }):wait()
+        assert.is_nil(date)
+
+        assert.are.same({ "a" }, utils.read_buffer())
+    end)
+
+    it("should navigate to the next date (n=+1) regardless of consecutive", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        write_date_file("2024-04-01", "a")
+        local path = write_date_file("2024-04-03", "b")
+        write_date_file("2024-04-05", "c")
+
+        vim.cmd.edit(path)
+
+        -- Do the navigation without opening the calendar
+        local date = roam.extensions.dailies.goto_next_date():wait()
+        assert.are.equal(utils.date_from_string("2024-04-05"), date)
+
+        assert.are.same({ "c" }, utils.read_buffer())
+    end)
+
+    it("should navigate to the next date (n=-1) regardless of consecutive", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        write_date_file("2024-04-01", "a")
+        local path = write_date_file("2024-04-03", "b")
+        write_date_file("2024-04-05", "c")
+
+        vim.cmd.edit(path)
+
+        -- Do the navigation without opening the calendar
+        local date = roam.extensions.dailies.goto_next_date({ n = -1 }):wait()
+        assert.are.equal(utils.date_from_string("2024-04-01"), date)
+
+        assert.are.same({ "a" }, utils.read_buffer())
+    end)
+
+    it("should not navigate to the next date if n results in out of range", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        write_date_file("2024-04-27", "a")
+        local path = write_date_file("2024-04-28", "b")
+        write_date_file("2024-04-29", "c")
+
+        vim.cmd.edit(path)
+
+        assert.is_nil(roam.extensions.dailies.goto_next_date({ n = 2 }):wait())
+        assert.are.same({ "b" }, utils.read_buffer())
+
+        assert.is_nil(roam.extensions.dailies.goto_next_date({ n = -2 }):wait())
+        assert.are.same({ "b" }, utils.read_buffer())
+    end)
+
+    it("should navigate to the next date if n results in range", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        write_date_file("2024-04-10", "a")
+        write_date_file("2024-04-15", "b")
+        local path = write_date_file("2024-04-20", "c")
+        write_date_file("2024-04-25", "d")
+        write_date_file("2024-04-30", "e")
+
+        vim.cmd.edit(path)
+
+        local date = roam.extensions.dailies.goto_next_date({ n = 2 }):wait()
+        assert.are.equal(utils.date_from_string("2024-04-30"), date)
+        assert.are.same({ "e" }, utils.read_buffer())
+    end)
+
+    it("should not navigate to the previous date if not at buffer that is a date", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        -- Put some content in our current buffer to verify navigation
+        vim.api.nvim_buf_set_lines(0, 0, -1, true, { "test" })
+
+        write_date_file("2024-04-27", "a")
+        write_date_file("2024-04-28", "b")
+        write_date_file("2024-04-29", "c")
+
+        -- Do the navigation without opening the calendar
+        local date = roam.extensions.dailies.goto_prev_date():wait()
+        assert.is_nil(date)
+
+        assert.are.same({ "test" }, utils.read_buffer())
+    end)
+
+    it("should not navigate to the previous date (n=+1) if at earliest", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        local path = write_date_file("2024-04-27", "a")
+        write_date_file("2024-04-28", "b")
+        write_date_file("2024-04-29", "c")
+
+        vim.cmd.edit(path)
+
+        -- Do the navigation without opening the calendar
+        local date = roam.extensions.dailies.goto_prev_date():wait()
+        assert.is_nil(date)
+
+        assert.are.same({ "a" }, utils.read_buffer())
+    end)
+
+    it("should not navigate to the previous date (n=-1) if at most recent", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        write_date_file("2024-04-27", "a")
+        write_date_file("2024-04-28", "b")
+        local path = write_date_file("2024-04-29", "c")
+
+        vim.cmd.edit(path)
+
+        -- Do the navigation without opening the calendar
+        local date = roam.extensions.dailies.goto_prev_date({ n = -1 }):wait()
+        assert.is_nil(date)
+
+        assert.are.same({ "c" }, utils.read_buffer())
+    end)
+
+    it("should navigate to the previous date (n=+1) regardless of consecutive", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        write_date_file("2024-04-01", "a")
+        local path = write_date_file("2024-04-03", "b")
+        write_date_file("2024-04-05", "c")
+
+        vim.cmd.edit(path)
+
+        -- Do the navigation without opening the calendar
+        local date = roam.extensions.dailies.goto_prev_date():wait()
+        assert.are.equal(utils.date_from_string("2024-04-01"), date)
+
+        assert.are.same({ "a" }, utils.read_buffer())
+    end)
+
+    it("should navigate to the previous date (n=-1) regardless of consecutive", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        write_date_file("2024-04-01", "a")
+        local path = write_date_file("2024-04-03", "b")
+        write_date_file("2024-04-05", "c")
+
+        vim.cmd.edit(path)
+
+        -- Do the navigation without opening the calendar
+        local date = roam.extensions.dailies.goto_prev_date({ n = -1 }):wait()
+        assert.are.equal(utils.date_from_string("2024-04-05"), date)
+
+        assert.are.same({ "c" }, utils.read_buffer())
+    end)
+
+    it("should not navigate to the previous date if n results in out of range", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        write_date_file("2024-04-27", "a")
+        local path = write_date_file("2024-04-28", "b")
+        write_date_file("2024-04-29", "c")
+
+        vim.cmd.edit(path)
+
+        assert.is_nil(roam.extensions.dailies.goto_prev_date({ n = 2 }):wait())
+        assert.are.same({ "b" }, utils.read_buffer())
+
+        assert.is_nil(roam.extensions.dailies.goto_prev_date({ n = -2 }):wait())
+        assert.are.same({ "b" }, utils.read_buffer())
+    end)
+
+    it("should navigate to the previous date if n results in range", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        write_date_file("2024-04-10", "a")
+        write_date_file("2024-04-15", "b")
+        local path = write_date_file("2024-04-20", "c")
+        write_date_file("2024-04-25", "d")
+        write_date_file("2024-04-30", "e")
+
+        vim.cmd.edit(path)
+
+        local date = roam.extensions.dailies.goto_prev_date({ n = 2 }):wait()
+        assert.are.equal(utils.date_from_string("2024-04-10"), date)
+        assert.are.same({ "a" }, utils.read_buffer())
     end)
 end)

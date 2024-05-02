@@ -317,7 +317,7 @@ return function(roam)
         local n = opts.n or 1
 
         local win = opts.win or vim.api.nvim_get_current_win()
-        local date = buf_to_date(0)
+        local date = buf_to_date(vim.api.nvim_win_get_buf(win))
         if not date then
             return Promise.resolve(nil)
         end
