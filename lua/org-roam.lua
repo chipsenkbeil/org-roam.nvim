@@ -14,7 +14,7 @@ end
 ---@field config org-roam.Config
 ---@field database org-roam.Database
 ---@field events org-roam.Events
----@field extensions org-roam.Extensions
+---@field ext org-roam.Extensions
 ---@field setup org-roam.Setup
 ---@field ui org-roam.UserInterface
 ---@field utils org-roam.Utils
@@ -73,7 +73,7 @@ function M:new(config)
         return require("org-roam.events")(instance)
     end
 
-    lazy.extensions = function()
+    lazy.ext = function()
         return require("org-roam.extensions")(instance)
     end
 

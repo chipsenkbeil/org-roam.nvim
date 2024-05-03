@@ -248,7 +248,7 @@ local function assign_dailies_keybindings(roam)
         bindings.capture_date,
         "Capture a specific date's note",
         function()
-            roam.extensions.dailies.capture_date()
+            roam.ext.dailies.capture_date()
         end
     )
 
@@ -256,7 +256,7 @@ local function assign_dailies_keybindings(roam)
         bindings.capture_today,
         "Capture today's note",
         function()
-            roam.extensions.dailies.capture_today()
+            roam.ext.dailies.capture_today()
         end
     )
 
@@ -264,7 +264,7 @@ local function assign_dailies_keybindings(roam)
         bindings.capture_tomorrow,
         "Capture tomorrow's note",
         function()
-            roam.extensions.dailies.capture_tomorrow()
+            roam.ext.dailies.capture_tomorrow()
         end
     )
 
@@ -272,7 +272,7 @@ local function assign_dailies_keybindings(roam)
         bindings.capture_yesterday,
         "Capture yesterday's note",
         function()
-            roam.extensions.dailies.capture_yesterday()
+            roam.ext.dailies.capture_yesterday()
         end
     )
 
@@ -280,7 +280,7 @@ local function assign_dailies_keybindings(roam)
         bindings.find_directory,
         "Navigate to dailies note directory",
         function()
-            roam.extensions.dailies.find_directory()
+            roam.ext.dailies.find_directory()
         end
     )
 
@@ -288,7 +288,7 @@ local function assign_dailies_keybindings(roam)
         bindings.goto_date,
         "Navigate to a specific date's note",
         function()
-            roam.extensions.dailies.goto_date()
+            roam.ext.dailies.goto_date()
         end
     )
 
@@ -296,7 +296,7 @@ local function assign_dailies_keybindings(roam)
         bindings.goto_today,
         "Navigate to today's note",
         function()
-            roam.extensions.dailies.goto_today()
+            roam.ext.dailies.goto_today()
         end
     )
 
@@ -304,7 +304,7 @@ local function assign_dailies_keybindings(roam)
         bindings.goto_tomorrow,
         "Navigate to tomorrow's note",
         function()
-            roam.extensions.dailies.goto_tomorrow()
+            roam.ext.dailies.goto_tomorrow()
         end
     )
 
@@ -312,7 +312,7 @@ local function assign_dailies_keybindings(roam)
         bindings.goto_yesterday,
         "Navigate to yesterday's note",
         function()
-            roam.extensions.dailies.goto_yesterday()
+            roam.ext.dailies.goto_yesterday()
         end
     )
 
@@ -320,7 +320,7 @@ local function assign_dailies_keybindings(roam)
         bindings.goto_next_date,
         "Navigate to the next available note",
         function()
-            roam.extensions.dailies.goto_next_date()
+            roam.ext.dailies.goto_next_date()
         end
     )
 
@@ -328,7 +328,7 @@ local function assign_dailies_keybindings(roam)
         bindings.goto_prev_date,
         "Navigate to the previous available note",
         function()
-            roam.extensions.dailies.goto_prev_date()
+            roam.ext.dailies.goto_prev_date()
         end
     )
 end

@@ -47,7 +47,7 @@ describe("org-roam.extensions.dailies", function()
         utils.mock_calendar("2024-04-27")
 
         -- Start the capture process
-        local id = roam.extensions.dailies.capture_date()
+        local id = roam.ext.dailies.capture_date()
 
         -- Wait a bit for the capture buffer to appear
         utils.wait()
@@ -91,7 +91,7 @@ describe("org-roam.extensions.dailies", function()
         })
 
         -- Start the capture process
-        local id = roam.extensions.dailies.capture_date({
+        local id = roam.ext.dailies.capture_date({
             date = utils.date_from_string("2024-04-27"),
         })
 
@@ -139,7 +139,7 @@ describe("org-roam.extensions.dailies", function()
         local date = os.date("%Y-%m-%d", Date.today().timestamp)
 
         -- Start the capture process
-        local id = roam.extensions.dailies.capture_today()
+        local id = roam.ext.dailies.capture_today()
 
         -- Wait a bit for the capture buffer to appear
         utils.wait()
@@ -185,7 +185,7 @@ describe("org-roam.extensions.dailies", function()
         local date = os.date("%Y-%m-%d", Date.tomorrow().timestamp)
 
         -- Start the capture process
-        local id = roam.extensions.dailies.capture_tomorrow()
+        local id = roam.ext.dailies.capture_tomorrow()
 
         -- Wait a bit for the capture buffer to appear
         utils.wait()
@@ -231,7 +231,7 @@ describe("org-roam.extensions.dailies", function()
         local date = os.date("%Y-%m-%d", Date.today():subtract({ day = 1 }).timestamp)
 
         -- Start the capture process
-        local id = roam.extensions.dailies.capture_yesterday()
+        local id = roam.ext.dailies.capture_yesterday()
 
         -- Wait a bit for the capture buffer to appear
         utils.wait()
@@ -275,7 +275,7 @@ describe("org-roam.extensions.dailies", function()
         })
 
         -- Do the navigation without opening the calendar
-        local date = roam.extensions.dailies.goto_date({
+        local date = roam.ext.dailies.goto_date({
             date = "2024-04-27",
         }):wait()
 
@@ -292,7 +292,7 @@ describe("org-roam.extensions.dailies", function()
         roam.database:load():wait()
 
         -- Do the navigation without opening the calendar
-        local date = roam.extensions.dailies.goto_date({
+        local date = roam.ext.dailies.goto_date({
             date = "2024-04-27",
         }):wait()
 
@@ -322,7 +322,7 @@ describe("org-roam.extensions.dailies", function()
         })
 
         -- Do the navigation without opening the calendar
-        roam.extensions.dailies.goto_today():wait()
+        roam.ext.dailies.goto_today():wait()
 
         assert.are.same({
             "some file",
@@ -337,7 +337,7 @@ describe("org-roam.extensions.dailies", function()
         local date = os.date("%Y-%m-%d", Date.today().timestamp) --[[ @cast date string ]]
 
         -- Do the navigation without opening the calendar
-        roam.extensions.dailies.goto_today():wait()
+        roam.ext.dailies.goto_today():wait()
 
         local lines = utils.read_buffer()
         lines[2] = string.sub(lines[2], 1, 4) .. " <ID>"
@@ -363,7 +363,7 @@ describe("org-roam.extensions.dailies", function()
         })
 
         -- Do the navigation without opening the calendar
-        roam.extensions.dailies.goto_tomorrow():wait()
+        roam.ext.dailies.goto_tomorrow():wait()
 
         assert.are.same({
             "some file",
@@ -378,7 +378,7 @@ describe("org-roam.extensions.dailies", function()
         local date = os.date("%Y-%m-%d", Date.tomorrow().timestamp) --[[ @cast date string ]]
 
         -- Do the navigation without opening the calendar
-        roam.extensions.dailies.goto_tomorrow():wait()
+        roam.ext.dailies.goto_tomorrow():wait()
 
         local lines = utils.read_buffer()
         lines[2] = string.sub(lines[2], 1, 4) .. " <ID>"
@@ -404,7 +404,7 @@ describe("org-roam.extensions.dailies", function()
         })
 
         -- Do the navigation without opening the calendar
-        roam.extensions.dailies.goto_yesterday():wait()
+        roam.ext.dailies.goto_yesterday():wait()
 
         assert.are.same({
             "some file",
@@ -419,7 +419,7 @@ describe("org-roam.extensions.dailies", function()
         local date = os.date("%Y-%m-%d", Date.today():subtract({ day = 1 }).timestamp) --[[ @cast date string ]]
 
         -- Do the navigation without opening the calendar
-        roam.extensions.dailies.goto_yesterday():wait()
+        roam.ext.dailies.goto_yesterday():wait()
 
         local lines = utils.read_buffer()
         lines[2] = string.sub(lines[2], 1, 4) .. " <ID>"
@@ -444,7 +444,7 @@ describe("org-roam.extensions.dailies", function()
         write_date_file("2024-04-29", "c")
 
         -- Do the navigation without opening the calendar
-        local date = roam.extensions.dailies.goto_next_date():wait()
+        local date = roam.ext.dailies.goto_next_date():wait()
         assert.is_nil(date)
 
         assert.are.same({ "test" }, utils.read_buffer())
@@ -461,7 +461,7 @@ describe("org-roam.extensions.dailies", function()
         vim.cmd.edit(path)
 
         -- Do the navigation without opening the calendar
-        local date = roam.extensions.dailies.goto_next_date():wait()
+        local date = roam.ext.dailies.goto_next_date():wait()
         assert.is_nil(date)
 
         assert.are.same({ "c" }, utils.read_buffer())
@@ -478,7 +478,7 @@ describe("org-roam.extensions.dailies", function()
         vim.cmd.edit(path)
 
         -- Do the navigation without opening the calendar
-        local date = roam.extensions.dailies.goto_next_date({ n = -1 }):wait()
+        local date = roam.ext.dailies.goto_next_date({ n = -1 }):wait()
         assert.is_nil(date)
 
         assert.are.same({ "a" }, utils.read_buffer())
@@ -495,7 +495,7 @@ describe("org-roam.extensions.dailies", function()
         vim.cmd.edit(path)
 
         -- Do the navigation without opening the calendar
-        local date = roam.extensions.dailies.goto_next_date():wait()
+        local date = roam.ext.dailies.goto_next_date():wait()
         assert.are.equal(utils.date_from_string("2024-04-05"), date)
 
         assert.are.same({ "c" }, utils.read_buffer())
@@ -512,7 +512,7 @@ describe("org-roam.extensions.dailies", function()
         vim.cmd.edit(path)
 
         -- Do the navigation without opening the calendar
-        local date = roam.extensions.dailies.goto_next_date({ n = -1 }):wait()
+        local date = roam.ext.dailies.goto_next_date({ n = -1 }):wait()
         assert.are.equal(utils.date_from_string("2024-04-01"), date)
 
         assert.are.same({ "a" }, utils.read_buffer())
@@ -528,10 +528,10 @@ describe("org-roam.extensions.dailies", function()
 
         vim.cmd.edit(path)
 
-        assert.is_nil(roam.extensions.dailies.goto_next_date({ n = 2 }):wait())
+        assert.is_nil(roam.ext.dailies.goto_next_date({ n = 2 }):wait())
         assert.are.same({ "b" }, utils.read_buffer())
 
-        assert.is_nil(roam.extensions.dailies.goto_next_date({ n = -2 }):wait())
+        assert.is_nil(roam.ext.dailies.goto_next_date({ n = -2 }):wait())
         assert.are.same({ "b" }, utils.read_buffer())
     end)
 
@@ -547,7 +547,7 @@ describe("org-roam.extensions.dailies", function()
 
         vim.cmd.edit(path)
 
-        local date = roam.extensions.dailies.goto_next_date({ n = 2 }):wait()
+        local date = roam.ext.dailies.goto_next_date({ n = 2 }):wait()
         assert.are.equal(utils.date_from_string("2024-04-30"), date)
         assert.are.same({ "e" }, utils.read_buffer())
     end)
@@ -564,7 +564,7 @@ describe("org-roam.extensions.dailies", function()
         write_date_file("2024-04-29", "c")
 
         -- Do the navigation without opening the calendar
-        local date = roam.extensions.dailies.goto_prev_date():wait()
+        local date = roam.ext.dailies.goto_prev_date():wait()
         assert.is_nil(date)
 
         assert.are.same({ "test" }, utils.read_buffer())
@@ -581,7 +581,7 @@ describe("org-roam.extensions.dailies", function()
         vim.cmd.edit(path)
 
         -- Do the navigation without opening the calendar
-        local date = roam.extensions.dailies.goto_prev_date():wait()
+        local date = roam.ext.dailies.goto_prev_date():wait()
         assert.is_nil(date)
 
         assert.are.same({ "a" }, utils.read_buffer())
@@ -598,7 +598,7 @@ describe("org-roam.extensions.dailies", function()
         vim.cmd.edit(path)
 
         -- Do the navigation without opening the calendar
-        local date = roam.extensions.dailies.goto_prev_date({ n = -1 }):wait()
+        local date = roam.ext.dailies.goto_prev_date({ n = -1 }):wait()
         assert.is_nil(date)
 
         assert.are.same({ "c" }, utils.read_buffer())
@@ -615,7 +615,7 @@ describe("org-roam.extensions.dailies", function()
         vim.cmd.edit(path)
 
         -- Do the navigation without opening the calendar
-        local date = roam.extensions.dailies.goto_prev_date():wait()
+        local date = roam.ext.dailies.goto_prev_date():wait()
         assert.are.equal(utils.date_from_string("2024-04-01"), date)
 
         assert.are.same({ "a" }, utils.read_buffer())
@@ -632,7 +632,7 @@ describe("org-roam.extensions.dailies", function()
         vim.cmd.edit(path)
 
         -- Do the navigation without opening the calendar
-        local date = roam.extensions.dailies.goto_prev_date({ n = -1 }):wait()
+        local date = roam.ext.dailies.goto_prev_date({ n = -1 }):wait()
         assert.are.equal(utils.date_from_string("2024-04-05"), date)
 
         assert.are.same({ "c" }, utils.read_buffer())
@@ -648,10 +648,10 @@ describe("org-roam.extensions.dailies", function()
 
         vim.cmd.edit(path)
 
-        assert.is_nil(roam.extensions.dailies.goto_prev_date({ n = 2 }):wait())
+        assert.is_nil(roam.ext.dailies.goto_prev_date({ n = 2 }):wait())
         assert.are.same({ "b" }, utils.read_buffer())
 
-        assert.is_nil(roam.extensions.dailies.goto_prev_date({ n = -2 }):wait())
+        assert.is_nil(roam.ext.dailies.goto_prev_date({ n = -2 }):wait())
         assert.are.same({ "b" }, utils.read_buffer())
     end)
 
@@ -667,7 +667,7 @@ describe("org-roam.extensions.dailies", function()
 
         vim.cmd.edit(path)
 
-        local date = roam.extensions.dailies.goto_prev_date({ n = 2 }):wait()
+        local date = roam.ext.dailies.goto_prev_date({ n = 2 }):wait()
         assert.are.equal(utils.date_from_string("2024-04-10"), date)
         assert.are.same({ "a" }, utils.read_buffer())
     end)
