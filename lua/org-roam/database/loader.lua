@@ -356,44 +356,29 @@ end
 function M:database()
     return self.__db and Promise.resolve(self.__db) or Promise.new(function(resolve)
         -- Load our database from disk if it is available
-        io.stat(self.path.database, function(unavailable)
-            if unavailable then
+        io.stat(self.path.database):next(function()
+            return Database:load_from_disk(self.path.database):next(function(db)
+                schema:update(db)
+                self.__db = db
+
+                resolve(db)
+                return db
+            end):catch(function(err)
+                log.fmt_error("Failed to load database: %s", err)
+
+                -- Set up database with a clean slate instead
                 local db = Database:new()
                 schema:update(db)
                 self.__db = db
 
-                -- NOTE: Scheduling to avoid textlock issues in promise
-                --       resolution
-                return vim.schedule(function()
-                    resolve(db)
-                end)
-            end
-
-            Database:load_from_disk(self.path.database, function(err, db)
-                if err then
-                    -- NOTE: Scheduling to avoid textlock issues
-                    return vim.schedule(function()
-                        log.fmt_error("Failed to load database: %s", err)
-
-                        -- Set up database with a clean slate instead
-                        db = Database:new()
-                        schema:update(db)
-                        self.__db = db
-
-                        resolve(db)
-                    end)
-                end
-
-                ---@cast db -nil
-                schema:update(db)
-                self.__db = db
-
-                -- NOTE: Scheduling to avoid textlock issues in promise
-                --       resolution
-                return vim.schedule(function()
-                    resolve(db)
-                end)
+                resolve(db)
             end)
+        end):catch(function()
+            local db = Database:new()
+            schema:update(db)
+            self.__db = db
+
+            return resolve(db)
         end)
     end)
 end

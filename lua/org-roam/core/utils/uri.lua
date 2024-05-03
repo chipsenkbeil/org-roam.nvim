@@ -166,7 +166,7 @@ function M:query_params(opts)
         end
     end
 
-    return query_table
+    return query_table or {}
 end
 
 ---Converts back into a string.

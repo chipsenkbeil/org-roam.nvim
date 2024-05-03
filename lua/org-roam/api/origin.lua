@@ -50,7 +50,7 @@ end
 
 ---@param roam OrgRoam
 ---@param opts? {win?:integer}
----@return OrgPromise<boolean>
+---@return OrgPromise<string|nil>
 local function roam_goto_prev_node(roam, opts)
     opts = opts or {}
     local winnr = opts.win or vim.api.nvim_get_current_win()
@@ -58,23 +58,23 @@ local function roam_goto_prev_node(roam, opts)
     return Promise.new(function(resolve)
         ---@param node org-roam.core.file.Node|nil
         local function goto_node(node)
-            if not node then return resolve(false) end
+            if not node then return resolve(nil) end
             utils.goto_node({ node = node, win = winnr })
-            resolve(true)
+            resolve(node.id)
         end
 
         utils.node_under_cursor(function(node)
-            if not node or not node.origin then return resolve(false) end
+            if not node or not node.origin then return resolve(nil) end
             roam.database:get(node.origin)
                 :next(goto_node)
-                :catch(function() resolve(false) end)
+                :catch(function() resolve(nil) end)
         end, { win = winnr })
     end)
 end
 
 ---@param roam OrgRoam
 ---@param opts? {win?:integer}
----@return OrgPromise<boolean>
+---@return OrgPromise<string|nil>
 local function roam_goto_next_node(roam, opts)
     opts = opts or {}
     local winnr = opts.win or vim.api.nvim_get_current_win()
@@ -82,16 +82,16 @@ local function roam_goto_next_node(roam, opts)
     return Promise.new(function(resolve)
         ---@param node org-roam.core.file.Node|nil
         local function goto_node(node)
-            if not node then return resolve(false) end
+            if not node then return resolve(nil) end
             utils.goto_node({ node = node, win = winnr })
-            resolve(true)
+            resolve(node.id)
         end
 
         utils.node_under_cursor(function(node)
-            if not node then return resolve(false) end
+            if not node then return resolve(nil) end
             roam.database:find_nodes_by_origin(node.id):next(function(nodes)
                 if #nodes == 0 then
-                    resolve(false)
+                    resolve(nil)
                     return nodes
                 end
                 if #nodes == 1 then
@@ -107,9 +107,9 @@ local function roam_goto_next_node(roam, opts)
                     :on_choice(function(choice)
                         roam.database:get(choice.id)
                             :next(goto_node)
-                            :catch(function() resolve(false) end)
+                            :catch(function() resolve(nil) end)
                     end)
-                    :on_cancel(function() resolve(false) end)
+                    :on_cancel(function() resolve(nil) end)
                     :open()
 
                 return nodes

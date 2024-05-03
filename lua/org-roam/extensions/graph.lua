@@ -6,4 +6,11 @@
 -- See https://www.orgroam.com/manual.html#org_002droam_002dgraph
 -------------------------------------------------------------------------------
 
-return {}
+---@param roam OrgRoam
+---@return org-roam.extensions.Graph
+return function(roam)
+    ---@class org-roam.extensions.Graph
+    local M = {}
+
+    return M
+end

@@ -6,7 +6,7 @@
 
 ** Installation
 
-   This plugin depends on [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode/orgmode]] @ [[https://github.com/nvim-orgmode/orgmode/commit/5875037fa9c7c8e0abf29cd69510150355d248a0][commit 5875037]].
+   This plugin depends on [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode/orgmode]] @ [[https://github.com/nvim-orgmode/orgmode/commit/d4cc3210f235a845de8d372d02482163d31ded93][commit d4cc321]].
 
 *** lazy.nvim
 
@@ -16,7 +16,7 @@
       dependencies = { 
         { 
           "nvim-orgmode/orgmode", 
-          commit = "5875037fa9c7c8e0abf29cd69510150355d248a0",
+          commit = "d4cc3210f235a845de8d372d02482163d31ded93",
         },
       },
       config = function()
@@ -35,7 +35,7 @@
       requires = { 
         { 
           "nvim-orgmode/orgmode",
-          commit = "5875037fa9c7c8e0abf29cd69510150355d248a0",
+          commit = "d4cc3210f235a845de8d372d02482163d31ded93",
         },
       },
       config = function()
@@ -329,6 +329,59 @@
       },
     })
     #+end_src
+
+** extensions
+
+   Configuration settings tied to roam extensions.
+
+*** dailies
+
+    Configuration settings tied to the roam dailies extension.
+
+**** directory
+
+     Path to the directory containing daily org-roam files.
+
+     Takes a string representing the path to the directory.
+     Defaults to =daily=.
+
+     #+begin_src lua
+     require("org-roam").setup({
+       extensions = {
+         dailies = {
+           directory = "journal",
+         },
+       },
+     })
+     #+end_src
+
+**** templates
+
+     A map of templates associated with roam. These have the exact same format
+     as =nvim-orgmode='s templates, but include additional variables and are
+     only displayed and used during roam's capture dialog. 
+
+     Note that the target must be provided and must contain a date in the form
+     of =YYYY-MM-DD=. See [[#org-roam-configuration-templates][templates]] for more details.
+
+     Takes a =table<string, table>=.
+     Defaults to the following:
+
+     #+begin_src lua
+     require("org-roam").setup({
+       extensions = {
+         dailies = {
+           templates = {
+             d = {
+               description = "default",
+               template = "%?",
+               target = "%<%Y-%m-%d>.org",
+             },
+           },
+         },
+       },
+     })
+     #+end_src
 
 ** immediate
 
@@ -713,21 +766,31 @@
      - origin: optional, if provided, added to the node under cursor, otherwise
               prompts for an origin to add to the node under cursor.
 
+   Returns:
+
+   A promise of a boolean, which is true if the origin added, otherwise false.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.add_origin({ origin = "1234" })
+   roam.api.add_origin({ origin = "1234" }):next(function(success)
+     if success then
+       print("Added origin")
+     end
+   end)
    #+end_src
 
 ** Capture Node
 
-   roam.api.capture_node({opts}, {cb})
+   roam.api.capture_node({opts})
 
    Description:
 
    Creates a node if it does not exist, prompting for a template to use, and
    restores the current window configuration upon completion.
+
+   If =templates= is provided, will be used instead of =roam.config.templates=.
 
    Parameters:
 
@@ -737,15 +800,28 @@
                   If title is also provided, it is used as the title of the
                   created node.
      - origin: optional, id of node acting as origin of this node.
+     - templates: optional, dictionary of key -> opts where key is a string of
+                  exactly one character and opts is the orgmode template. Note
+                  that the target MUST be specified for each template!
      - title: optional, seeds the capture dialog with the title string.
-   - {cb}   optional callback when finished. Is passed the id
-            of the created node, or nil if capture was canceled.
+
+   Returns:
+
+   A promise of either the id of the captured node, or nil if capture canceled.
 
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.capture_node({}, function(id)
+   roam.api.capture_node({
+     templates = {
+       c = {
+         description = "custom",
+         template = "%?",
+         target = "custom-%<%Y%m%d>.org",
+       },
+     },
+   }):next(function(id)
      if id then
        print("Captured node: " .. id)
      else
@@ -773,11 +849,19 @@
    - {opts} optional table.
      - win: optional, id of window where the node link will be completed (default = 0).
 
+   Returns:
+
+   A promise of a boolean, which is true if the node was completed, otherwise false.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.complete_node({ win = 123 })
+   roam.api.complete_node({ win = 123 }):next(function(success)
+     if success then
+       print("Completed node")
+     end
+   end)
    #+end_src
 
 ** Find Node
@@ -789,17 +873,31 @@
    Creates a node if it does not exist, and then visits the node in
    the current window.
 
+   If =templates= is provided, will be used instead of =roam.config.templates=
+   when capturing a new node for visiting.
+
    Parameters:
 
    - {opts} optional table.
      - origin: optional, id of node acting as origin of this node (creation-only).
+     - templates: optional, dictionary of key -> opts where key is a string of
+                  exactly one character and opts is the orgmode template. Note
+                  that the target MUST be specified for each template!
      - title: optional, seeds the select dialog with the title string.
+
+   Returns:
+
+   A promise of either the id of the found node, or nil if canceled.
 
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.find_node({ title = "Some Node" })
+   roam.api.find_node({ title = "Some Node" }):next(function(id)
+     if id then
+       print("Found " .. id)
+     end
+   end)
    #+end_src
 
 ** Goto Next Node
@@ -817,11 +915,19 @@
    - {opts} optional table.
      - win: optional, id of window where buffer will be loaded (default = 0).
 
+   Returns:
+
+   A promise of the id of the next node, otherwise nil.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.goto_next_node({ win = 123 })
+   roam.api.goto_next_node({ win = 123 }):next(function(id)
+     if id then
+       print("Navigated to next node " .. id)
+     end
+   end)
    #+end_src
 
 ** Goto Prev Node
@@ -839,11 +945,19 @@
    - {opts} optional table.
      - win: optional, id of window where buffer will be loaded (default = 0).
 
+   Returns:
+
+   A promise of the id of the previous node, otherwise nil.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.goto_prev_node({ win = 123 })
+   roam.api.goto_prev_node({ win = 123 }):next(function(id)
+     if id then
+       print("Navigated to previous node " .. id)
+     end
+   end)
    #+end_src
 
 ** Insert Node
@@ -859,6 +973,9 @@
    instead the node will be created with the minimum information and the link
    injected without navigating to another buffer.
 
+   If =templates= is provided, will be used instead of =roam.config.templates=
+   when capturing a new node for insertion.
+
    If =ranges= is provided, will replace the given ranges within the buffer
    versus inserting at point, where everything uses 1-based indexing and
    inclusive.
@@ -871,6 +988,9 @@
                   If title is also provided, it is used as the title of the
                   created node.
      - origin: optional, id of node acting as origin of this node (creation-only).
+     - templates: optional, dictionary of key -> opts where key is a string of
+                  exactly one character and opts is the orgmode template. Note
+                  that the target MUST be specified for each template!
      - title: optional, seeds the select dialog with the title string.
      - ranges: optional, list of ranges to replace. Each range is comprised of
                the following fields:
@@ -879,6 +999,10 @@
        - end_row: integer (one-indexed, inclusive)
        - end_col: integer (one-indexed, inclusive)
 
+   Returns:
+
+   A promise of the id of the inserted node, or nil if canceled.
+
    Example:
 
    #+begin_src lua
@@ -886,7 +1010,11 @@
    roam.api.insert_node({ 
      title = "Some Node",
      ranges = { { start_row = 1, end_row = 3, start_col = 5, end_col = 12 } },
-   })
+   }):next(function(id)
+     if id then
+       print("Inserted node " .. id)
+     end
+   end)
    #+end_src
 
 ** Open Quickfix List
@@ -909,11 +1037,20 @@
      - show_preview: optional, if true, loads a preview of content for each
                      list item.
 
+   Returns:
+
+   A promise of a boolean, which is true if the quickfix list is opened
+   for a node, otherwise false (e.g. when no node under cursor).
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.ui.open_quickfix_list({ id = "1234", backlinks = true })
+   roam.ui.open_quickfix_list({ id = "1234", backlinks = true }):next(function(success)
+     if success then
+       print("Opened quickfix list")
+     end
+   end)
    #+end_src
 
 ** Select Node
@@ -1000,11 +1137,19 @@
      - focus: optional, if true, switches the current window to the newly-created
               window that contains the node buffer.
 
+   Returns:
+
+   A promise of the handle of the created window, or nil if window closed.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.ui.open_node_buffer({ fixed = "1234", focus = true })
+   roam.ui.open_node_buffer({ fixed = "1234", focus = true }):next(function(win)
+     if win then
+       print("Opened node buffer in window " .. win)
+     end
+   end)
    #+end_src
 
 ** Remove Alias
@@ -1023,11 +1168,20 @@
      - all: optional, if true, will remove all aliases instead of just one.
             Overrides removing =alias= from node under cursor.
 
+   Returns:
+
+   A promise of a boolean, which is true if the alias was removed,
+   otherwise false.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.remove_alias({ all = true })
+   roam.api.remove_alias({ all = true }):next(function(success)
+     if success then
+       print("Removed alias")
+     end
+   end)
    #+end_src
 
 ** Remove Origin
@@ -1038,11 +1192,20 @@
 
    Removes the origin from the node under cursor.
 
+   Returns:
+
+   A promise of a boolean, which is true if the origin was removed,
+   otherwise false.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.remove_origin()
+   roam.api.remove_origin():next(function(success)
+     if success then
+       print("Removed origin")
+     end
+   end)
    #+end_src
 
 * Database
