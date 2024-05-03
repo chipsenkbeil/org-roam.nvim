@@ -35,8 +35,7 @@ describe("org-roam.api.node", function()
         })
 
         -- Start the capture process
-        local id
-        roam.api.capture_node({}, function(_id) id = _id end)
+        local id = roam.api.capture_node()
 
         -- Wait a bit for the capture buffer to appear
         utils.wait()
@@ -46,6 +45,9 @@ describe("org-roam.api.node", function()
 
         -- Wait a bit for the capture to be processed
         utils.wait()
+
+        -- Retrieve the id now that it should be available
+        id = id:wait()
 
         -- We should have an id for a valid capture
         assert.is_not_nil(id)
@@ -67,6 +69,63 @@ describe("org-roam.api.node", function()
         }, contents)
     end)
 
+    it("should capture using an optional set of custom templates if provided", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        -- Open a file buffer so we avoid capture closing neovim
+        vim.cmd.edit(one_path)
+
+        utils.mock_vim_inputs({
+            confirm = 1,                   -- confirm yes for refile
+            getchar = vim.fn.char2nr("v"), -- select "v" template
+            input   = "Some title",        -- input "Some title" on title prompt
+        })
+
+        -- Start the capture process using a custom template
+        local id = roam.api.capture_node({
+            templates = {
+                v = {
+                    description = "custom",
+                    template = "test template content\n%?",
+                    target = "%<%Y%m%d%H%M%S>-%[slug].org",
+                },
+            },
+        })
+
+        -- Wait a bit for the capture buffer to appear
+        utils.wait()
+
+        -- Save the capture buffer and exit it
+        vim.cmd("wq")
+
+        -- Wait a bit for the capture to be processed
+        utils.wait()
+
+        -- Retrieve the id now that it should be available
+        id = id:wait()
+
+        -- We should have an id for a valid capture
+        assert.is_not_nil(id)
+
+        -- Grab the file tied to the node and load it
+        local node = assert(roam.database:get_sync(id), "missing node " .. id)
+        local contents = utils.read_from(node.file)
+
+        -- Verify that basic template was captured
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: " .. id,
+            ":ROAM_ORIGIN: 1",
+            ":END:",
+            "#+TITLE: Some title",
+            "",
+            "test template content",
+            "",
+            "",
+        }, contents)
+    end)
+
     it("should capture without prompting if immediate mode enabled", function()
         -- Load files into the database
         roam.database:load():wait()
@@ -79,13 +138,7 @@ describe("org-roam.api.node", function()
         })
 
         -- Start the capture process
-        local id
-        roam.api.capture_node({ immediate = true }, function(_id)
-            id = _id
-        end)
-
-        -- Wait a bit for the capture to be processed
-        utils.wait()
+        local id = roam.api.capture_node({ immediate = true }):wait()
 
         -- We should have an id for a valid capture
         assert.is_not_nil(id)
@@ -127,8 +180,7 @@ describe("org-roam.api.node", function()
         vim.api.nvim_win_set_cursor(0, { row, 0 })
 
         -- Trigger node insertion, which will bring up the dialog
-        local id
-        roam.api.insert_node({}, function(_id) id = _id end)
+        local id = roam.api.insert_node():wait()
 
         -- Wait a bit for the capture to be processed
         utils.wait()
@@ -174,11 +226,7 @@ describe("org-roam.api.node", function()
         vim.api.nvim_win_set_cursor(0, { row, 0 })
 
         -- Trigger node insertion, which will bring up the dialog
-        local id
-        roam.api.insert_node({}, function(_id) id = _id end)
-
-        -- Wait a bit for the capture to be processed
-        utils.wait()
+        local id = roam.api.insert_node():wait()
 
         -- We should have an id for a valid insertion
         assert.are.equal("test-node-id", id)
@@ -217,8 +265,7 @@ describe("org-roam.api.node", function()
         vim.api.nvim_win_set_cursor(0, { row, 0 })
 
         -- Trigger node insertion, which will bring up the dialog
-        local id
-        roam.api.insert_node({}, function(_id) id = _id end)
+        local id = roam.api.insert_node()
 
         -- Wait a bit for the capture buffer to appear
         utils.wait()
@@ -228,6 +275,68 @@ describe("org-roam.api.node", function()
 
         -- Wait a bit for the capture to be processed
         utils.wait()
+
+        -- Retrieve the id now that it should be available
+        id = id:wait()
+
+        -- We should have an id for a valid insertion
+        assert.is_not_nil(id)
+
+        -- Verify we inserted a link to the specified node
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: 1",
+            ":ROAM_ALIASES: one",
+            ":END:",
+            "#+FILETAGS: :one:",
+            "",
+            "[[id:" .. id .. "][some custom node]][[id:2]]",
+        }, utils.read_buffer())
+    end)
+
+    it("should create a new node using custom templates and insert it if selected non-existing node", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        -- Open a file buffer so we avoid capture closing neovim
+        vim.cmd.edit(one_path)
+
+        utils.mock_vim_inputs({
+            confirm = 1,                   -- confirm yes for refile
+            getchar = vim.fn.char2nr("v"), -- select "v" template
+        })
+
+        -- Pick some custom title for a new node
+        utils.mock_select_pick(function()
+            return "some custom node"
+        end)
+
+        -- Move cursor to the bottom of the buffer, in front of the text
+        local row = vim.api.nvim_buf_line_count(0)
+        vim.api.nvim_win_set_cursor(0, { row, 0 })
+
+        -- Trigger node insertion, which will bring up the dialog
+        local id = roam.api.insert_node({
+            templates = {
+                v = {
+                    description = "custom",
+                    template = "test template content\n%?",
+                    target = "%<%Y%m%d%H%M%S>-%[slug].org",
+                },
+            },
+        })
+
+        -- Wait a bit for the capture buffer to appear
+        utils.wait()
+
+        -- Save the capture buffer and exit it
+        vim.cmd("wq")
+
+        -- Wait a bit for the capture to be processed
+        utils.wait()
+
+        -- Retrieve the id now that it should be available
+        id = id:wait()
 
         -- We should have an id for a valid insertion
         assert.is_not_nil(id)
@@ -262,11 +371,7 @@ describe("org-roam.api.node", function()
 
         -- Trigger node insertion, which will not bring up the
         -- selection dialog as it's immediate
-        local id
-        roam.api.insert_node({ immediate = true }, function(_id) id = _id end)
-
-        -- Wait a bit for the capture to be processed
-        utils.wait()
+        local id = roam.api.insert_node({ immediate = true }):wait()
 
         -- We should have an id for a valid insertion
         assert.is_not_nil(id)
@@ -300,11 +405,7 @@ describe("org-roam.api.node", function()
         end)
 
         -- Trigger node insertion, which will bring up the dialog
-        local id
-        roam.api.find_node({}, function(_id) id = _id end)
-
-        -- Wait a bit for the capture to be processed
-        utils.wait()
+        local id = roam.api.find_node():wait()
 
         -- We should have an id for a valid find
         assert.are.equal("2", id)
@@ -340,8 +441,7 @@ describe("org-roam.api.node", function()
         end)
 
         -- Trigger node insertion, which will bring up the dialog
-        local id
-        roam.api.find_node({}, function(_id) id = _id end)
+        local id = roam.api.find_node()
 
         -- Wait a bit for the capture buffer to appear
         utils.wait()
@@ -351,6 +451,9 @@ describe("org-roam.api.node", function()
 
         -- Wait a bit for the capture to be processed
         utils.wait()
+
+        -- Retrieve the id now that it should be available
+        id = id:wait()
 
         -- We should have an id for a valid find
         assert.is_not_nil(id)
@@ -363,6 +466,62 @@ describe("org-roam.api.node", function()
             ":END:",
             "#+TITLE: some custom node",
             "",
+            "",
+        }, utils.read_buffer())
+    end)
+
+    it("should create a new node using custom templates and navigate to it if find with non-existing node", function()
+        -- Load files into the database
+        roam.database:load():wait()
+
+        -- Open a file buffer so we avoid capture closing neovim
+        vim.cmd.edit(one_path)
+
+        utils.mock_vim_inputs({
+            confirm = 1,                   -- confirm yes for refile
+            getchar = vim.fn.char2nr("v"), -- select "v" template
+        })
+
+        -- Pick some custom title for a new node
+        utils.mock_select_pick(function()
+            return "some custom node"
+        end)
+
+        -- Trigger node insertion, which will bring up the dialog
+        local id = roam.api.find_node({
+            templates = {
+                v = {
+                    description = "custom",
+                    template = "test template content\n%?",
+                    target = "%<%Y%m%d%H%M%S>-%[slug].org",
+                },
+            },
+        })
+
+        -- Wait a bit for the capture buffer to appear
+        utils.wait()
+
+        -- Save the capture buffer and exit it
+        vim.cmd("wq")
+
+        -- Wait a bit for the capture to be processed
+        utils.wait()
+
+        -- Retrieve the id now that it should be available
+        id = id:wait()
+
+        -- We should have an id for a valid find
+        assert.is_not_nil(id)
+
+        -- Verify that basic template was captured
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: " .. id,
+            ":ROAM_ORIGIN: 1",
+            ":END:",
+            "#+TITLE: some custom node",
+            "",
+            "test template content",
             "",
         }, utils.read_buffer())
     end)

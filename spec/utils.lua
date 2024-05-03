@@ -1,4 +1,8 @@
+local Calendar = require("orgmode.objects.calendar")
+local OrgDate = require("orgmode.objects.date")
 local OrgFile = require("orgmode.files.file")
+local Promise = require("orgmode.utils.promise")
+
 local io = require("org-roam.core.utils.io")
 local Node = require("org-roam.core.file.node")
 local path = require("org-roam.core.utils.path")
@@ -19,6 +23,7 @@ local VIM_FN_CONFIRM = vim.fn.confirm
 local VIM_FN_INPUT = vim.fn.input
 local VIM_FN_ORGMODE_INPUT = vim.fn.OrgmodeInput
 local SELECT_NEW = Select.new
+local CALENDAR_NEW = Calendar.new
 
 ---@class spec.utils
 local M = {}
@@ -428,6 +433,9 @@ function M.cleanup_after_test()
     -- If select was mocked, unmock it
     M.unmock_select()
 
+    -- If calendar was mocked, unmock it
+    M.unmock_calendar()
+
     -- If inputs were mocked, unmock them
     M.unmock_vim_inputs()
 end
@@ -469,6 +477,43 @@ function M.clear_buffers()
             vim.api.nvim_buf_delete(buf, { force = true })
         end
     end
+end
+
+---@param s string
+---@return OrgDate|nil
+function M.date_from_string(s)
+    return OrgDate.from_string(s)
+end
+
+---@alias spec.utils.MockCalendar
+---| nil
+---| string
+---| OrgDate
+---| fun(this:OrgCalendar, data?:{date?:OrgDate, clearable?:boolean, title?:string}):(OrgDate|nil)
+
+---Mocks `Calendar.new` such that it returns a calendar whose `:open()` yields
+---the mocked value.
+---@param mock spec.utils.MockCalendar
+function M.mock_calendar(mock)
+    ---@diagnostic disable-next-line:duplicate-set-field
+    Calendar.new = function(data)
+        return {
+            open = function(this)
+                if type(mock) == "function" then
+                    return Promise.resolve(mock(this, data))
+                elseif type(mock) == "string" then
+                    return Promise.resolve(OrgDate.from_string(mock))
+                else
+                    return Promise.resolve(mock)
+                end
+            end
+        }
+    end
+end
+
+---Unmocks calendar creation.
+function M.unmock_calendar()
+    Calendar.new = CALENDAR_NEW
 end
 
 ---@alias spec.utils.MockSelect

@@ -184,26 +184,13 @@ function M:save(opts)
 
         -- Refresh our data (no rescan or force) to make sure it is fresh
         return self:load():next(function()
-            return Promise.new(function(resolve, reject)
-                db:write_to_disk(self.__database_path, function(err)
-                    if err then
-                        -- NOTE: Scheduling to avoid potential textlock issue
-                        vim.schedule(function()
-                            reject(err)
-                        end)
-                        return
-                    end
+            return db:write_to_disk(self.__database_path):next(function()
+                profiler:stop(rec_id)
+                log.fmt_debug("saving database took %s",
+                    profiler:time_taken_as_string({ recording = rec_id }))
 
-                    -- NOTE: Scheduling to avoid potential textlock issue
-                    vim.schedule(function()
-                        profiler:stop(rec_id)
-                        log.fmt_debug("saving database took %s",
-                            profiler:time_taken_as_string({ recording = rec_id }))
-
-                        self.__last_save = db:changed_tick()
-                        resolve(true)
-                    end)
-                end)
+                self.__last_save = db:changed_tick()
+                return true
             end)
         end)
     end)
@@ -213,24 +200,15 @@ end
 ---@return OrgPromise<boolean>
 function M:delete_disk_cache()
     return Promise.new(function(resolve, reject)
-        io.stat(self.__database_path, function(err, stat)
-            if err or not stat then
-                return vim.schedule(function()
-                    resolve(false)
-                end)
-            end
-
-            io.unlink(self.__database_path, function(err, success)
-                if err then
-                    return vim.schedule(function()
-                        reject(err)
-                    end)
-                end
-
-                return vim.schedule(function()
-                    resolve(success or false)
-                end)
+        io.stat(self.__database_path):next(function()
+            return io.unlink(self.__database_path):next(function(success)
+                resolve(success)
+                return success
+            end):catch(function(err)
+                reject(err)
             end)
+        end):catch(function()
+            resolve(false)
         end)
     end)
 end

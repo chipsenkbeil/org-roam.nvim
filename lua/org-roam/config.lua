@@ -93,6 +93,67 @@ local DEFAULT_CONFIG = {
         update_on_save = true,
     },
 
+    ---Settings tied to org-roam extensions.
+    ---@class org-roam.config.Extensions
+    extensions = {
+        ---Settings tied to the dailies extension.
+        ---@class org-roam.config.extensions.Dailies
+        dailies = {
+            ---Path to the directory within the org-roam directory where
+            ---daily entries will be stored.
+            ---@type string
+            directory = "daily",
+
+            ---Bindings associated with org-roam dailies functionality.
+            ---@class org-roam.config.extensions.dailies.Bindings
+            bindings = {
+                ---Capture a specific date's note.
+                capture_date = "<Leader>ndD",
+
+                ---Capture today's note.
+                capture_today = "<Leader>ndN",
+
+                ---Capture tomorrow's note.
+                capture_tomorrow = "<Leader>ndT",
+
+                ---Capture yesterday's note.
+                capture_yesterday = "<Leader>ndY",
+
+                ---Navigate to dailies note directory.
+                find_directory = "<Leader>nd.",
+
+                ---Navigate to specific date's note.
+                goto_date = "<Leader>ndd",
+
+                ---Navigate to the next note in date sequence.
+                goto_next_date = "<Leader>ndf",
+
+                ---Navigate to the previous note in date sequence.
+                goto_prev_date = "<Leader>ndb",
+
+                ---Navigate to today's note.
+                goto_today = "<Leader>ndn",
+
+                ---Navigate to tomorrow's note.
+                goto_tomorrow = "<Leader>ndt",
+
+                ---Navigate to yesterday's note.
+                goto_yesterday = "<Leader>ndy",
+            },
+
+            ---Settings tied to org-roam capture templates.
+            ---@class org-roam.config.extensions.dailies.Templates
+            ---@field [string] OrgCaptureTemplateOpts
+            templates = {
+                d = {
+                    description = "default",
+                    template = "%?",
+                    target = "%<%Y-%m-%d>.org",
+                },
+            },
+        },
+    },
+
     ---Settings tied to org-roam immediate mode.
     ---@class org-roam.config.Immediate
     immediate = {

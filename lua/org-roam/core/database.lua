@@ -11,6 +11,8 @@ local Queue = require("org-roam.core.utils.queue")
 local random = require("org-roam.core.utils.random")
 local tbl_utils = require("org-roam.core.utils.table")
 
+local Promise = require("orgmode.utils.promise")
+
 local DEFAULT_MAX_NODES = 2 ^ 31
 local DEFAULT_MAX_DISTANCE = 2 ^ 31
 
@@ -86,45 +88,31 @@ function M:__update_tick()
 end
 
 ---Synchronously loads database from disk.
----
----Note: cannot be called within fast callbacks.
----
----Accepts options to configure how to wait.
----
----* `time`: the milliseconds to wait for writing to finish.
----  Defaults to waiting forever.
----* `interval`: the millseconds between attempts to check that writing
----  has finished. Defaults to 200 milliseconds.
 ---@param path string where to find the database
----@param opts? {time?:integer,interval?:integer}
+---@param opts? {timeout?:integer}
 ---@return string|nil err, org-roam.core.Database|nil db
 function M:load_from_disk_sync(path, opts)
     opts = opts or {}
 
-    local f = async.wrap(
-        M.load_from_disk,
-        {
-            time = opts.time,
-            interval = opts.interval,
-            n = 2,
-        }
-    )
+    ---@type boolean, string|org-roam.core.Database
+    local ok, data = pcall(function()
+        return self:load_from_disk(path):wait(opts.timeout)
+    end)
 
-    return f(self, path)
+    if ok then
+        ---@cast data -string
+        return nil, data
+    else
+        ---@cast data string
+        return data, nil
+    end
 end
 
 ---Asynchronously loads database from disk.
 ---@param path string where to find the database
----@param cb fun(err:string|nil, db:org-roam.core.Database|nil)
-function M:load_from_disk(path, cb)
-    io.read_file(path, function(err, data)
-        if err then
-            cb(err)
-            return
-        end
-
-        assert(data, "impossible: data nil")
-
+---@return OrgPromise<org-roam.core.Database>
+function M:load_from_disk(path)
+    return io.read_file(path):next(function(data)
         -- Try to decode the data into Lua and set it as the nodes,
         -- using each potential decoder in turn
         ---@type boolean, table|nil
@@ -145,8 +133,7 @@ function M:load_from_disk(path, cb)
             if __data then
                 errmsg = errmsg .. ": " .. vim.inspect(__data)
             end
-            vim.schedule(function() cb(errmsg) end)
-            return
+            return Promise.reject(errmsg)
         end
 
         local db = M:new()
@@ -160,42 +147,29 @@ function M:load_from_disk(path, cb)
         ---@diagnostic disable-next-line:invisible
         db.__indexes = __data.indexes
 
-        vim.schedule(function() cb(nil, db) end)
+        return db
     end)
 end
 
 ---Synchronously writes database to disk.
----
----Note: cannot be called within fast callbacks.
----
----Accepts options to configure how to wait.
----
----* `time`: the milliseconds to wait for writing to finish.
----  Defaults to waiting forever.
----* `interval`: the millseconds between attempts to check that writing
----  has finished. Defaults to 200 milliseconds.
 ---@param path string where to store the database
----@param opts? {time?:integer,interval?:integer}
+---@param opts? {timeout?:integer}
 ---@return string|nil err
 function M:write_to_disk_sync(path, opts)
     opts = opts or {}
 
-    local f = async.wrap(
-        M.write_to_disk,
-        {
-            time = opts.time,
-            interval = opts.interval,
-            n = 2,
-        }
-    )
+    ---@type boolean, string|nil
+    local _, err = pcall(function()
+        self:write_to_disk(path):wait(opts.timeout)
+    end)
 
-    return f(self, path)
+    return err
 end
 
 ---Asynchronously writes database to disk.
 ---@param path string where to store the database
----@param cb fun(err:string|nil)
-function M:write_to_disk(path, cb)
+---@return OrgPromise<nil>
+function M:write_to_disk(path)
     ---@type fun(obj:any):string
     local encode
     if self.__cache_type == "json" then
@@ -204,7 +178,9 @@ function M:write_to_disk(path, cb)
         encode = vim.mpack.encode
     end
 
-    assert(encode, "invalid cache type: " .. self.__cache_type)
+    if not encode then
+        return Promise.reject("invalid cache type: " .. vim.inspect(self.__cache_type))
+    end
 
     local db_contents = {
         nodes = self.__nodes,
@@ -221,11 +197,10 @@ function M:write_to_disk(path, cb)
         if data then
             errmsg = errmsg .. ": " .. vim.inspect(data)
         end
-        cb(errmsg)
-        return
+        return Promise.reject(errmsg)
     end
 
-    io.write_file(path, data, cb)
+    return io.write_file(path, data)
 end
 
 ---Inserts non-false data into the database as a node with no edges.
