@@ -6,11 +6,17 @@
 
 ---@class org-roam.core.utils.Random
 local M = {}
+local seeded = false
 
 ---@param m integer
 ---@param n integer
 ---@return integer
 function M.random(m, n)
+    if seeded == false then
+        -- https://www.lua-users.org/wiki/MathLibraryTutorial
+        math.randomseed(tonumber(tostring(os.time()):reverse():sub(1,6)))
+        seeded = true
+    end
     return math.random(m, n)
 end
 
