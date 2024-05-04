@@ -568,6 +568,22 @@
   | toggle_roam_buffer       | =<Leader>nl=  | Toggles the org-roam node-view buffer for the node under cursor.          |
   | toggle_roam_buffer_fixed | =<Leader>nb=  | Toggles a fixed org-roam node-view buffer for a selected node.            |
 
+** Dailies Extension
+
+   | Name              | Keybinding    | Description                                     |
+   |-------------------+---------------+-------------------------------------------------|
+   | capture_date      | =<Leader>ndD= | Capture a specific date's note.                 |
+   | capture_today     | =<Leader>ndN= | Capture today's note.                           |
+   | capture_tomorrow  | =<Leader>ndT= | Capture tomorrow's note.                        |
+   | capture_yesterday | =<Leader>ndY= | Capture yesterday's note.                       |
+   | find_directory    | =<Leader>nd.= | Navigate to dailies note directory.             |
+   | goto_date         | =<Leader>ndd= | Navigate to specific date's note.               |
+   | goto_next_date    | =<Leader>ndf= | Navigate to the next note in date sequence.     |
+   | goto_prev_date    | =<Leader>ndb= | Navigate to the previous note in date sequence. |
+   | goto_today        | =<Leader>ndn= | Navigate to today's note.                       |
+   | goto_tomorrow     | =<Leader>ndt= | Navigate to tomorrow's note.                    |
+   | goto_yesterday    | =<Leader>ndy= | Navigate to yesterday's note.                   |
+
 ** Modifying bindings
 
   Bindings can be changed during configuration by overwriting them within the =bindings= table:
