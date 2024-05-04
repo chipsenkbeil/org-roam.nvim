@@ -1,4 +1,4 @@
-*org-roam.txt*             For NVIM v0.9.2            Last change: 2024 May 03
+*org-roam.txt*             For NVIM v0.9.2            Last change: 2024 May 04
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -14,6 +14,7 @@ Table of Contents                                 *org-roam-table-of-contents*
   - templates                               |org-roam-configuration-templates|
   - ui                                             |org-roam-configuration-ui|
 3. Bindings                                                |org-roam-bindings|
+  - Dailies Extension                    |org-roam-bindings-dailies-extension|
   - Modifying bindings                  |org-roam-bindings-modifying-bindings|
   - Coming from Emacs                    |org-roam-bindings-coming-from-emacs|
 4. Commands                                                |org-roam-commands|
@@ -686,6 +687,22 @@ Takes a boolean. Defaults to `false`.
   remove_(origin)            <Leader>nor   Removes the origin from the node under cursor.
   toggle_(roambuffer)        <Leader>nl    Toggles the org-roam node-view buffer for the node under cursor.
   toggle_(roambufferfixed)   <Leader>nb    Toggles a fixed org-roam node-view buffer for a selected node.
+
+DAILIES EXTENSION                        *org-roam-bindings-dailies-extension*
+
+  Name                  Keybinding    Description
+  --------------------- ------------- -------------------------------------------------
+  capture_(date)        <Leader>ndD   Capture a specific date's note.
+  capture_(today)       <Leader>ndN   Capture today's note.
+  capture_(tomorrow)    <Leader>ndT   Capture tomorrow's note.
+  capture_(yesterday)   <Leader>ndY   Capture yesterday's note.
+  find_(directory)      <Leader>nd.   Navigate to dailies note directory.
+  goto_(date)           <Leader>ndd   Navigate to specific date's note.
+  goto_(nextdate)       <Leader>ndf   Navigate to the next note in date sequence.
+  goto_(prevdate)       <Leader>ndb   Navigate to the previous note in date sequence.
+  goto_(today)          <Leader>ndn   Navigate to today's note.
+  goto_(tomorrow)       <Leader>ndt   Navigate to tomorrow's note.
+  goto_(yesterday)      <Leader>ndy   Navigate to yesterday's note.
 
 MODIFYING BINDINGS                      *org-roam-bindings-modifying-bindings*
 
