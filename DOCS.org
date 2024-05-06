@@ -758,11 +758,19 @@
      - alias: optional, if provided, added to the node under cursor, otherwise
               prompts for an alias to add to the node under cursor.
 
+   Returns:
+
+   A promise of a boolean, which is true if the alias is added, otherwise false.
+
    Example:
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.add_alias({ alias = "My Alias" })
+   roam.api.add_alias({ alias = "My Alias" }):next(function(success)
+     if success then
+       print("Added alias")
+     end
+   end)
    #+end_src
 
 ** Add Origin
@@ -1322,6 +1330,10 @@
 
    - {alias} string representing the node's alias.
 
+   Returns:
+
+   A promise of a list of =org-roam.core.file.Node=.
+
    Example:
 
    #+begin_src lua
@@ -1341,6 +1353,7 @@
 
    Retrieves nodes with the specified alias from the database.
    Operation is performed synchronously, returning a list of nodes.
+   Will throw an error if timeout is exceeded.
 
    Parameters:
 
@@ -1348,6 +1361,10 @@
    - {opts} optional table.
      - timeout: optional, integer representing maximum time (in milliseconds)
                 to wait for the operation to complete. Throws error on timeout.
+
+   Returns:
+
+   A list of =org-roam.core.file.Node=.
 
    Example:
 
@@ -1374,6 +1391,10 @@
 
    - {file} string representing the node's file path.
 
+   Returns:
+
+   A promise of a list of =org-roam.core.file.Node=.
+
    Example:
 
    #+begin_src lua
@@ -1393,6 +1414,7 @@
 
    Retrieves nodes with the specified file from the database.
    Operation is performed synchronously, returning a list of nodes.
+   Will throw an error if timeout is exceeded.
 
    Parameters:
 
@@ -1400,6 +1422,10 @@
    - {opts} optional table.
      - timeout: optional, integer representing maximum time (in milliseconds)
                 to wait for the operation to complete. Throws error on timeout.
+
+   Returns:
+
+   A list of =org-roam.core.file.Node=.
 
    Example:
 
@@ -1426,6 +1452,10 @@
 
    - {tag} string representing the tag.
 
+   Returns:
+
+   A promise of a list of =org-roam.core.file.Node=.
+
    Example:
 
    #+begin_src lua
@@ -1445,6 +1475,7 @@
 
    Retrieves nodes with the specified tag from the database.
    Operation is performed synchronously, returning a list of nodes.
+   Will throw an error if timeout is exceeded.
 
    Parameters:
 
@@ -1452,6 +1483,10 @@
    - {opts} optional table.
      - timeout: optional, integer representing maximum time (in milliseconds)
                 to wait for the operation to complete. Throws error on timeout.
+
+   Returns:
+
+   A list of =org-roam.core.file.Node=.
 
    Example:
 
@@ -1478,6 +1513,10 @@
 
    - {title} string representing the node's title.
 
+   Returns:
+
+   A promise of a list of =org-roam.core.file.Node=.
+
    Example:
 
    #+begin_src lua
@@ -1497,6 +1536,7 @@
 
    Retrieves nodes with the specified title from the database.
    Operation is performed synchronously, returning a list of nodes.
+   Will throw an error if timeout is exceeded.
 
    Parameters:
 
@@ -1504,6 +1544,10 @@
    - {opts} optional table.
      - timeout: optional, integer representing maximum time (in milliseconds)
                 to wait for the operation to complete. Throws error on timeout.
+
+   Returns:
+
+   A list of =org-roam.core.file.Node=.
 
    Example:
 
@@ -1527,6 +1571,10 @@
    Parameters:
 
    - {id} string representing the node's id.
+
+   Returns:
+
+   A promise of =org-roam.core.file.Node | nil=.
 
    Example:
 
@@ -1555,6 +1603,10 @@
      - timeout: optional, integer representing maximum time (in milliseconds)
                 to wait for the operation to complete. Throws error on timeout.
 
+   Returns:
+
+   =org-roam.core.file.Node= or =nil=.
+
    Example:
 
    #+begin_src lua
@@ -1582,6 +1634,13 @@
      - max_depth: optional, integer representing maximum depth to traverse
                   from the nodes of the file (default 1).
 
+   Returns:
+
+   A promise of =table<string, integer>= where the keys are the ids of nodes
+   and the values are the distance from the file in terms of backlinks.
+
+   For immediate backlinks, the values will be *1*.
+
    Example:
 
    #+begin_src lua
@@ -1601,6 +1660,7 @@
 
    Retrieves ids of nodes linking to a file. Operation is performed
    synchronously, returning a table of id -> distance away from the file.
+   Will throw an error if timeout is exceeded.
 
    Parameters:
 
@@ -1610,6 +1670,13 @@
                   from the nodes of the file (default 1).
      - timeout: optional, integer representing maximum time (in milliseconds)
                 to wait for the operation to complete. Throws error on timeout.
+
+   Returns:
+
+   =table<string, integer>= where the keys are the ids of nodes
+   and the values are the distance from the file in terms of backlinks.
+
+   For immediate backlinks, the values will be *1*.
 
    Example:
 
@@ -1638,6 +1705,13 @@
      - max_depth: optional, integer representing maximum depth to traverse
                   from the nodes of the file (default 1).
 
+   Returns:
+
+   A promise of =table<string, integer>= where the keys are the ids of nodes
+   and the values are the distance from the file in terms of links.
+
+   For immediate links, the values will be *1*.
+
    Example:
 
    #+begin_src lua
@@ -1657,6 +1731,7 @@
 
    Retrieves ids of nodes linked from a file. Operation is performed
    synchronously, returning a table of id -> distance away from the file.
+   Will throw an error if timeout is exceeded.
 
    Parameters:
 
@@ -1666,6 +1741,13 @@
                   from the nodes of the file (default 1).
      - timeout: optional, integer representing maximum time (in milliseconds)
                 to wait for the operation to complete. Throws error on timeout.
+
+   Returns:
+
+   =table<string, integer>= where the keys are the ids of nodes
+   and the values are the distance from the file in terms of links.
+
+   For immediate links, the values will be *1*.
 
    Example:
 
@@ -1694,6 +1776,10 @@
               will check for new or removed files. If false, only reloads
               pre-existing files and nodes if they have changed.
 
+   Returns:
+
+   A promise of ={database:org-roam.core.Database, files:OrgFiles}=.
+
    Example:
 
    #+begin_src lua
@@ -1721,6 +1807,10 @@
               whether they have changed on disk. If false, only reloads
               pre-existing files and nodes if they have changed.
 
+   Returns:
+
+   A promise of ={file:OrgFile, nodes:org-roam.core.file.Node[]}=.
+
    Example:
 
    #+begin_src lua
@@ -1741,6 +1831,10 @@
    Description:
 
    Returns the path to the database on disk.
+
+   Returns:
+
+   A =string= representing the path.
 
    Example:
 
@@ -1763,6 +1857,13 @@
      - force: optional, if true, will reload each file and node regardless of
               whether they have changed on disk. If false, only reloads
               pre-existing files and nodes if they have changed.
+
+   Returns:
+
+   A promise of =boolean= representing whether or not the database saved.
+
+   This will be false if there have been no changes to the database since
+   last save and force was not set to true.
 
    Example:
 
