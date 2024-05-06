@@ -19,9 +19,9 @@
     #+begin_src lua
     {
       "chipsenkbeil/org-roam.nvim",
-      dependencies = { 
-        { 
-          "nvim-orgmode/orgmode", 
+      dependencies = {
+        {
+          "nvim-orgmode/orgmode",
           commit = "d4cc3210f235a845de8d372d02482163d31ded93",
         },
       },
@@ -43,8 +43,8 @@
     #+begin_src lua
     use {
       "chipsenkbeil/org-roam.nvim",
-      requires = { 
-        { 
+      requires = {
+        {
           "nvim-orgmode/orgmode",
           commit = "d4cc3210f235a845de8d372d02482163d31ded93",
         },
@@ -100,7 +100,7 @@
 
    The documentation is also generated in vimdoc help format, which can be
    accessed via =:h org-roam.txt=.
- 
+
 ** Roadmap
 
    A collection of features to implement in no particular order.
@@ -137,20 +137,20 @@
      - [X] Implement *org-roam-alias-remove*
      - [X] Implement *org-roam-origin-add* (custom, not in Org Roam!)
      - [X] Implement *org-roam-origin-remove* (custom, not in Org Roam!)
-   - [ ] Implement extensions
-     - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002ddailies][org-roam-dailies]]
+   - [-] Implement extensions
+     - [X] [[https://www.orgroam.com/manual.html#org_002droam_002ddailies][org-roam-dailies]]
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002dexport][org-roam-export]]
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002dgraph][org-roam-graph]]
      - [ ] [[https://www.orgroam.com/manual.html#org_002droam_002dprotocol][org-roam-protocol]]
- 
+
 ** Developer & Contributor Instructions
 
 *** Running tests
- 
+
     A /makefile/ is provided to support running tests. It will download [[https://github.com/nvim-lua/plenary.nvim][plenary.nvim]]
     and [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]] into the /vendor/ directory.
- 
-    #+begin_src bash 
-    make test 
+
+    #+begin_src bash
+    make test
     #+end_src
-  
+
