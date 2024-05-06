@@ -46,4 +46,12 @@ return function(roam)
         -- Fall back to the default implementation
         return require("orgmode.org.mappings").open_at_point(self)
     end
+
+    -- Overwrite promise.wait to throw an error when wait fails instead of returning nil
+    --
+    -- TODO: This exists as the current wait implementation does not fail on timeout and
+    --       instead returns nil. If this is resolved, we will remove this override.
+    --
+    --       See https://github.com/nvim-orgmode/orgmode/pull/723
+    require("orgmode.utils.promise").wait = require("org-roam.core.utils.promise").wait
 end

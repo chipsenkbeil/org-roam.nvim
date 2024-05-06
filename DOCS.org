@@ -13,9 +13,9 @@
     #+begin_src lua
     {
       "chipsenkbeil/org-roam.nvim",
-      dependencies = { 
-        { 
-          "nvim-orgmode/orgmode", 
+      dependencies = {
+        {
+          "nvim-orgmode/orgmode",
           commit = "d4cc3210f235a845de8d372d02482163d31ded93",
         },
       },
@@ -32,8 +32,8 @@
     #+begin_src lua
     use {
       "chipsenkbeil/org-roam.nvim",
-      requires = { 
-        { 
+      requires = {
+        {
           "nvim-orgmode/orgmode",
           commit = "d4cc3210f235a845de8d372d02482163d31ded93",
         },
@@ -287,7 +287,7 @@
     Sets the path where the roam database will be stored & loaded when
     persisting to disk.
 
-    Takes a string representing the path. Defaults to 
+    Takes a string representing the path. Defaults to
     For example, =~/.local/share/nvim/org-roam.nvim/db=.
 
     #+begin_src lua
@@ -359,7 +359,7 @@
 
      A map of templates associated with roam. These have the exact same format
      as =nvim-orgmode='s templates, but include additional variables and are
-     only displayed and used during roam's capture dialog. 
+     only displayed and used during roam's capture dialog.
 
      Note that the target must be provided and must contain a date in the form
      of =YYYY-MM-DD=. See [[#org-roam-configuration-templates][templates]] for more details.
@@ -388,7 +388,7 @@
    Configuration settings tied to immediate mode.
 
 *** target
-    
+
     Target where the immediate-mode node should be written.
 
     Takes a string. Defaults to =%<%Y%m%d%H%M%S>-%[slug].org=.
@@ -402,7 +402,7 @@
     #+end_src
 
 *** template
-    
+
     Template to use for the immediate-mode node's content.
 
     Takes a string. Defaults to ==.
@@ -456,11 +456,11 @@
     Bindings tied specifically to the roam buffer.
 
 **** focus on toggle
-     
+
      If true, switches focus to the node buffer when opened.
-  
+
      Takes a boolean. Defaults to =true=.
-  
+
      #+begin_src lua
      require("org-roam").setup({
        ui = {
@@ -472,15 +472,15 @@
      #+end_src
 
 **** highlight previews
-     
+
      If true, previews will be highlighted as org syntax when expanded.
-  
+
      NOTE: This can cause flickering on initial expansion, but preview
            highlights are then cached for future renderings. If flickering
            is undesired, disable highlight previews.
-  
+
      Takes a boolean. Defaults to =true=.
-  
+
      #+begin_src lua
      require("org-roam").setup({
        ui = {
@@ -517,11 +517,11 @@
      #+end_src
 
 **** show keybindings
-     
+
      If true, will include a section covering available keybindings.
-  
+
      Takes a boolean. Defaults to =true=.
-  
+
      #+begin_src lua
      require("org-roam").setup({
        ui = {
@@ -531,14 +531,14 @@
        },
      })
      #+end_src
-  
+
 **** unique
-     
+
      If true, shows a single link (backlink/citation/unlinked
      reference) per node instead of all links.
-  
+
      Takes a boolean. Defaults to =false=.
-  
+
      #+begin_src lua
      require("org-roam").setup({
        ui = {
@@ -548,7 +548,7 @@
        },
      })
      #+end_src
-  
+
 * Bindings
 
   | Name                     | Keybinding    | Description                                                               |
@@ -1023,7 +1023,7 @@
 
    #+begin_src lua
    local roam = require("org-roam")
-   roam.api.insert_node({ 
+   roam.api.insert_node({
      title = "Some Node",
      ranges = { { start_row = 1, end_row = 3, start_col = 5, end_col = 12 } },
    }):next(function(id)
@@ -1243,6 +1243,10 @@
      - skip: optional, if true, will avoid loading entirely and just
              return the files as they are (no updates).
 
+   Returns:
+
+   A promise of =OrgFiles=, a specialized data structure from *nvim-orgmode*.
+
    Example:
 
    #+begin_src lua
@@ -1276,6 +1280,7 @@
    Description:
 
    Loads org files (or retrieves from cache) synchronously.
+   Will throw an error if timeout is exceeded.
 
    Parameters:
 
@@ -1287,6 +1292,10 @@
                 to wait for the operation to complete. Throws error on timeout.
      - skip: optional, if true, will avoid loading entirely and just
              return the files as they are (no updates).
+
+   Returns:
+
+   An instance of =OrgFiles=, a specialized data structure from *nvim-orgmode*.
 
    Example:
 
@@ -1571,7 +1580,7 @@
    - {file} string representing a file path.
    - {opts} optional table.
      - max_depth: optional, integer representing maximum depth to traverse
-                  from the nodes of the file (default 1). 
+                  from the nodes of the file (default 1).
 
    Example:
 
@@ -1598,7 +1607,7 @@
    - {file} string representing a file path.
    - {opts} optional table.
      - max_depth: optional, integer representing maximum depth to traverse
-                  from the nodes of the file (default 1). 
+                  from the nodes of the file (default 1).
      - timeout: optional, integer representing maximum time (in milliseconds)
                 to wait for the operation to complete. Throws error on timeout.
 
@@ -1627,7 +1636,7 @@
    - {file} string representing a file path.
    - {opts} optional table.
      - max_depth: optional, integer representing maximum depth to traverse
-                  from the nodes of the file (default 1). 
+                  from the nodes of the file (default 1).
 
    Example:
 
@@ -1654,7 +1663,7 @@
    - {file} string representing a file path.
    - {opts} optional table.
      - max_depth: optional, integer representing maximum depth to traverse
-                  from the nodes of the file (default 1). 
+                  from the nodes of the file (default 1).
      - timeout: optional, integer representing maximum time (in milliseconds)
                 to wait for the operation to complete. Throws error on timeout.
 
@@ -1790,6 +1799,111 @@
        print("Node under cursor is " .. node.id)
      end
    end)
+   #+end_src
+
+* Promise
+
+  As this plugin is built on top of [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]], it has access to the utilities and follows
+  the same methodology for asynchronous operations. To that end, the majority of APIs exposed
+  by this plugin return an =OrgPromise=, which itself is a generic type such as
+  =OrgPromise<integer>=.
+
+  #+begin_src lua
+  -- All of our APIs return OrgPromise<...>
+  -- and the promise API is available via this import
+  local Promise = require("orgmode.utils.promise")
+  #+end_src
+
+** Resolve and Reject
+
+   A promise can either be resolved or rejected.
+
+   - Resolution is a success and returns a value.
+   - Rejection is a failure and can be caught.
+
+   #+begin_src lua
+   -- If you have a value available, you can resolve/reject with it.
+   local resolved_promise = Promise.resolve(1234)
+   local rejected_promise = Promise.reject("error message")
+   #+end_src
+
+** Promise:next
+
+   With a promise, say of type =OrgPromise<integer>=, there are separate methods
+   that can be used with it. The most important and common one is =next=, which
+   takes a single function to apply to the result of the promise (in this case
+   an integer), returning the new value /or/ a new promise.
+
+   #+begin_src lua
+   local promise = Promise.resolve(1234)
+
+   -- The function will be executed asynchronously when the promise's value
+   -- has been resolved. In the case of rejection, this function will NOT
+   -- be executed!
+   --
+   -- You can return anything from next()! It doesn't have to be the same type.
+   promise:next(function(value)
+     return value + 100
+   end)
+   #+end_src
+
+** Promise:catch
+
+   Alongside =next= to handle promise resolution, there is also =catch=, which
+   is used to map and operate on a promise's error. Note that if =catch= is
+   not used and the promise is rejected, it will throw an error message to
+   the user within neovim.
+
+   #+begin_src lua
+   local promise = Promise.reject("error message")
+
+   -- The function will be executed asynchronously when the promise's value
+   -- has been rejected. In the case of resolution, this function will NOT
+   -- be executed!
+   --
+   -- Nothing is returned from catch()!
+   promise:catch(function(err)
+     print("Error: " .. err)
+   end)
+   #+end_src
+
+** Promise:finally
+
+   Beyond =next= and =catch=, the method =finally= can be used to invoke a
+   function asynchronously after the promise is resolved or rejected.
+
+   It will occur regardless of whether =next= or =catch= are used, and
+   can be leveraged to confirm that a promise has completed regardless
+   of the outcome.
+
+   #+begin_src lua
+   local promise = Promise.resolve(1234)
+
+   -- The function will be executed asynchronously when the promise
+   -- has finished.
+   --
+   -- Nothing is returned from finally()!
+   promise:finally(function()
+     print("Done!")
+   end)
+   #+end_src
+
+** Promise:wait
+
+   Waits until the promise finishes. On resolving successfully, the
+   value is returned by =wait=, otherwise on rejecting an error is
+   thrown.
+
+   #+begin_src lua
+   -- When a promise is resolved, it will return the value
+   local promise = Promise.resolve(1234)
+   assert(promise:wait() == 1234)
+
+   -- When a promise is rejected, it will throw an error
+   local promise = Promise.reject("error message")
+   local ok, msg = pcall(promise.wait, promise)
+   assert(not ok)
+   assert(msg == "error message")
    #+end_src
 
 * Extensions

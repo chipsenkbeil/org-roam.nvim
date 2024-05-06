@@ -48,4 +48,17 @@ describe("org-roam.setup.modifications", function()
             "[[id:2]]",
         }, utils.read_buffer())
     end)
+
+    it("should override orgmode's promise.wait to throw an error on timeout", function()
+        local roam = utils.init_plugin({ setup = true })
+        local Promise = require("orgmode.utils.promise")
+
+        -- Create a promise that will never resolve or reject
+        local promise = Promise.new(function() end)
+
+        assert.is.error(function()
+            -- Wait with a shorter timeout, which should fail on timeout exceeded
+            promise:wait(50)
+        end)
+    end)
 end)
