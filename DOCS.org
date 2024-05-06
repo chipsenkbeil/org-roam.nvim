@@ -355,6 +355,210 @@
      })
      #+end_src
 
+**** bindings
+
+     Configuration settings used to specify dailies keybindings.
+
+***** capture date
+
+      Captures a specific date's note.
+
+      Takes a string representing the keybinding. Defaults to =<Leader>ndD=.
+
+      #+begin_src lua
+      require("org-roam").setup({
+        extensions = {
+          dailies = {
+            bindings = {
+              capture_date = "<LocalLeader>ndD",
+            },
+          },
+        },
+      })
+      #+end_src
+
+***** capture today
+
+      Captures today's note.
+
+      Takes a string representing the keybinding. Defaults to =<Leader>ndN=.
+
+      #+begin_src lua
+      require("org-roam").setup({
+        extensions = {
+          dailies = {
+            bindings = {
+              capture_today = "<LocalLeader>ndN",
+            },
+          },
+        },
+      })
+      #+end_src
+
+***** capture tomorrow
+
+      Captures tomorrow's note.
+
+      Takes a string representing the keybinding. Defaults to =<Leader>ndT=.
+
+      #+begin_src lua
+      require("org-roam").setup({
+        extensions = {
+          dailies = {
+            bindings = {
+              capture_tomorrow = "<LocalLeader>ndT",
+            },
+          },
+        },
+      })
+      #+end_src
+
+***** capture yesterday
+
+      Captures yesterday's note.
+
+      Takes a string representing the keybinding. Defaults to =<Leader>ndY=.
+
+      #+begin_src lua
+      require("org-roam").setup({
+        extensions = {
+          dailies = {
+            bindings = {
+              capture_yesterday = "<LocalLeader>ndY",
+            },
+          },
+        },
+      })
+      #+end_src
+
+***** find directory
+
+      Navigate to dailies note directory.
+
+      Takes a string representing the keybinding. Defaults to =<Leader>nd.=.
+
+      #+begin_src lua
+      require("org-roam").setup({
+        extensions = {
+          dailies = {
+            bindings = {
+              find_directory = "<LocalLeader>nd.",
+            },
+          },
+        },
+      })
+      #+end_src
+
+***** goto date
+
+      Navigate to specific date's note.
+
+      Takes a string representing the keybinding. Defaults to =<Leader>ndd=.
+
+      #+begin_src lua
+      require("org-roam").setup({
+        extensions = {
+          dailies = {
+            bindings = {
+              goto_date = "<LocalLeader>ndd",
+            },
+          },
+        },
+      })
+      #+end_src
+
+***** goto next date
+
+      Navigate to the next note in date sequence. This will skip ahead to
+      the next available note, or do nothing if we are at most recent.
+
+      Takes a string representing the keybinding. Defaults to =<Leader>ndf=.
+
+      #+begin_src lua
+      require("org-roam").setup({
+        extensions = {
+          dailies = {
+            bindings = {
+              goto_next_date = "<LocalLeader>ndf",
+            },
+          },
+        },
+      })
+      #+end_src
+
+***** goto prev date
+
+      Navigate to the previous note in date sequence. This will skip back to
+      the previous available note, or do nothing if we are at earliest.
+
+      Takes a string representing the keybinding. Defaults to =<Leader>ndb=.
+
+      #+begin_src lua
+      require("org-roam").setup({
+        extensions = {
+          dailies = {
+            bindings = {
+              goto_prev_date = "<LocalLeader>ndb",
+            },
+          },
+        },
+      })
+      #+end_src
+
+***** goto today
+
+      Navigate to today's note.
+
+      Takes a string representing the keybinding. Defaults to =<Leader>ndn=.
+
+      #+begin_src lua
+      require("org-roam").setup({
+        extensions = {
+          dailies = {
+            bindings = {
+              goto_today = "<LocalLeader>ndn",
+            },
+          },
+        },
+      })
+      #+end_src
+
+***** goto tomorrow
+
+      Navigate to tomorrow's note.
+
+      Takes a string representing the keybinding. Defaults to =<Leader>ndt=.
+
+      #+begin_src lua
+      require("org-roam").setup({
+        extensions = {
+          dailies = {
+            bindings = {
+              goto_tomorrow = "<LocalLeader>ndt",
+            },
+          },
+        },
+      })
+      #+end_src
+
+***** goto yesterday
+
+      Navigate to yesterday's note.
+
+      Takes a string representing the keybinding. Defaults to =<Leader>ndy=.
+
+      #+begin_src lua
+      require("org-roam").setup({
+        extensions = {
+          dailies = {
+            bindings = {
+              goto_yesterday = "<LocalLeader>ndy",
+            },
+          },
+        },
+      })
+      #+end_src
+
 **** templates
 
      A map of templates associated with roam. These have the exact same format
@@ -2011,7 +2215,307 @@
 
 ** Dailies
 
-   Unimplemented for now!
+   Described here is the documentation for the dailies extension API. For the configuration, check
+   out the section *configuration -> extensions -> dailies* for more details.
+
+*** capture date
+
+    roam.ext.dailies.capture_date({opts})
+
+    Description:
+
+    Opens the capture dialog for a specific date.
+    If no =date= is specified, will open a calendar to select a date.
+
+    Parameters:
+
+    - {opts} optional table.
+      - date: optional, string or =OrgDate=. If a string, will parse *YYYY-MM-DD* format
+              into a date. Otherwise, will use orgmode's date type verbatim.
+      - title: optional, string representing the title to add to the capture buffer.
+               Otherwise, will use *YYYY-MM-DD* for the title directive.
+
+    Returns:
+
+    A promise of =string | nil=, representing the id of the node created when captured,
+    or nil when the capture was canceled.
+
+    Example:
+
+    #+begin_src lua
+    local roam = require("org-roam")
+    roam.ext.dailies.capture_date({ date = "2024-04-27" }):next(function(id)
+      if id then
+        print("Captured node " .. id)
+      end
+    end)
+    #+end_src
+
+*** capture today
+
+    roam.ext.dailies.capture_today()
+
+    Description:
+
+    Opens the capture dialog for today's date.
+
+    Returns:
+
+    A promise of =string | nil=, representing the id of the node created when captured,
+    or nil when the capture was canceled.
+
+    Example:
+
+    #+begin_src lua
+    local roam = require("org-roam")
+    roam.ext.dailies.capture_today():next(function(id)
+      if id then
+        print("Captured node " .. id)
+      end
+    end)
+    #+end_src
+
+*** capture tomorrow
+
+    roam.ext.dailies.capture_tomorrow()
+
+    Description:
+
+    Opens the capture dialog for tomorrow's date.
+
+    Returns:
+
+    A promise of =string | nil=, representing the id of the node created when captured,
+    or nil when the capture was canceled.
+
+    Example:
+
+    #+begin_src lua
+    local roam = require("org-roam")
+    roam.ext.dailies.capture_tomorrow():next(function(id)
+      if id then
+        print("Captured node " .. id)
+      end
+    end)
+    #+end_src
+
+*** capture yesterday
+
+    roam.ext.dailies.capture_yesterday()
+
+    Description:
+
+    Opens the capture dialog for yesterday's date.
+
+    Returns:
+
+    A promise of =string | nil=, representing the id of the node created when captured,
+    or nil when the capture was canceled.
+
+    Example:
+
+    #+begin_src lua
+    local roam = require("org-roam")
+    roam.ext.dailies.capture_yesterday():next(function(id)
+      if id then
+        print("Captured node " .. id)
+      end
+    end)
+    #+end_src
+
+*** find directory
+
+    roam.ext.dailies.find_directory()
+
+    Description:
+
+    Opens the roam dailies directory in the current window.
+
+    Example:
+
+    #+begin_src lua
+    local roam = require("org-roam")
+    roam.ext.dailies.find_directory()
+    #+end_src
+
+*** goto date
+
+    roam.ext.dailies.goto_date({opts})
+
+    Description:
+
+    Navigates to the note with the specified date.
+    If no =date= is specified, will open a calendar to select a date.
+
+    Parameters:
+
+    - {opts} optional table.
+      - date: optional, string or =OrgDate=. If a string, will parse *YYYY-MM-DD* format
+              into a date. Otherwise, will use orgmode's date type verbatim.
+      - win: optional, integer representing the handle of the window. If not specified,
+             will open the note in the current window.
+
+    Returns:
+
+    A promise of =OrgDate | nil=, representing the date opened, or nil if canceled.
+
+    Example:
+
+    #+begin_src lua
+    local roam = require("org-roam")
+    roam.ext.dailies.goto_date({ date = "2024-04-27" }):next(function(date)
+      if date then
+        print("Opened date " .. date:to_string())
+      end
+    end)
+    #+end_src
+
+*** goto today
+
+    roam.ext.dailies.goto_today()
+
+    Description:
+
+    Navigates to today's note.
+
+    Returns:
+
+    A promise of =OrgDate | nil=, representing the date opened, or nil if canceled.
+
+    Example:
+
+    #+begin_src lua
+    local roam = require("org-roam")
+    roam.ext.dailies.goto_today():next(function(date)
+      if date then
+        print("Opened date " .. date:to_string())
+      end
+    end)
+    #+end_src
+
+*** goto tomorrow
+
+    roam.ext.dailies.goto_tomorrow()
+
+    Description:
+
+    Navigates to tomorrow's note.
+
+    Returns:
+
+    A promise of =OrgDate | nil=, representing the date opened, or nil if canceled.
+
+    Example:
+
+    #+begin_src lua
+    local roam = require("org-roam")
+    roam.ext.dailies.goto_tomorrow():next(function(date)
+      if date then
+        print("Opened date " .. date:to_string())
+      end
+    end)
+    #+end_src
+
+*** goto yesterday
+
+    roam.ext.dailies.goto_yesterday()
+
+    Description:
+
+    Navigates to yesterday's note.
+
+    Returns:
+
+    A promise of =OrgDate | nil=, representing the date opened, or nil if canceled.
+
+    Example:
+
+    #+begin_src lua
+    local roam = require("org-roam")
+    roam.ext.dailies.goto_yesterday():next(function(date)
+      if date then
+        print("Opened date " .. date:to_string())
+      end
+    end)
+    #+end_src
+
+*** goto next date
+
+    roam.ext.dailies.goto_next_date({opts})
+
+    Description:
+
+    Navigates to the next date based on the node under cursor.
+
+    If =n= is specified, will go =n= notes in the future.
+    If =n= is negative, will go =n= notes in the past.
+
+    If there is no existing note within range that exists,
+    =nil= is returned from the promise, and nothing happens.
+
+    Parameters:
+
+    - {opts} optional table.
+      - n: optional, integer representing how many notes should be advanced.
+           This is *1* by default. Can be negative.
+      - suppress: optional, boolean. If true, will suppress messages printed
+                  when navigating out of range.
+      - win: optional, integer. Handle of window where note should be opened,
+             defaulting to the current window.
+
+    Returns:
+
+    A promise of =OrgDate | nil=, representing the date, or nil if out of range.
+
+    Example:
+
+    #+begin_src lua
+    local roam = require("org-roam")
+    roam.ext.dailies.goto_next_date({ n = 2 }):next(function(date)
+      if date then
+        print("Opened date " .. date:to_string())
+      end
+    end)
+    #+end_src
+
+*** goto prev date
+
+    roam.ext.dailies.goto_prev_date({opts})
+
+    Description:
+
+    Navigates to the previous date based on the node under cursor.
+
+    If =n= is specified, will go =n= notes in the past.
+    If =n= is negative, will go =n= notes in the future.
+
+    If there is no existing note within range that exists,
+    =nil= is returned from the promise, and nothing happens.
+
+    Parameters:
+
+    - {opts} optional table.
+      - n: optional, integer representing how many notes should be advanced.
+           This is *1* by default. Can be negative.
+      - suppress: optional, boolean. If true, will suppress messages printed
+                  when navigating out of range.
+      - win: optional, integer. Handle of window where note should be opened,
+             defaulting to the current window.
+
+    Returns:
+
+    A promise of =OrgDate | nil=, representing the date, or nil if out of range.
+
+    Example:
+
+    #+begin_src lua
+    local roam = require("org-roam")
+    roam.ext.dailies.goto_prev_date({ n = 2 }):next(function(date)
+      if date then
+        print("Opened date " .. date:to_string())
+      end
+    end)
+    #+end_src
 
 ** Export
 
