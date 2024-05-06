@@ -1,4 +1,4 @@
-*org-roam.txt*             For NVIM v0.9.2            Last change: 2024 May 04
+*org-roam.txt*             For NVIM v0.9.2            Last change: 2024 May 06
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -65,13 +65,19 @@ Table of Contents                                 *org-roam-table-of-contents*
   - Save                                              |org-roam-database-save|
 8. Events                                                    |org-roam-events|
   - On Cursor Node Changed            |org-roam-events-on-cursor-node-changed|
-9. Extensions                                            |org-roam-extensions|
+9. Promise                                                  |org-roam-promise|
+  - Resolve and Reject                   |org-roam-promise-resolve-and-reject|
+  - Promise:next                               |org-roam-promise-promise:next|
+  - Promise:catch                             |org-roam-promise-promise:catch|
+  - Promise:finally                         |org-roam-promise-promise:finally|
+  - Promise:wait                               |org-roam-promise-promise:wait|
+10. Extensions                                           |org-roam-extensions|
   - Dailies                                      |org-roam-extensions-dailies|
   - Export                                        |org-roam-extensions-export|
   - Graph                                          |org-roam-extensions-graph|
   - Protocol                                    |org-roam-extensions-protocol|
-10. Changelog                                             |org-roam-changelog|
-11. Credits                                                 |org-roam-credits|
+11. Changelog                                             |org-roam-changelog|
+12. Credits                                                 |org-roam-credits|
 
 ==============================================================================
 1. Getting Started                                  *org-roam-getting-started*
@@ -94,9 +100,9 @@ LAZY.NVIM ~
 >lua
     {
       "chipsenkbeil/org-roam.nvim",
-      dependencies = { 
-        { 
-          "nvim-orgmode/orgmode", 
+      dependencies = {
+        {
+          "nvim-orgmode/orgmode",
           commit = "d4cc3210f235a845de8d372d02482163d31ded93",
         },
       },
@@ -114,8 +120,8 @@ PACKER.NVIM ~
 >lua
     use {
       "chipsenkbeil/org-roam.nvim",
-      requires = { 
-        { 
+      requires = {
+        {
           "nvim-orgmode/orgmode",
           commit = "d4cc3210f235a845de8d372d02482163d31ded93",
         },
@@ -1166,7 +1172,7 @@ Example:
 
 >lua
     local roam = require("org-roam")
-    roam.api.insert_node({ 
+    roam.api.insert_node({
       title = "Some Node",
       ranges = { { start_row = 1, end_row = 3, start_col = 5, end_col = 12 } },
     }):next(function(id)
@@ -1394,6 +1400,10 @@ Parameters:
     - skip: optional, if true, will avoid loading entirely and just
         return the files as they are (no updates).
 
+Returns:
+
+A promise of `OrgFiles`, a specialized data structure from **nvim-orgmode**.
+
 Example:
 
 >lua
@@ -1428,7 +1438,8 @@ roam.database:files_sync({opts})
 
 Description:
 
-Loads org files (or retrieves from cache) synchronously.
+Loads org files (or retrieves from cache) synchronously. Will throw an error if
+timeout is exceeded.
 
 Parameters:
 
@@ -1440,6 +1451,10 @@ Parameters:
         to wait for the operation to complete. Throws error on timeout.
     - skip: optional, if true, will avoid loading entirely and just
         return the files as they are (no updates).
+
+Returns:
+
+An instance of `OrgFiles`, a specialized data structure from **nvim-orgmode**.
 
 Example:
 
@@ -1968,7 +1983,118 @@ Example:
 
 
 ==============================================================================
-9. Extensions                                            *org-roam-extensions*
+9. Promise                                                  *org-roam-promise*
+
+As this plugin is built on top of nvim-orgmode
+<https://github.com/nvim-orgmode/orgmode>, it has access to the utilities and
+follows the same methodology for asynchronous operations. To that end, the
+majority of APIs exposed by this plugin return an `OrgPromise`, which itself is
+a generic type such as `OrgPromise<integer>`.
+
+>lua
+    -- All of our APIs return OrgPromise<...>
+    -- and the promise API is available via this import
+    local Promise = require("orgmode.utils.promise")
+<
+
+
+RESOLVE AND REJECT                       *org-roam-promise-resolve-and-reject*
+
+A promise can either be resolved or rejected.
+
+- Resolution is a success and returns a value.
+- Rejection is a failure and can be caught.
+
+>lua
+    -- If you have a value available, you can resolve/reject with it.
+    local resolved_promise = Promise.resolve(1234)
+    local rejected_promise = Promise.reject("error message")
+<
+
+
+PROMISE:NEXT                                   *org-roam-promise-promise:next*
+
+With a promise, say of type `OrgPromise<integer>`, there are separate methods
+that can be used with it. The most important and common one is `next`, which
+takes a single function to apply to the result of the promise (in this case an
+integer), returning the new value _or_ a new promise.
+
+>lua
+    local promise = Promise.resolve(1234)
+    
+    -- The function will be executed asynchronously when the promise's value
+    -- has been resolved. In the case of rejection, this function will NOT
+    -- be executed!
+    --
+    -- You can return anything from next()! It doesn't have to be the same type.
+    promise:next(function(value)
+      return value + 100
+    end)
+<
+
+
+PROMISE:CATCH                                 *org-roam-promise-promise:catch*
+
+Alongside `next` to handle promise resolution, there is also `catch`, which is
+used to map and operate on a promise's error. Note that if `catch` is not used
+and the promise is rejected, it will throw an error message to the user within
+neovim.
+
+>lua
+    local promise = Promise.reject("error message")
+    
+    -- The function will be executed asynchronously when the promise's value
+    -- has been rejected. In the case of resolution, this function will NOT
+    -- be executed!
+    --
+    -- Nothing is returned from catch()!
+    promise:catch(function(err)
+      print("Error: " .. err)
+    end)
+<
+
+
+PROMISE:FINALLY                             *org-roam-promise-promise:finally*
+
+Beyond `next` and `catch`, the method `finally` can be used to invoke a
+function asynchronously after the promise is resolved or rejected.
+
+It will occur regardless of whether `next` or `catch` are used, and can be
+leveraged to confirm that a promise has completed regardless of the outcome.
+
+>lua
+    local promise = Promise.resolve(1234)
+    
+    -- The function will be executed asynchronously when the promise
+    -- has finished.
+    --
+    -- Nothing is returned from finally()!
+    promise:finally(function()
+      print("Done!")
+    end)
+<
+
+
+PROMISE:WAIT                                   *org-roam-promise-promise:wait*
+
+Waits until the promise finishes. On resolving successfully, the value is
+returned by `wait`, otherwise on rejecting an error is thrown.
+
+>lua
+    -- When a promise is resolved, it will return the value
+    local promise = Promise.resolve(1234)
+    assert(promise:wait() == 1234)
+    
+    -- When a promise is rejected, it will throw an error
+    local promise = Promise.reject("error message")
+    local ok, msg = pcall(promise.wait, promise)
+    assert(not ok)
+    assert(msg == "error message")
+<
+
+
+==============================================================================
+10. Extensions                                           *org-roam-extensions*
 
 
 DAILIES                                          *org-roam-extensions-dailies*
@@ -1992,13 +2118,13 @@ Unimplemented for now!
 
 
 ==============================================================================
-10. Changelog                                             *org-roam-changelog*
+11. Changelog                                             *org-roam-changelog*
 
 TODO
 
 
 ==============================================================================
-11. Credits                                                 *org-roam-credits*
+12. Credits                                                 *org-roam-credits*
 
 - Kristijan Husak <https://github.com/kristijanhusak> for creating nvim-orgmode <https://github.com/nvim-orgmode/orgmode> (the backbone of functionality in neovim that we leverage)
 - Jethro Kuan <https://github.com/jethrokuan> for creating Org Roam (Emacs) <https://github.com/org-roam/org-roam> (the original implementation whose design we copied)
