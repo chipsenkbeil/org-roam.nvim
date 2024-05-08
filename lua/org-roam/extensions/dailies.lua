@@ -87,6 +87,18 @@ local function roam_dailies_files_sorted(roam)
     return files
 end
 
+---Returns list of pre-existing dates based on dailies filenames.
+---@return OrgDate[]
+local function roam_dailies_dates(roam)
+    return vim.tbl_filter(function(d)
+        ---@cast d OrgDate|nil
+        return d ~= nil
+    end, vim.tbl_map(function(path)
+        local filename = vim.fn.fnamemodify(path, ":t:r")
+        return Date.from_string(filename)
+    end, roam_dailies_files(roam)))
+end
+
 ---Creates a new buffer representing an org roam daily note.
 ---@param roam OrgRoam
 ---@param date OrgDate
@@ -166,6 +178,37 @@ local function make_dailies_templates(roam, date)
 end
 
 ---@param roam OrgRoam
+---@return OrgCalendarOnRenderDay
+local function make_render_on_day(roam)
+    ---@param date OrgDate
+    ---@return string
+    local function key(date)
+        return string.format("%s-%s-%s", date.year, date.month, date.day)
+    end
+
+    ---@type table<string, boolean>
+    local dates = {}
+    for _, date in ipairs(roam_dailies_dates(roam)) do
+        dates[key(date)] = true
+    end
+
+    ---@param day OrgDate
+    ---@param opts OrgCalendarOnRenderDayOpts
+    return function(day, opts)
+        if dates[key(day)] then
+            vim.api.nvim_buf_add_highlight(
+                opts.buf,
+                opts.namespace,
+                roam.config.extensions.dailies.ui.calendar.hl_date_exists,
+                opts.line - 1,
+                opts.from - 1,
+                opts.to
+            )
+        end
+    end
+end
+
+---@param roam OrgRoam
 ---@return org-roam.extensions.Dailies
 return function(roam)
     ---@class org-roam.extensions.Dailies
@@ -189,7 +232,11 @@ return function(roam)
 
         return (date
             and Promise.resolve(date)
-            or Calendar.new({ date = date, title = opts.title }):open()
+            or Calendar.new({
+                date = date,
+                title = opts.title,
+                on_day = make_render_on_day(roam),
+            }):open()
         ):next(function(date)
             if date then
                 return roam.api.capture_node({
@@ -249,7 +296,7 @@ return function(roam)
         if type(date) == "table" then
             date_promise = Promise.resolve(date)
         else
-            date_promise = Calendar.new({}):open()
+            date_promise = Calendar.new({ on_day = make_render_on_day(roam) }):open()
         end
 
         return date_promise:next(function(date)

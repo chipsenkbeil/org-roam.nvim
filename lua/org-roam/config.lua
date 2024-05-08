@@ -141,7 +141,7 @@ local DEFAULT_CONFIG = {
                 goto_yesterday = "<Leader>ndy",
             },
 
-            ---Settings tied to org-roam capture templates.
+            ---Settings tied to org-roam dailies capture templates.
             ---@class org-roam.config.extensions.dailies.Templates
             ---@field [string] OrgCaptureTemplateOpts
             templates = {
@@ -149,6 +149,18 @@ local DEFAULT_CONFIG = {
                     description = "default",
                     template = "%?",
                     target = "%<%Y-%m-%d>.org",
+                },
+            },
+
+            ---Settings tied to org-roam dailies user interface.
+            ---@class org-roam.config.extensions.dailies.UserInterface
+            ui = {
+                ---Settings tied to org-roam dailies calendar user interface.
+                ---@class org-roam.config.extensions.dailies.ui.Calendar
+                calendar = {
+                    ---Highlight group to apply to a date that already has a note.
+                    ---@type string
+                    hl_date_exists = "WarningMsg",
                 },
             },
         },
