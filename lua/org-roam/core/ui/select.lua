@@ -59,7 +59,7 @@ local init_highlights = (function()
             -- Define custom highlight group for matching
             local normal_hl = vim.api.nvim_get_hl(0, { name = HIGHLIGHTS.NORMAL })
             local selected_hl = vim.api.nvim_get_hl(0, { name = HIGHLIGHTS.SELECTED })
-            local fg = vim.api.nvim_get_hl(0, { name = HIGHLIGHTS.MATCHED_FG }).fg
+            local fg = vim.api.nvim_get_hl(0, { name = HIGHLIGHTS.MATCHED_FG, link = false }).fg
             vim.api.nvim_set_hl(
                 0,
                 HIGHLIGHTS.MATCHED,
