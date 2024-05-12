@@ -8,6 +8,9 @@
 
    This plugin depends on [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode/orgmode]] @ [[https://github.com/nvim-orgmode/orgmode/commit/cda615fa7c8607bfb7aaf7d2c9424dd5969f2625][commit cda615f]].
 
+   It is recommended to install and maintain the latest version of orgmode,
+   or lock into the commit that this plugin needs, which is illustrated below.
+
 *** lazy.nvim
 
     #+begin_src lua
