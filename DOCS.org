@@ -11,6 +11,10 @@
    It is recommended to install and maintain the latest version of orgmode,
    or lock into the commit that this plugin needs, which is illustrated below.
 
+   | Org Roam Version | Orgmode Version |
+   |------------------+-----------------|
+   | 0.1.0            | 0.3.4           |
+
 *** lazy.nvim
 
     #+begin_src lua
