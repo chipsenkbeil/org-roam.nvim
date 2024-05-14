@@ -30,6 +30,7 @@ Requires *neovim 0.9.2+*.
     #+begin_src lua
     {
       "chipsenkbeil/org-roam.nvim",
+      tag = "0.1.0",
       dependencies = {
         {
           "nvim-orgmode/orgmode",
@@ -54,6 +55,7 @@ Requires *neovim 0.9.2+*.
     #+begin_src lua
     use {
       "chipsenkbeil/org-roam.nvim",
+      tag = "0.1.0",
       requires = {
         {
           "nvim-orgmode/orgmode",
