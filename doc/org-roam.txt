@@ -106,6 +106,7 @@ LAZY.NVIM ~
 >lua
     {
       "chipsenkbeil/org-roam.nvim",
+      tag = "0.1.0",
       dependencies = {
         {
           "nvim-orgmode/orgmode",
@@ -126,6 +127,7 @@ PACKER.NVIM ~
 >lua
     use {
       "chipsenkbeil/org-roam.nvim",
+      tag = "0.1.0",
       requires = {
         {
           "nvim-orgmode/orgmode",
