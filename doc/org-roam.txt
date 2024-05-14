@@ -1,4 +1,4 @@
-*org-roam.txt*             For NVIM v0.9.2            Last change: 2024 May 12
+*org-roam.txt*             For NVIM v0.9.2            Last change: 2024 May 14
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -91,8 +91,8 @@ Requires **neovim 0.9.2+**.
 INSTALLATION                           *org-roam-getting-started-installation*
 
 This plugin depends on nvim-orgmode/orgmode
-<https://github.com/nvim-orgmode/orgmode> @ commit cda615f
-<https://github.com/nvim-orgmode/orgmode/commit/cda615fa7c8607bfb7aaf7d2c9424dd5969f2625>.
+<https://github.com/nvim-orgmode/orgmode> 0.3.4
+<https://github.com/nvim-orgmode/orgmode/releases/tag/0.3.4> or newer.
 
 It is recommended to install and maintain the latest version of orgmode, or
 lock into the commit that this plugin needs, which is illustrated below.
@@ -106,7 +106,7 @@ LAZY.NVIM ~
       dependencies = {
         {
           "nvim-orgmode/orgmode",
-          commit = "cda615fa7c8607bfb7aaf7d2c9424dd5969f2625",
+          tag = "0.3.4",
         },
       },
       config = function()
@@ -126,7 +126,7 @@ PACKER.NVIM ~
       requires = {
         {
           "nvim-orgmode/orgmode",
-          commit = "cda615fa7c8607bfb7aaf7d2c9424dd5969f2625",
+          tag = "0.3.4",
         },
       },
       config = function()
