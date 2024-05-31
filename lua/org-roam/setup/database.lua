@@ -18,13 +18,16 @@ return function(roam)
     })
 
     -- Load the database asynchronously, forcing a full sweep of directory
-    return roam.database:load({ force = "scan" }):next(function()
-        -- If we are persisting to disk, do so now as the database may
-        -- have changed post-load
-        if roam.config.database.persist then
-            return roam.database:save()
-        else
-            return Promise.resolve(nil)
-        end
-    end):catch(notify.error)
+    return roam.database
+        :load({ force = "scan" })
+        :next(function()
+            -- If we are persisting to disk, do so now as the database may
+            -- have changed post-load
+            if roam.config.database.persist then
+                return roam.database:save()
+            else
+                return Promise.resolve(nil)
+            end
+        end)
+        :catch(notify.error)
 end

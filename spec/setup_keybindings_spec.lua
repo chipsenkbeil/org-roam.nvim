@@ -20,7 +20,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -52,7 +52,7 @@ describe("org-roam.setup.keybindings", function()
         assert.are.same({
             ":PROPERTIES:",
             ":ID: 1",
-            ":ROAM_ALIASES: one \"some alias\"",
+            ':ROAM_ALIASES: one "some alias"',
             ":END:",
             "#+FILETAGS: :one:",
             "",
@@ -71,7 +71,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -121,7 +121,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -173,7 +173,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -230,7 +230,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -266,7 +266,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -297,12 +297,15 @@ describe("org-roam.setup.keybindings", function()
         local directory = utils.make_temp_org_files_directory()
         local test_path = utils.join_path(directory, "test-file.org")
 
-        utils.write_to(test_path, utils.indent([=[
+        utils.write_to(
+            test_path,
+            utils.indent([=[
         :PROPERTIES:
         :ID: test-id
         :ROAM_ORIGIN: 1
         :END:
-        ]=]))
+        ]=])
+        )
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
@@ -311,7 +314,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -353,7 +356,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -383,7 +386,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -422,7 +425,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -463,7 +466,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -501,7 +504,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -512,9 +515,9 @@ describe("org-roam.setup.keybindings", function()
 
         -- Select the default template
         utils.mock_vim_inputs({
-            confirm = 0,                   -- confirm no for refile
+            confirm = 0, -- confirm no for refile
             getchar = vim.fn.char2nr("d"), -- select "d" template
-            input   = "Some title",        -- input "Some title" on title prompt
+            input = "Some title", -- input "Some title" on title prompt
         })
 
         -- Trigger the keybinding and wait a bit
@@ -555,7 +558,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -566,7 +569,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Select the default template
         utils.mock_vim_inputs({
-            confirm = 0,                   -- confirm no for refile
+            confirm = 0, -- confirm no for refile
             getchar = vim.fn.char2nr("d"), -- select "d" template
         })
 
@@ -618,7 +621,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -657,7 +660,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -709,7 +712,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -741,7 +744,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -786,7 +789,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -818,7 +821,7 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done

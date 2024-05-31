@@ -41,16 +41,16 @@ local KEYBINDINGS = {
 
 ---Mapping of kind -> highlight group.
 local HL = {
-    NODE_TITLE    = "Title",
-    NODE_ORIGIN   = "Title",
-    COMMENT       = "Comment",
-    KEYBINDING    = "WarningMsg",
+    NODE_TITLE = "Title",
+    NODE_ORIGIN = "Title",
+    COMMENT = "Comment",
+    KEYBINDING = "WarningMsg",
     SECTION_LABEL = "Title",
     SECTION_COUNT = "Normal",
-    LINK_TITLE    = "Title",
+    LINK_TITLE = "Title",
     LINK_LOCATION = "WarningMsg",
-    NORMAL        = "Normal",
-    PREVIEW_LINE  = "PMenu",
+    NORMAL = "Normal",
+    PREVIEW_LINE = "PMenu",
 }
 
 ---Mapping of kind -> icon.
@@ -173,7 +173,9 @@ local function load_lines_at_cursor(roam, path, cursor)
 
             return results
         end)
-        :catch(function(err) notify.error(err) end)
+        :catch(function(err)
+            notify.error(err)
+        end)
 
     ---@param line string
     return vim.tbl_map(function(line)
@@ -215,7 +217,9 @@ local function render(roam, this, node, details)
             -- Get our bindings to display in help, in
             -- a defined and consistent order
             local bindings = vim.tbl_values(KEYBINDINGS)
-            table.sort(bindings, function(a, b) return a.order < b.order end)
+            table.sort(bindings, function(a, b)
+                return a.order < b.order
+            end)
 
             for _, binding in ipairs(bindings) do
                 table.insert(lines, {
@@ -231,10 +235,7 @@ local function render(roam, this, node, details)
 
         -- Insert a full line that contains the node's title
         table.insert(lines, {
-            C.hl(
-                string.format("%sNode: ", details.fixed and "Fixed " or ""),
-                HL.NORMAL
-            ),
+            C.hl(string.format("%sNode: ", details.fixed and "Fixed " or ""), HL.NORMAL),
             C.hl(node.title, HL.NODE_TITLE),
         })
 
@@ -244,13 +245,14 @@ local function render(roam, this, node, details)
             if origin_node then
                 local function do_open()
                     local win = vim.api.nvim_get_current_win()
-                    local filter = function(winnr) return winnr ~= win end
+                    local filter = function(winnr)
+                        return winnr ~= win
+                    end
 
-                    WindowPicker
-                        :new({
-                            autoselect = true,
-                            filter = filter,
-                        })
+                    WindowPicker:new({
+                        autoselect = true,
+                        filter = filter,
+                    })
                         :on_choice(function(winnr)
                             roam.utils.goto_node({
                                 node = origin_node,
@@ -261,10 +263,7 @@ local function render(roam, this, node, details)
                 end
 
                 table.insert(lines, {
-                    C.hl(
-                        "Origin: ",
-                        HL.NORMAL
-                    ),
+                    C.hl("Origin: ", HL.NORMAL),
                     C.hl(origin_node.title, HL.NODE_ORIGIN),
                     C.action(KEYBINDINGS.OPEN_LINK.key, do_open),
                 })
@@ -295,9 +294,7 @@ local function render(roam, this, node, details)
 
                         -- Get the expanded state of the first link to use for everything
                         if is_expanded == nil then
-                            is_expanded =
-                                tbl_utils.get(state.expanded, backlink_node.id, row, col)
-                                or false
+                            is_expanded = tbl_utils.get(state.expanded, backlink_node.id, row, col) or false
                         end
 
                         if not state.expanded[backlink_node.id] then
@@ -337,12 +334,7 @@ local function render(roam, this, node, details)
                     backlink_links_cnt = backlink_links_cnt + 1
 
                     ---@type boolean
-                    local is_expanded = tbl_utils.get(
-                        state.expanded,
-                        backlink_node.id,
-                        row - 1,
-                        col - 1
-                    ) or false
+                    local is_expanded = tbl_utils.get(state.expanded, backlink_node.id, row - 1, col - 1) or false
 
                     local function do_expand()
                         if not state.expanded then
@@ -363,13 +355,14 @@ local function render(roam, this, node, details)
 
                     local function do_open()
                         local win = vim.api.nvim_get_current_win()
-                        local filter = function(winnr) return winnr ~= win end
+                        local filter = function(winnr)
+                            return winnr ~= win
+                        end
 
-                        WindowPicker
-                            :new({
-                                autoselect = true,
-                                filter = filter,
-                            })
+                        WindowPicker:new({
+                            autoselect = true,
+                            filter = filter,
+                        })
                             :on_choice(function(winnr)
                                 vim.api.nvim_set_current_win(winnr)
                                 vim.cmd("e " .. backlink_node.file)
@@ -406,9 +399,10 @@ local function render(roam, this, node, details)
 
                     -- If we have toggled for this location, show the preview
                     if is_expanded then
-                        vim.list_extend(backlink_lines, load_lines_at_cursor(
-                            roam, backlink_node.file, { row, col - 1 }
-                        ))
+                        vim.list_extend(
+                            backlink_lines,
+                            load_lines_at_cursor(roam, backlink_node.file, { row, col - 1 })
+                        )
                     end
                 end
             end
@@ -423,19 +417,11 @@ local function render(roam, this, node, details)
 
         -- Add some global actions: keybindings that can be used anywhere
         table.insert(lines, {
-            C.action(
-                KEYBINDINGS.EXPAND_ALL.key,
-                do_expand_all,
-                { global = true }
-            ),
-            C.action(
-                KEYBINDINGS.REFRESH_BUFFER.key,
-                function()
-                    highlighter.clear_cache()
-                    EMITTER:emit(EVENTS.REFRESH, { force = true })
-                end,
-                { global = true }
-            ),
+            C.action(KEYBINDINGS.EXPAND_ALL.key, do_expand_all, { global = true }),
+            C.action(KEYBINDINGS.REFRESH_BUFFER.key, function()
+                highlighter.clear_cache()
+                EMITTER:emit(EVENTS.REFRESH, { force = true })
+            end, { global = true }),
         })
     end
 

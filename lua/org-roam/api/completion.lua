@@ -29,11 +29,7 @@ local function roam_complete_node_under_cursor(roam, opts)
         local row = cursor[1] - 1 -- make zero-indexed
         local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, true)[1]
 
-        selection = string.sub(
-            line,
-            link.range.start.column + 1,
-            link.range.end_.column + 1
-        )
+        selection = string.sub(line, link.range.start.column + 1, link.range.end_.column + 1)
 
         -- Set initial input to be the link's existing path,
         -- stripping id: if already starting with that
@@ -47,7 +43,8 @@ local function roam_complete_node_under_cursor(roam, opts)
     end
 
     return Promise.new(function(resolve)
-        roam.ui.select_node({ auto_select = true, init_input = input })
+        roam.ui
+            .select_node({ auto_select = true, init_input = input })
             :on_choice(function(choice)
                 local node = roam.database:get_sync(choice.id)
                 if not node then
@@ -70,7 +67,9 @@ local function roam_complete_node_under_cursor(roam, opts)
                 local i = 0
                 while i < string.len(line) do
                     i = string.find(line, selection, i + 1, true)
-                    if i == nil then break end
+                    if i == nil then
+                        break
+                    end
 
                     -- Check if the current match contains the cursor column
                     if i - 1 <= col and i - 1 + #selection > col then
@@ -87,7 +86,7 @@ local function roam_complete_node_under_cursor(roam, opts)
 
                 -- Replace the text (this will place us into insert mode)
                 vim.api.nvim_buf_set_text(bufnr, row, col, row, col + #selection, {
-                    string.format("[[id:%s][%s]]", node.id, choice.label)
+                    string.format("[[id:%s][%s]]", node.id, choice.label),
                 })
 
                 -- Force ourselves back into normal mode
@@ -96,7 +95,9 @@ local function roam_complete_node_under_cursor(roam, opts)
                 -- Mark as successful
                 resolve(true)
             end)
-            :on_cancel(function() resolve(false) end)
+            :on_cancel(function()
+                resolve(false)
+            end)
             :open()
     end)
 end

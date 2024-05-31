@@ -32,13 +32,17 @@ describe("org-roam.core.database", function()
         local is_done = false
 
         local path = vim.fn.tempname()
-        db:write_to_disk(path):catch(function(err)
-            error = err
-        end):finally(function()
-            is_done = true
-        end)
+        db:write_to_disk(path)
+            :catch(function(err)
+                error = err
+            end)
+            :finally(function()
+                is_done = true
+            end)
 
-        vim.wait(10000, function() return is_done end)
+        vim.wait(10000, function()
+            return is_done
+        end)
         assert(not error, error)
 
         -- Check the file was created, and then delete it
@@ -54,7 +58,9 @@ describe("org-roam.core.database", function()
         local id2 = db:insert("two")
 
         db:link(id1, id2)
-        db:new_index("first_letter", function(node) return node:sub(1, 1) end)
+        db:new_index("first_letter", function(node)
+            return node:sub(1, 1)
+        end)
         db:reindex()
 
         local path = vim.fn.tempname()
@@ -82,7 +88,9 @@ describe("org-roam.core.database", function()
         local id2 = db:insert("two")
 
         db:link(id1, id2)
-        db:new_index("first_letter", function(node) return node:sub(1, 1) end)
+        db:new_index("first_letter", function(node)
+            return node:sub(1, 1)
+        end)
         db:reindex()
 
         local path = vim.fn.tempname()
@@ -92,16 +100,21 @@ describe("org-roam.core.database", function()
         local is_done = false
 
         -- Load a fresh copy of the database and verify that nodes, edges, and indexes still exist
-        Database:load_from_disk(path):next(function(d)
-            new_db = d
-            return d
-        end):catch(function(err)
-            error = err
-        end):finally(function()
-            is_done = true
-        end)
+        Database:load_from_disk(path)
+            :next(function(d)
+                new_db = d
+                return d
+            end)
+            :catch(function(err)
+                error = err
+            end)
+            :finally(function()
+                is_done = true
+            end)
 
-        vim.wait(10000, function() return is_done end)
+        vim.wait(10000, function()
+            return is_done
+        end)
         assert(not error, error) ---@cast new_db -nil
 
         assert.are.equal("one", new_db:get(id1))
@@ -464,7 +477,9 @@ describe("org-roam.core.database", function()
         ---@param a {[1]: string, [2]: integer}[]
         ---@param b {[1]: string, [2]: integer}[]
         local function same_tuple_lists(a, b)
-            same_lists(a, b, function(x, y) return x[1] < y[1] end)
+            same_lists(a, b, function(x, y)
+                return x[1] < y[1]
+            end)
         end
 
         local db = Database:new()
@@ -537,15 +552,18 @@ describe("org-roam.core.database", function()
         }, db:iter_nodes({ start_node_id = id1, max_distance = 1 }):collect())
 
         -- Filtering should support blocking out traversal to nodes
-        same_tuple_lists({
-            { id1, 0, n = 2 },
-            { id3, 1, n = 2 },
-        }, db:iter_nodes({
-            start_node_id = id1,
-            filter = function(id, _)
-                return id ~= id2 and id ~= id4
-            end,
-        }):collect())
+        same_tuple_lists(
+            {
+                { id1, 0, n = 2 },
+                { id3, 1, n = 2 },
+            },
+            db:iter_nodes({
+                start_node_id = id1,
+                filter = function(id, _)
+                    return id ~= id2 and id ~= id4
+                end,
+            }):collect()
+        )
     end)
 
     it("should support iterating through paths between nodes", function()
@@ -580,25 +598,29 @@ describe("org-roam.core.database", function()
 
         -- Find paths going from 4 -> 3
         local paths = db:iter_paths(id4, id3):collect()
-        same_lists({
-            { id4, id1, id3 },
-            { id4, id5, id3 },
-        }, paths, function(a, b)
-            if #a ~= #b then
-                return #a < #b
-            end
-
-            for i = 1, #a do
-                local aa = a[i]
-                local bb = b[i]
-
-                if aa ~= bb then
-                    return aa < bb
+        same_lists(
+            {
+                { id4, id1, id3 },
+                { id4, id5, id3 },
+            },
+            paths,
+            function(a, b)
+                if #a ~= #b then
+                    return #a < #b
                 end
-            end
 
-            return false
-        end)
+                for i = 1, #a do
+                    local aa = a[i]
+                    local bb = b[i]
+
+                    if aa ~= bb then
+                        return aa < bb
+                    end
+                end
+
+                return false
+            end
+        )
 
         -- Limit paths going from 1 -> 3
         it = db:iter_paths(id1, id3, { max_distance = 1 })

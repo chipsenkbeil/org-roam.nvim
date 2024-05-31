@@ -44,7 +44,7 @@ describe("org-roam.ui.select-node", function()
         roam = utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory(),
-            }
+            },
         })
     end)
 
@@ -141,7 +141,8 @@ describe("org-roam.ui.select-node", function()
         -- will automatically select a node and close itself
         local selected = false
         local id = nil
-        roam.ui.select_node({ auto_select = true, init_input = "one" })
+        roam.ui
+            .select_node({ auto_select = true, init_input = "one" })
             :on_choice(function(choice)
                 id = choice.id
                 selected = true
@@ -165,8 +166,11 @@ describe("org-roam.ui.select-node", function()
         -- Load up the selection interface for all nodes with autoselect, which
         -- will do nothing because we have more than one node
         local selected = false
-        roam.ui.select_node({ auto_select = true, init_input = "o" })
-            :on_choice(function() selected = true end)
+        roam.ui
+            .select_node({ auto_select = true, init_input = "o" })
+            :on_choice(function()
+                selected = true
+            end)
             :open()
         utils.wait()
 
@@ -192,9 +196,14 @@ describe("org-roam.ui.select-node", function()
         -- Allow missing selection, which we will trigger by pressing <Enter>
         local canceled = false
         local selected = false
-        roam.ui.select_node({ init_input = "four" })
-            :on_choice(function() selected = true end)
-            :on_cancel(function() canceled = true end)
+        roam.ui
+            .select_node({ init_input = "four" })
+            :on_choice(function()
+                selected = true
+            end)
+            :on_cancel(function()
+                canceled = true
+            end)
             :open()
         utils.wait()
 
@@ -214,7 +223,8 @@ describe("org-roam.ui.select-node", function()
         -- Allow missing selection, which we will trigger by pressing <Enter>
         local label = ""
         local selected = false
-        roam.ui.select_node({ allow_select_missing = true })
+        roam.ui
+            .select_node({ allow_select_missing = true })
             :on_choice_missing(function(_label)
                 label = _label
                 selected = true
@@ -256,7 +266,8 @@ describe("org-roam.ui.select-node", function()
         -- Don't allow selecting missing
         local label = ""
         local selected = false
-        roam.ui.select_node()
+        roam.ui
+            .select_node()
             :on_choice_missing(function(_label)
                 label = _label
                 selected = true

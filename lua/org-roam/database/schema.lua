@@ -6,11 +6,11 @@
 
 ---@enum org-roam.database.Schema
 local M = {
-    ALIAS  = "alias",
-    FILE   = "file",
+    ALIAS = "alias",
+    FILE = "file",
     ORIGIN = "origin",
-    TAG    = "tag",
-    TITLE  = "title",
+    TAG = "tag",
+    TITLE = "title",
 }
 
 ---Updates a schema (series of indexes) for the specified database.
@@ -28,11 +28,11 @@ function M:update(db)
 
     local new_indexes = {}
     for name, indexer in pairs({
-        [self.ALIAS]  = field("aliases"),
-        [self.FILE]   = field("file"),
+        [self.ALIAS] = field("aliases"),
+        [self.FILE] = field("file"),
         [self.ORIGIN] = field("origin"),
-        [self.TAG]    = field("tags"),
-        [self.TITLE]  = field("title"),
+        [self.TAG] = field("tags"),
+        [self.TITLE] = field("title"),
     }) do
         if not db:has_index(name) then
             db:new_index(name, indexer)

@@ -24,7 +24,7 @@ local OPEN = {
     bottom = function(rows)
         rows = rows or 15
         return string.format("botright split | resize %s", rows)
-    end
+    end,
 }
 
 local EVENTS = {
@@ -89,9 +89,7 @@ function M:new(opts)
     setmetatable(instance, M)
 
     -- Create the buffer we will use with the window
-    instance.__buffer = opts.buffer or Buffer:new(vim.tbl_extend("keep",
-        opts.bufopts or {}, { name = opts.name }
-    ))
+    instance.__buffer = opts.buffer or Buffer:new(vim.tbl_extend("keep", opts.bufopts or {}, { name = opts.name }))
 
     -- Apply any components we've been assigned
     if type(opts.components) == "table" then

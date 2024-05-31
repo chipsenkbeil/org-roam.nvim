@@ -180,19 +180,22 @@ function M:new(opts)
     end
     local bindings = clean_bindings(opts.bindings or {})
 
-    local format = opts.format or function(item) return tostring(item) end
-    local match = opts.match or function(item, input)
-        local text = string.lower(format(item))
-        input = string.lower(input)
-
-        -- Get inclusive start/end (one-indexed)
-        local start, end_ = string.find(text, input, 1, true)
-        if start and end_ then
-            return { { start, end_ } }
-        else
-            return {}
-        end
+    local format = opts.format or function(item)
+        return tostring(item)
     end
+    local match = opts.match
+        or function(item, input)
+            local text = string.lower(format(item))
+            input = string.lower(input)
+
+            -- Get inclusive start/end (one-indexed)
+            local start, end_ = string.find(text, input, 1, true)
+            if start and end_ then
+                return { { start, end_ } }
+            else
+                return {}
+            end
+        end
     instance.__params = {
         items = opts.items or {},
         init_input = opts.init_input or "",
@@ -304,7 +307,11 @@ function M:open()
             winopts = {
                 cursorline = false,
             },
-            components = { function() return self:__render_component() end },
+            components = {
+                function()
+                    return self:__render_component()
+                end,
+            },
         })
 
         -- If we have some initial filter text, set it on the buffer
@@ -403,22 +410,30 @@ function M:open()
 
         -- Changing selection (down)
         for _, lhs in ipairs(self.__params.bindings.down) do
-            vim.keymap.set("i", lhs, function() self:__select_move_down() end, kopts)
+            vim.keymap.set("i", lhs, function()
+                self:__select_move_down()
+            end, kopts)
         end
 
         -- Changing selection (up)
         for _, lhs in ipairs(self.__params.bindings.up) do
-            vim.keymap.set("i", lhs, function() self:__select_move_up() end, kopts)
+            vim.keymap.set("i", lhs, function()
+                self:__select_move_up()
+            end, kopts)
         end
 
         -- Register callback when selecting a choice that exists
         for _, lhs in ipairs(self.__params.bindings.select) do
-            vim.keymap.set("i", lhs, function() self:__trigger_selection() end, kopts)
+            vim.keymap.set("i", lhs, function()
+                self:__trigger_selection()
+            end, kopts)
         end
 
         -- Register callback when selecting a choice that does not exist
         for _, lhs in ipairs(self.__params.bindings.select_missing) do
-            vim.keymap.set("i", lhs, function() self:__trigger_input_selection() end, kopts)
+            vim.keymap.set("i", lhs, function()
+                self:__trigger_input_selection()
+            end, kopts)
         end
 
         self.__state.window = window
@@ -626,8 +641,7 @@ function M:__refresh_filter()
         local is_initial_input = text == self.__params.init_input
         local is_nonempty = vim.trim(text) ~= ""
         local has_one_item = #self.__view.filtered_items == 1
-        local use_missing = self.__params.allow_select_missing
-            and #self.__view.filtered_items == 0
+        local use_missing = self.__params.allow_select_missing and #self.__view.filtered_items == 0
         if is_nonempty and is_initial_input and (has_one_item or use_missing) then
             self:__trigger_selection()
         end
@@ -750,8 +764,7 @@ function M:__update_prompt()
     end
 
     -- Create or update the mark
-    self.__state.prompt_id = vim.api.nvim_buf_set_extmark(
-        window:bufnr(), window:buffer():namespace(), 0, 0, opts)
+    self.__state.prompt_id = vim.api.nvim_buf_set_extmark(window:bufnr(), window:buffer():namespace(), 0, 0, opts)
 end
 
 ---@private
@@ -774,10 +787,7 @@ end
 ---@private
 ---@return integer
 function M:__view_end()
-    return math.min(
-        self.__view.start + self.__view.max_rows - 1,
-        #self.__view.filtered_items
-    )
+    return math.min(self.__view.start + self.__view.max_rows - 1, #self.__view.filtered_items)
 end
 
 ---@private
@@ -825,7 +835,9 @@ function M:__render_component()
 
         local raw_item = self.__params.items[item[1]]
         local matches = self.__params.match(raw_item, input)
-        table.sort(matches, function(a, b) return a[1] < b[1] end)
+        table.sort(matches, function(a, b)
+            return a[1] < b[1]
+        end)
 
         -- Build up our line segments (start, end, highlight) (one-indexed, end-inclusive)
         ---@type {[1]:integer, [2]:integer, [3]:string}
@@ -850,9 +862,12 @@ function M:__render_component()
         end
 
         -- Build our line as a single segment with highlight
-        table.insert(lines, vim.tbl_map(function(segment)
-            return C.hl(string.sub(text, segment[1], segment[2]), segment[3])
-        end, segments))
+        table.insert(
+            lines,
+            vim.tbl_map(function(segment)
+                return C.hl(string.sub(text, segment[1], segment[2]), segment[3])
+            end, segments)
+        )
     end
 
     return lines

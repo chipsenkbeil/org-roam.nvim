@@ -51,7 +51,7 @@ function M.get(o, ...)
         o = o[k]
         if o == nil then
             return nil
-        elseif type(o) ~= 'table' and next(keys, i) then
+        elseif type(o) ~= "table" and next(keys, i) then
             return nil
         end
     end

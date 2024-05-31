@@ -63,8 +63,8 @@ local default_config = {
     modes = {
         { name = "trace", hl = "Comment" },
         { name = "debug", hl = "Comment" },
-        { name = "info",  hl = "None" },
-        { name = "warn",  hl = "WarningMsg" },
+        { name = "info", hl = "None" },
+        { name = "warn", hl = "WarningMsg" },
         { name = "error", hl = "ErrorMsg" },
         { name = "fatal", hl = "ErrorMsg" },
     },
@@ -84,7 +84,7 @@ local default_config = {
         local nameupper = mode_name:upper()
         local lineinfo = src_path .. ":" .. src_line
         if is_console then
-            return string.format("[%-6s%s] %s: %s", nameupper, os.date "%H:%M:%S", lineinfo, msg)
+            return string.format("[%-6s%s] %s: %s", nameupper, os.date("%H:%M:%S"), lineinfo, msg)
         else
             return string.format("[%-6s%s] %s: %s\n", nameupper, os.date(), lineinfo, msg)
         end
@@ -93,7 +93,6 @@ local default_config = {
     ---@type integer|nil
     info_level = nil,
 }
-
 
 ---Makes internal functions for logging that we'll use at a higher level.
 ---@param config org-roam.core.log.Config
@@ -185,7 +184,7 @@ local function make_internal_logger(config)
                 end
 
                 if obj.config.highlights and level_config.hl then
-                    vim.cmd "echohl NONE"
+                    vim.cmd("echohl NONE")
                 end
             end
             if obj.config.use_console == "sync" and not vim.in_fast_event() then

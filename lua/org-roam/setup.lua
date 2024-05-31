@@ -12,7 +12,7 @@ return function(roam)
     local M = setmetatable({}, {
         __call = function(this, config)
             return this.call(config)
-        end
+        end,
     })
 
     ---Calls the setup function to initialize the plugin.
@@ -28,10 +28,7 @@ return function(roam)
         -- Create the directories if they are missing
         local path = require("org-roam.core.utils.path")
         vim.fn.mkdir(roam.config.directory, "p")
-        vim.fn.mkdir(path.join(
-            roam.config.directory,
-            roam.config.extensions.dailies.directory
-        ), "p")
+        vim.fn.mkdir(path.join(roam.config.directory, roam.config.extensions.dailies.directory), "p")
 
         return M.__initialize_database():next(function()
             return roam
@@ -83,8 +80,9 @@ return function(roam)
     function M.__initialize_database()
         if not M.__initialize_database_done then
             M.__initialize_database_done = true
-            return require("org-roam.setup.database")(roam)
-                :next(function() return nil end)
+            return require("org-roam.setup.database")(roam):next(function()
+                return nil
+            end)
         else
             local Promise = require("orgmode.utils.promise")
             return Promise.resolve(nil)

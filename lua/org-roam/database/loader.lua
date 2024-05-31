@@ -4,21 +4,21 @@
 -- Core logic to load all components of the database.
 -------------------------------------------------------------------------------
 
-local Database  = require("org-roam.core.database")
-local File      = require("org-roam.core.file")
-local io        = require("org-roam.core.utils.io")
+local Database = require("org-roam.core.database")
+local File = require("org-roam.core.file")
+local io = require("org-roam.core.utils.io")
 local join_path = require("org-roam.core.utils.path").join
-local log       = require("org-roam.core.log")
-local OrgFiles  = require("orgmode.files")
-local Promise   = require("orgmode.utils.promise")
-local schema    = require("org-roam.database.schema")
+local log = require("org-roam.core.log")
+local OrgFiles = require("orgmode.files")
+local Promise = require("orgmode.utils.promise")
+local schema = require("org-roam.database.schema")
 
 ---@class org-roam.database.Loader
 ---@field path {database:string, files:string[]}
 ---@field __db org-roam.core.Database #cache of loaded database
 ---@field __files OrgFiles #cache of loaded org files
-local M         = {}
-M.__index       = M
+local M = {}
+M.__index = M
 
 ---Creates a new org-roam database loader.
 ---@param opts {database:string, files:string|string[]}
@@ -172,9 +172,7 @@ local function insert_new_file_into_database(db, file, opts)
     --
     --       I'm not sure if this is needed. We may never encounter
     --       this situation, but I'm leaving it in for now.
-    local has_file = not vim.tbl_isempty(
-        db:find_by_index(schema.FILE, file.filename)
-    )
+    local has_file = not vim.tbl_isempty(db:find_by_index(schema.FILE, file.filename))
     if has_file then
         return modify_file_in_database(db, file, opts)
     end
@@ -217,21 +215,21 @@ function M:load(opts)
         -- Left-only means deleted
         -- Right-only means new
         -- Both means modified
-        local filenames = find_distinct(
-            db:iter_index_keys(schema.FILE):collect(),
-            files:filenames()
-        )
+        local filenames = find_distinct(db:iter_index_keys(schema.FILE):collect(), files:filenames())
 
         local promises = { remove = {}, insert = {}, modify = {} }
 
         -- For each deleted file, remove from database
         for _, filename in ipairs(filenames.left) do
-            table.insert(promises.remove, Promise.new(function(resolve)
-                vim.schedule(function()
-                    log.fmt_debug("removing from database: %s", filename)
-                    resolve(remove_file_from_database(db, filename))
+            table.insert(
+                promises.remove,
+                Promise.new(function(resolve)
+                    vim.schedule(function()
+                        log.fmt_debug("removing from database: %s", filename)
+                        resolve(remove_file_from_database(db, filename))
+                    end)
                 end)
-            end))
+            )
         end
 
         -- For each new file, insert into database
@@ -245,16 +243,19 @@ function M:load(opts)
             local maybe_file = files.all_files[filename]
             local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
 
-            table.insert(promises.insert, files:load_file(filename):next(function(file)
-                if file then
-                    log.fmt_debug("inserting into database: %s", file.filename)
-                    return insert_new_file_into_database(db, file, {
-                        force = force_modify or file.metadata.changedtick ~= changedtick,
-                    })
-                else
-                    return 0
-                end
-            end))
+            table.insert(
+                promises.insert,
+                files:load_file(filename):next(function(file)
+                    if file then
+                        log.fmt_debug("inserting into database: %s", file.filename)
+                        return insert_new_file_into_database(db, file, {
+                            force = force_modify or file.metadata.changedtick ~= changedtick,
+                        })
+                    else
+                        return 0
+                    end
+                end)
+            )
         end
 
         -- For each modified file, check the modified time (any node will do)
@@ -269,22 +270,31 @@ function M:load(opts)
             local maybe_file = files.all_files[filename]
             local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
 
-            table.insert(promises.modify, files:load_file(filename):next(function(file)
-                if file then
-                    log.fmt_debug("modifying in database: %s", file.filename)
-                    return modify_file_in_database(db, file, {
-                        force = force_modify or file.metadata.changedtick ~= changedtick,
-                    })
-                else
-                    return 0
-                end
-            end))
+            table.insert(
+                promises.modify,
+                files:load_file(filename):next(function(file)
+                    if file then
+                        log.fmt_debug("modifying in database: %s", file.filename)
+                        return modify_file_in_database(db, file, {
+                            force = force_modify or file.metadata.changedtick ~= changedtick,
+                        })
+                    else
+                        return 0
+                    end
+                end)
+            )
         end
 
         return Promise.all(promises.remove)
-            :next(function() return Promise.all(promises.insert) end)
-            :next(function() return Promise.all(promises.modify) end)
-            :next(function() return { database = db, files = files } end)
+            :next(function()
+                return Promise.all(promises.insert)
+            end)
+            :next(function()
+                return Promise.all(promises.modify)
+            end)
+            :next(function()
+                return { database = db, files = files }
+            end)
     end)
 end
 
@@ -315,38 +325,39 @@ function M:load_file(opts)
 
         -- This both loads the file and adds it to our file path if not there already
         return Promise.new(function(resolve, reject)
-            files:add_to_paths(opts.path):next(function(file)
-                -- If false, means failed to add the file
-                if not file then
-                    reject("invalid path to org file: " .. opts.path)
+            files
+                :add_to_paths(opts.path)
+                :next(function(file)
+                    -- If false, means failed to add the file
+                    if not file then
+                        reject("invalid path to org file: " .. opts.path)
+                        return file
+                    end
+
+                    -- Determine if the file already exists through nodes in the db
+                    local ids = db:find_by_index(schema.FILE, file.filename)
+                    local has_file = not vim.tbl_isempty(ids)
+
+                    if has_file then
+                        log.fmt_debug("modifying in database: %s", file.filename)
+                        modify_file_in_database(db, file, {
+                            force = opts.force or file.metadata.changedtick ~= changedtick,
+                        })
+                    else
+                        log.fmt_debug("inserting into database: %s", file.filename)
+                        insert_new_file_into_database(db, file, {
+                            force = opts.force or file.metadata.changedtick ~= changedtick,
+                        })
+                    end
+
+                    resolve({
+                        file = file,
+                        nodes = vim.tbl_values(db:get_many(db:find_by_index(schema.FILE, file.filename))),
+                    })
+
                     return file
-                end
-
-                -- Determine if the file already exists through nodes in the db
-                local ids = db:find_by_index(schema.FILE, file.filename)
-                local has_file = not vim.tbl_isempty(ids)
-
-                if has_file then
-                    log.fmt_debug("modifying in database: %s", file.filename)
-                    modify_file_in_database(db, file, {
-                        force = opts.force or file.metadata.changedtick ~= changedtick,
-                    })
-                else
-                    log.fmt_debug("inserting into database: %s", file.filename)
-                    insert_new_file_into_database(db, file, {
-                        force = opts.force or file.metadata.changedtick ~= changedtick,
-                    })
-                end
-
-                resolve({
-                    file = file,
-                    nodes = vim.tbl_values(
-                        db:get_many(db:find_by_index(schema.FILE, file.filename))
-                    ),
-                })
-
-                return file
-            end):catch(reject)
+                end)
+                :catch(reject)
         end)
     end)
 end
@@ -354,33 +365,38 @@ end
 ---Loads database (or retrieves from cache) asynchronously.
 ---@return OrgPromise<org-roam.core.Database>
 function M:database()
-    return self.__db and Promise.resolve(self.__db) or Promise.new(function(resolve)
-        -- Load our database from disk if it is available
-        io.stat(self.path.database):next(function()
-            return Database:load_from_disk(self.path.database):next(function(db)
-                schema:update(db)
-                self.__db = db
+    return self.__db and Promise.resolve(self.__db)
+        or Promise.new(function(resolve)
+            -- Load our database from disk if it is available
+            io.stat(self.path.database)
+                :next(function()
+                    return Database:load_from_disk(self.path.database)
+                        :next(function(db)
+                            schema:update(db)
+                            self.__db = db
 
-                resolve(db)
-                return db
-            end):catch(function(err)
-                log.fmt_error("Failed to load database: %s", err)
+                            resolve(db)
+                            return db
+                        end)
+                        :catch(function(err)
+                            log.fmt_error("Failed to load database: %s", err)
 
-                -- Set up database with a clean slate instead
-                local db = Database:new()
-                schema:update(db)
-                self.__db = db
+                            -- Set up database with a clean slate instead
+                            local db = Database:new()
+                            schema:update(db)
+                            self.__db = db
 
-                resolve(db)
-            end)
-        end):catch(function()
-            local db = Database:new()
-            schema:update(db)
-            self.__db = db
+                            resolve(db)
+                        end)
+                end)
+                :catch(function()
+                    local db = Database:new()
+                    schema:update(db)
+                    self.__db = db
 
-            return resolve(db)
+                    return resolve(db)
+                end)
         end)
-    end)
 end
 
 ---Loads database (or retrieves from cache) synchronously.

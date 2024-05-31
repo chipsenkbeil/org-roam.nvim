@@ -55,13 +55,17 @@ function M.write_file(path, data)
     return Promise.new(function(resolve, reject)
         uv.fs_open(path, "w", DEFAULT_FILE_PERMISSIONS, function(err, fd)
             if err then
-                return vim.schedule(function() reject(err) end)
+                return vim.schedule(function()
+                    reject(err)
+                end)
             end
 
             ---@cast fd -nil
             uv.fs_write(fd, data, -1, function(err)
                 if err then
-                    return vim.schedule(function() reject(err) end)
+                    return vim.schedule(function()
+                        reject(err)
+                    end)
                 end
 
                 -- Force writing of data to avoid situations where
@@ -69,15 +73,21 @@ function M.write_file(path, data)
                 -- the old file contents
                 uv.fs_fsync(fd, function(err)
                     if err then
-                        return vim.schedule(function() reject(err) end)
+                        return vim.schedule(function()
+                            reject(err)
+                        end)
                     end
 
                     uv.fs_close(fd, function(err)
                         if err then
-                            return vim.schedule(function() reject(err) end)
+                            return vim.schedule(function()
+                                reject(err)
+                            end)
                         end
 
-                        vim.schedule(function() resolve(nil) end)
+                        vim.schedule(function()
+                            resolve(nil)
+                        end)
                     end)
                 end)
             end)
@@ -107,27 +117,37 @@ function M.read_file(path)
     return Promise.new(function(resolve, reject)
         uv.fs_open(path, "r", 0, function(err, fd)
             if err then
-                return vim.schedule(function() reject(err) end)
+                return vim.schedule(function()
+                    reject(err)
+                end)
             end
 
             ---@cast fd -nil
             uv.fs_fstat(fd, function(err, stat)
                 if err then
-                    return vim.schedule(function() reject(err) end)
+                    return vim.schedule(function()
+                        reject(err)
+                    end)
                 end
 
                 ---@cast stat -nil
                 uv.fs_read(fd, stat.size, 0, function(err, data)
                     if err then
-                        return vim.schedule(function() reject(err) end)
+                        return vim.schedule(function()
+                            reject(err)
+                        end)
                     end
 
                     uv.fs_close(fd, function(err)
                         if err then
-                            return vim.schedule(function() reject(err) end)
+                            return vim.schedule(function()
+                                reject(err)
+                            end)
                         end
 
-                        vim.schedule(function() resolve(data) end)
+                        vim.schedule(function()
+                            resolve(data)
+                        end)
                     end)
                 end)
             end)
@@ -167,10 +187,14 @@ function M.stat(path)
     return Promise.new(function(resolve, reject)
         uv.fs_stat(path, function(err, stat)
             if err then
-                return vim.schedule(function() reject(err) end)
+                return vim.schedule(function()
+                    reject(err)
+                end)
             end
 
-            vim.schedule(function() resolve(stat) end)
+            vim.schedule(function()
+                resolve(stat)
+            end)
         end)
     end)
 end
@@ -203,10 +227,14 @@ function M.unlink(path)
     return Promise.new(function(resolve, reject)
         uv.fs_unlink(path, function(err, success)
             if err then
-                return vim.schedule(function() reject(err) end)
+                return vim.schedule(function()
+                    reject(err)
+                end)
             end
 
-            vim.schedule(function() resolve(success) end)
+            vim.schedule(function()
+                resolve(success)
+            end)
         end)
     end)
 end
@@ -256,10 +284,10 @@ function M.walk(path, opts)
             entry_path = path_utils.normalize(entry_path, { expand_env = true })
 
             return {
-                name     = name,
+                name = name,
                 filename = vim.fs.basename(name),
-                path     = entry_path,
-                type     = type,
+                path = entry_path,
+                type = type,
             }
         end
     end

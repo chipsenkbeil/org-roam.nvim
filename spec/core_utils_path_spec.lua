@@ -8,23 +8,15 @@ describe("org-roam.core.utils.path", function()
         end)
 
         it("should combine paths using system separator", function()
-            local sep = string.lower(vim.trim(uv.os_uname().sysname)) == "windows"
-                and "\\" or "/"
+            local sep = string.lower(vim.trim(uv.os_uname().sysname)) == "windows" and "\\" or "/"
 
-            assert.are.equal(
-                "path" .. sep .. "to" .. sep .. "file",
-                path.join("path", "to", "file")
-            )
+            assert.are.equal("path" .. sep .. "to" .. sep .. "file", path.join("path", "to", "file"))
         end)
 
         it("should replace ongoing path with absolute path provided", function()
-            local sep = string.lower(vim.trim(uv.os_uname().sysname)) == "windows"
-                and "\\" or "/"
+            local sep = string.lower(vim.trim(uv.os_uname().sysname)) == "windows" and "\\" or "/"
 
-            assert.are.equal(
-                sep .. "to" .. sep .. "file",
-                path.join("path", sep .. "to", "file")
-            )
+            assert.are.equal(sep .. "to" .. sep .. "file", path.join("path", sep .. "to", "file"))
         end)
 
         it("should support replacing absolute paths with prefixes on Windows", function()
@@ -32,7 +24,9 @@ describe("org-roam.core.utils.path", function()
 
             -- Force our separator to be Windows
             ---@diagnostic disable-next-line:duplicate-set-field
-            path.separator = function() return "\\" end
+            path.separator = function()
+                return "\\"
+            end
 
             local actual = path.join(
                 "C:\\\\Users\\senkwich\\orgfiles\\roam\\",
@@ -44,15 +38,9 @@ describe("org-roam.core.utils.path", function()
 
             -- On Mac/Linux, we don't escape \ into /
             if path.separator() == "\\" then
-                assert.are.equal(
-                    "C:/Users/senkwich/orgfiles/roam/20240429235641-test.org",
-                    actual
-                )
+                assert.are.equal("C:/Users/senkwich/orgfiles/roam/20240429235641-test.org", actual)
             else
-                assert.are.equal(
-                    "C:\\\\Users\\senkwich\\orgfiles\\roam\\20240429235641-test.org",
-                    actual
-                )
+                assert.are.equal("C:\\\\Users\\senkwich\\orgfiles\\roam\\20240429235641-test.org", actual)
             end
         end)
 

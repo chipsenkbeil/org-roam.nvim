@@ -156,11 +156,7 @@ function M:query_params(opts)
         ---@type {[string]: string}
         query_table = {}
 
-        local PATTERN = string.format(
-            "([^%s=]+)=([^%s=]*)",
-            delimiter,
-            delimiter
-        )
+        local PATTERN = string.format("([^%s=]+)=([^%s=]*)", delimiter, delimiter)
         for key, value in string.gmatch(self.query, PATTERN) do
             query_table[key] = value
         end

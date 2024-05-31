@@ -40,8 +40,7 @@ function M:__index(key)
 
     -- Check the fields of the table, then the metatable
     -- of the table which includes methods defined below
-    local self_value = rawget(self, key)
-        or rawget(getmetatable(self) or {}, key)
+    local self_value = rawget(self, key) or rawget(getmetatable(self) or {}, key)
     if self_value ~= nil then
         return self_value
     end
@@ -121,43 +120,49 @@ end
 ---@return OrgPromise<{database:org-roam.core.Database, files:OrgFiles}>
 function M:load(opts)
     opts = opts or {}
-    log.fmt_debug("loading all files into database (force=%s)",
-        opts.force or false)
+    log.fmt_debug("loading all files into database (force=%s)", opts.force or false)
 
     local profiler = Profiler:new({ label = "org-roam-load" })
     local rec_id = profiler:start()
 
-    return self:__get_loader():load({
-        force = opts.force,
-    }):next(function(...)
-        profiler:stop(rec_id)
-        log.fmt_debug("loading all files into database took %s",
-            profiler:time_taken_as_string({ recording = rec_id }))
+    return self:__get_loader()
+        :load({
+            force = opts.force,
+        })
+        :next(function(...)
+            profiler:stop(rec_id)
+            log.fmt_debug(
+                "loading all files into database took %s",
+                profiler:time_taken_as_string({ recording = rec_id })
+            )
 
-        return ...
-    end)
+            return ...
+        end)
 end
 
 ---@param opts {path:string, force?:boolean}
 ---@return OrgPromise<{file:OrgFile, nodes:org-roam.core.file.Node[]}>
 function M:load_file(opts)
-    log.fmt_debug("loading %s into database (force=%s)",
-        opts.path, opts.force or false)
+    log.fmt_debug("loading %s into database (force=%s)", opts.path, opts.force or false)
 
     local profiler = Profiler:new({ label = "org-roam-load-file" })
     local rec_id = profiler:start()
 
-    return self:__get_loader():load_file({
-        path = opts.path,
-        force = opts.force,
-    }):next(function(...)
-        profiler:stop(rec_id)
-        log.fmt_debug("loading %s into database took %s",
-            opts.path,
-            profiler:time_taken_as_string({ recording = rec_id }))
+    return self:__get_loader()
+        :load_file({
+            path = opts.path,
+            force = opts.force,
+        })
+        :next(function(...)
+            profiler:stop(rec_id)
+            log.fmt_debug(
+                "loading %s into database took %s",
+                opts.path,
+                profiler:time_taken_as_string({ recording = rec_id })
+            )
 
-        return ...
-    end)
+            return ...
+        end)
 end
 
 ---Saves the database to disk.
@@ -177,8 +182,10 @@ function M:save(opts)
         -- If our last save was recent enough, do not actually save
         if not opts.force and self.__last_save >= db:changed_tick() then
             profiler:stop(rec_id)
-            log.fmt_debug("saving database took %s (nothing to save)",
-                profiler:time_taken_as_string({ recording = rec_id }))
+            log.fmt_debug(
+                "saving database took %s (nothing to save)",
+                profiler:time_taken_as_string({ recording = rec_id })
+            )
             return Promise.resolve(false)
         end
 
@@ -186,8 +193,7 @@ function M:save(opts)
         return self:load():next(function()
             return db:write_to_disk(self.__database_path):next(function()
                 profiler:stop(rec_id)
-                log.fmt_debug("saving database took %s",
-                    profiler:time_taken_as_string({ recording = rec_id }))
+                log.fmt_debug("saving database took %s", profiler:time_taken_as_string({ recording = rec_id }))
 
                 self.__last_save = db:changed_tick()
                 return true
@@ -200,16 +206,20 @@ end
 ---@return OrgPromise<boolean>
 function M:delete_disk_cache()
     return Promise.new(function(resolve, reject)
-        io.stat(self.__database_path):next(function()
-            return io.unlink(self.__database_path):next(function(success)
-                resolve(success)
-                return success
-            end):catch(function(err)
-                reject(err)
+        io.stat(self.__database_path)
+            :next(function()
+                return io.unlink(self.__database_path)
+                    :next(function(success)
+                        resolve(success)
+                        return success
+                    end)
+                    :catch(function(err)
+                        reject(err)
+                    end)
             end)
-        end):catch(function()
-            resolve(false)
-        end)
+            :catch(function()
+                resolve(false)
+            end)
     end)
 end
 

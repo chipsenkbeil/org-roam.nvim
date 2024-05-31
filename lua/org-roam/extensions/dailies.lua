@@ -19,10 +19,7 @@ local Promise = require("orgmode.utils.promise")
 ---@param roam OrgRoam
 ---@return string
 local function roam_dailies_dir(roam)
-    return vim.fs.normalize(join_path(
-        roam.config.directory,
-        roam.config.extensions.dailies.directory
-    ))
+    return vim.fs.normalize(join_path(roam.config.directory, roam.config.extensions.dailies.directory))
 end
 
 ---Converts date to YYYY-MM-DD format.
@@ -64,17 +61,20 @@ end
 ---@param roam OrgRoam
 ---@return string[]
 local function roam_dailies_files(roam)
-    return io.walk(roam_dailies_dir(roam)):filter(function(entry)
-        ---@cast entry org-roam.core.utils.io.WalkEntry
-        local filename = vim.fn.fnamemodify(entry.filename, ":t:r")
-        local ext = vim.fn.fnamemodify(entry.filename, ":e")
-        local is_org = ext == "org" or ext == "org_archive"
-        local is_date = Date.is_valid_date(filename) ~= nil
-        return entry.type == "file" and is_org and is_date
-    end):map(function(entry)
-        ---@cast entry org-roam.core.utils.io.WalkEntry
-        return entry.path
-    end):collect()
+    return io.walk(roam_dailies_dir(roam))
+        :filter(function(entry)
+            ---@cast entry org-roam.core.utils.io.WalkEntry
+            local filename = vim.fn.fnamemodify(entry.filename, ":t:r")
+            local ext = vim.fn.fnamemodify(entry.filename, ":e")
+            local is_org = ext == "org" or ext == "org_archive"
+            local is_date = Date.is_valid_date(filename) ~= nil
+            return entry.type == "file" and is_org and is_date
+        end)
+        :map(function(entry)
+            ---@cast entry org-roam.core.utils.io.WalkEntry
+            return entry.path
+        end)
+        :collect()
 end
 
 ---Returns list of file paths representing org files within dailies
@@ -90,13 +90,16 @@ end
 ---Returns list of pre-existing dates based on dailies filenames.
 ---@return OrgDate[]
 local function roam_dailies_dates(roam)
-    return vim.tbl_filter(function(d)
-        ---@cast d OrgDate|nil
-        return d ~= nil
-    end, vim.tbl_map(function(path)
-        local filename = vim.fn.fnamemodify(path, ":t:r")
-        return Date.from_string(filename)
-    end, roam_dailies_files(roam)))
+    return vim.tbl_filter(
+        function(d)
+            ---@cast d OrgDate|nil
+            return d ~= nil
+        end,
+        vim.tbl_map(function(path)
+            local filename = vim.fn.fnamemodify(path, ":t:r")
+            return Date.from_string(filename)
+        end, roam_dailies_files(roam))
+    )
 end
 
 ---Creates a new buffer representing an org roam daily note.
@@ -109,10 +112,7 @@ local function make_daily_buffer(roam, date, title)
     assert(buf ~= 0, "failed to create daily buffer")
 
     -- Update the filename of the buffer to be `path/to/{DATE}.org`
-    vim.api.nvim_buf_set_name(buf, join_path(
-        roam_dailies_dir(roam),
-        date_string(date) .. ".org"
-    ))
+    vim.api.nvim_buf_set_name(buf, join_path(roam_dailies_dir(roam), date_string(date) .. ".org"))
 
     -- Set filetype to org
     vim.api.nvim_buf_set_option(buf, "filetype", "org")
@@ -144,11 +144,7 @@ local function make_dailies_templates(roam, date)
     ---@return string
     local function format_date(content)
         for exp in string.gmatch(content, "%%<[^>]*>") do
-            content = string.gsub(
-                content,
-                vim.pesc(exp),
-                os.date(exp:sub(3, -2), date and date.timestamp)
-            )
+            content = string.gsub(content, vim.pesc(exp), os.date(exp:sub(3, -2), date and date.timestamp))
         end
         return content
     end
@@ -160,10 +156,7 @@ local function make_dailies_templates(roam, date)
         -- and be populated with the specified date
         local target = tmpl.target
         if target then
-            tmpl.target = join_path(
-                roam.config.extensions.dailies.directory,
-                format_date(target)
-            )
+            tmpl.target = join_path(roam.config.extensions.dailies.directory, format_date(target))
         end
 
         local template = tmpl.template
@@ -230,14 +223,11 @@ return function(roam)
             end
         end
 
-        return (date
-            and Promise.resolve(date)
-            or Calendar.new({
-                date = date,
-                title = opts.title,
-                on_day = make_render_on_day(roam),
-            }):open()
-        ):next(function(date)
+        return (date and Promise.resolve(date) or Calendar.new({
+            date = date,
+            title = opts.title,
+            on_day = make_render_on_day(roam),
+        }):open()):next(function(date)
             if date then
                 return roam.api.capture_node({
                     origin = false,
@@ -306,24 +296,26 @@ return function(roam)
             if date then
                 local path = date_to_path(roam, date)
                 return Promise.new(function(resolve)
-                    io.stat(path):next(function(stat)
-                        pcall(vim.api.nvim_set_current_win, win)
-                        vim.cmd.edit(path)
-                        resolve(date)
-                        return stat
-                    end):catch(function()
-                        local buf = make_daily_buffer(roam, date)
-                        pcall(vim.api.nvim_win_set_buf, win, buf)
-
-                        -- NOTE: Must perform detection when buffer
-                        --       is first created in order for folding
-                        --       and other functionality to work!
-                        vim.api.nvim_buf_call(buf, function()
-                            vim.cmd("filetype detect")
+                    io.stat(path)
+                        :next(function(stat)
+                            pcall(vim.api.nvim_set_current_win, win)
+                            vim.cmd.edit(path)
+                            resolve(date)
+                            return stat
                         end)
+                        :catch(function()
+                            local buf = make_daily_buffer(roam, date)
+                            pcall(vim.api.nvim_win_set_buf, win, buf)
 
-                        return resolve(date)
-                    end)
+                            -- NOTE: Must perform detection when buffer
+                            --       is first created in order for folding
+                            --       and other functionality to work!
+                            vim.api.nvim_buf_call(buf, function()
+                                vim.cmd("filetype detect")
+                            end)
+
+                            return resolve(date)
+                        end)
                 end)
             else
                 return date

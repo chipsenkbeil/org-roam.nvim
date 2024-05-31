@@ -11,7 +11,7 @@ describe("org-roam.api.node", function()
         roam = utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory(),
-            }
+            },
         })
 
         one_path = utils.join_path(roam.config.directory, "one.org")
@@ -29,9 +29,9 @@ describe("org-roam.api.node", function()
         vim.cmd.edit(one_path)
 
         utils.mock_vim_inputs({
-            confirm = 1,                   -- confirm yes for refile
+            confirm = 1, -- confirm yes for refile
             getchar = vim.fn.char2nr("d"), -- select "d" template
-            input   = "Some title",        -- input "Some title" on title prompt
+            input = "Some title", -- input "Some title" on title prompt
         })
 
         -- Start the capture process
@@ -77,9 +77,9 @@ describe("org-roam.api.node", function()
         vim.cmd.edit(one_path)
 
         utils.mock_vim_inputs({
-            confirm = 1,                   -- confirm yes for refile
+            confirm = 1, -- confirm yes for refile
             getchar = vim.fn.char2nr("v"), -- select "v" template
-            input   = "Some title",        -- input "Some title" on title prompt
+            input = "Some title", -- input "Some title" on title prompt
         })
 
         -- Start the capture process using a custom template
@@ -206,7 +206,7 @@ describe("org-roam.api.node", function()
         utils.write_to(test_path, {
             ":PROPERTIES:",
             ":ID: test-node-id",
-            ":ROAM_ALIASES: \"some test alias\"",
+            ':ROAM_ALIASES: "some test alias"',
             ":END:",
         })
 
@@ -251,7 +251,7 @@ describe("org-roam.api.node", function()
         vim.cmd.edit(one_path)
 
         utils.mock_vim_inputs({
-            confirm = 1,                   -- confirm yes for refile
+            confirm = 1, -- confirm yes for refile
             getchar = vim.fn.char2nr("d"), -- select "d" template
         })
 
@@ -302,7 +302,7 @@ describe("org-roam.api.node", function()
         vim.cmd.edit(one_path)
 
         utils.mock_vim_inputs({
-            confirm = 1,                   -- confirm yes for refile
+            confirm = 1, -- confirm yes for refile
             getchar = vim.fn.char2nr("v"), -- select "v" template
         })
 
@@ -431,7 +431,7 @@ describe("org-roam.api.node", function()
         vim.cmd.edit(one_path)
 
         utils.mock_vim_inputs({
-            confirm = 1,                   -- confirm yes for refile
+            confirm = 1, -- confirm yes for refile
             getchar = vim.fn.char2nr("d"), -- select "d" template
         })
 
@@ -478,7 +478,7 @@ describe("org-roam.api.node", function()
         vim.cmd.edit(one_path)
 
         utils.mock_vim_inputs({
-            confirm = 1,                   -- confirm yes for refile
+            confirm = 1, -- confirm yes for refile
             getchar = vim.fn.char2nr("v"), -- select "v" template
         })
 

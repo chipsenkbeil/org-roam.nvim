@@ -56,13 +56,13 @@ for _, plugin in ipairs(plugins) do
     -- If plugin not yet downloaded, do that now
     if vim.fn.isdirectory(plugin.path) == 0 then
         report("Downloading " .. plugin.name .. " into: " .. plugin.path)
-        vim.fn.system {
+        vim.fn.system({
             "git",
             "clone",
             "--depth=1",
             plugin.repo,
             plugin.path,
-        }
+        })
     end
 
     -- Add plugin to our runtime path

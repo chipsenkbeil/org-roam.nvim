@@ -21,13 +21,18 @@ return function(roam)
         local profiler = Profiler:new()
         profiler:start()
 
-        local promise = roam.database:save({ force = force }):next(function(...)
-            local tt = profiler:stop():time_taken_as_string()
-            notify.info("Saved database [took " .. tt .. "]")
-            return ...
-        end):catch(notify.error)
+        local promise = roam.database
+            :save({ force = force })
+            :next(function(...)
+                local tt = profiler:stop():time_taken_as_string()
+                notify.info("Saved database [took " .. tt .. "]")
+                return ...
+            end)
+            :catch(notify.error)
 
-        if sync then promise:wait() end
+        if sync then
+            promise:wait()
+        end
     end, {
         bang = true,
         desc = "Saves the roam database to disk",
@@ -44,13 +49,18 @@ return function(roam)
         profiler:start()
 
         log.fmt_debug("Updating database (force = %s, sync = %s)", force, sync)
-        local promise = roam.database:load({ force = force or "scan" }):next(function(...)
-            local tt = profiler:stop():time_taken_as_string()
-            notify.info("Updated database [took " .. tt .. "]")
-            return ...
-        end):catch(notify.error)
+        local promise = roam.database
+            :load({ force = force or "scan" })
+            :next(function(...)
+                local tt = profiler:stop():time_taken_as_string()
+                notify.info("Updated database [took " .. tt .. "]")
+                return ...
+            end)
+            :catch(notify.error)
 
-        if sync then promise:wait() end
+        if sync then
+            promise:wait()
+        end
     end, {
         bang = true,
         desc = "Updates the roam database",
@@ -71,14 +81,19 @@ return function(roam)
             -- Start profiling so we can report the time taken
             local profiler = Profiler:new()
             profiler:start()
-            return roam.database:load():next(function(...)
-                local tt = profiler:stop():time_taken_as_string()
-                notify.info("Loaded database [took " .. tt .. "]")
-                return ...
-            end):catch(notify.error)
+            return roam.database
+                :load()
+                :next(function(...)
+                    local tt = profiler:stop():time_taken_as_string()
+                    notify.info("Loaded database [took " .. tt .. "]")
+                    return ...
+                end)
+                :catch(notify.error)
         end)
 
-        if sync then promise:wait() end
+        if sync then
+            promise:wait()
+        end
     end, {
         desc = "Resets the roam database (wipe and rebuild)",
         nargs = "?",

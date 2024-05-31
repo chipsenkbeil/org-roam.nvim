@@ -73,16 +73,22 @@ describe("org-roam.core.utils.io", function()
             local is_done = false
 
             local path = vim.fn.tempname()
-            utils_io.read_file(path):next(function(d)
-                data = d
-                return d
-            end):catch(function(err)
-                error = err
-            end):finally(function()
-                is_done = true
-            end)
+            utils_io
+                .read_file(path)
+                :next(function(d)
+                    data = d
+                    return d
+                end)
+                :catch(function(err)
+                    error = err
+                end)
+                :finally(function()
+                    is_done = true
+                end)
 
-            vim.wait(10000, function() return is_done end)
+            vim.wait(10000, function()
+                return is_done
+            end)
 
             assert.is_not_nil(error)
             assert.is_nil(data)
@@ -93,16 +99,22 @@ describe("org-roam.core.utils.io", function()
             local is_done = false
 
             local path = create_temp_file("hello world")
-            utils_io.read_file(path):next(function(d)
-                data = d
-                return d
-            end):catch(function(err)
-                error = err
-            end):finally(function()
-                is_done = true
-            end)
+            utils_io
+                .read_file(path)
+                :next(function(d)
+                    data = d
+                    return d
+                end)
+                :catch(function(err)
+                    error = err
+                end)
+                :finally(function()
+                    is_done = true
+                end)
 
-            vim.wait(10000, function() return is_done end)
+            vim.wait(10000, function()
+                return is_done
+            end)
 
             assert.is_nil(error)
             assert.are.equal("hello world", data)
@@ -137,13 +149,18 @@ describe("org-roam.core.utils.io", function()
             local is_done = false
 
             local path = vim.fn.tempname()
-            utils_io.write_file(path, "hello world"):catch(function(err)
-                error = err
-            end):finally(function()
-                is_done = true
-            end)
+            utils_io
+                .write_file(path, "hello world")
+                :catch(function(err)
+                    error = err
+                end)
+                :finally(function()
+                    is_done = true
+                end)
 
-            vim.wait(10000, function() return is_done end)
+            vim.wait(10000, function()
+                return is_done
+            end)
 
             local data = read_temp_file(path)
 
@@ -157,13 +174,18 @@ describe("org-roam.core.utils.io", function()
 
             local path = create_temp_file("test")
 
-            utils_io.write_file(path, "hello world"):catch(function(err)
-                error = err
-            end):finally(function()
-                is_done = true
-            end)
+            utils_io
+                .write_file(path, "hello world")
+                :catch(function(err)
+                    error = err
+                end)
+                :finally(function()
+                    is_done = true
+                end)
 
-            vim.wait(10000, function() return is_done end)
+            vim.wait(10000, function()
+                return is_done
+            end)
 
             local data = read_temp_file(path)
 
@@ -199,16 +221,22 @@ describe("org-roam.core.utils.io", function()
             local is_done = false
 
             local path = vim.fn.tempname()
-            utils_io.stat(path):next(function(s)
-                stat = s
-                return s
-            end):catch(function(err)
-                error = err
-            end):finally(function()
-                is_done = true
-            end)
+            utils_io
+                .stat(path)
+                :next(function(s)
+                    stat = s
+                    return s
+                end)
+                :catch(function(err)
+                    error = err
+                end)
+                :finally(function()
+                    is_done = true
+                end)
 
-            vim.wait(10000, function() return is_done end)
+            vim.wait(10000, function()
+                return is_done
+            end)
 
             assert.is_not_nil(error)
             assert.is_nil(stat)
@@ -219,16 +247,22 @@ describe("org-roam.core.utils.io", function()
             local is_done = false
 
             local path = create_temp_file("test")
-            utils_io.stat(path):next(function(s)
-                stat = s
-                return s
-            end):catch(function(err)
-                error = err
-            end):finally(function()
-                is_done = true
-            end)
+            utils_io
+                .stat(path)
+                :next(function(s)
+                    stat = s
+                    return s
+                end)
+                :catch(function(err)
+                    error = err
+                end)
+                :finally(function()
+                    is_done = true
+                end)
 
-            vim.wait(10000, function() return is_done end)
+            vim.wait(10000, function()
+                return is_done
+            end)
 
             assert.is_nil(error)
             assert.is_not_nil(stat) ---@cast stat -nil
@@ -270,10 +304,10 @@ describe("org-roam.core.utils.io", function()
                 return a.path < b.path
             end)
             assert.are.same({
-                { filename = "dir1",  name = "dir1",                path = dir1,  type = "directory" },
+                { filename = "dir1", name = "dir1", path = dir1, type = "directory" },
                 { filename = "file1", name = join("dir1", "file1"), path = file1, type = "file" },
                 { filename = "file2", name = join("dir1", "file2"), path = file2, type = "file" },
-                { filename = "dir2",  name = "dir2",                path = dir2,  type = "directory" },
+                { filename = "dir2", name = "dir2", path = dir2, type = "directory" },
             }, entries)
         end)
 

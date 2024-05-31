@@ -101,16 +101,9 @@ function M:print_as_string(opts)
                 os.date("%T", recording[2])
             )
         elseif self:recording_cnt() == 0 then
-            return string.format(
-                "[%s] No recording available",
-                self.__label
-            )
+            return string.format("[%s] No recording available", self.__label)
         else
-            return string.format(
-                "[%s] Invalid recording (%s)",
-                self.__label,
-                opts.recording
-            )
+            return string.format("[%s] Invalid recording (%s)", self.__label, opts.recording)
         end
     end
 end
@@ -140,7 +133,9 @@ function M:time_taken(opts)
         end
 
         -- Take the average
-        if cnt > 0 then total_in_secs = math.floor(total_in_secs / cnt) end
+        if cnt > 0 then
+            total_in_secs = math.floor(total_in_secs / cnt)
+        end
     else
         assert(self:recording_cnt() > 0, "no recording available")
         local recording = assert(self:recording(opts.recording), "invalid recording")

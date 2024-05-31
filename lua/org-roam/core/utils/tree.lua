@@ -275,11 +275,7 @@ end
 ---@param opts? org-roam.core.utils.tree.FindOpts
 ---@return org-roam.core.utils.IntervalTree|nil
 function M:find_first(opts)
-    local nodes = self:find_all(vim.tbl_extend(
-        "keep",
-        { limit = 1 },
-        opts or {}
-    ))
+    local nodes = self:find_all(vim.tbl_extend("keep", { limit = 1 }, opts or {}))
     return nodes[1]
 end
 
@@ -402,16 +398,9 @@ function M:to_string(opts)
     local data = map(self.data)
     local max = opts.max
 
-    local s = string.format(
-        "[%s,%s] \"%s\"",
-        self._start,
-        self._end,
-        max and string.sub(data, 1, max) or data
-    )
+    local s = string.format('[%s,%s] "%s"', self._start, self._end, max and string.sub(data, 1, max) or data)
     if self._depth > 1 then
-        s = string.rep(" ", (self._depth - 2) * 2)
-            .. "┗━ "
-            .. s
+        s = string.rep(" ", (self._depth - 2) * 2) .. "┗━ " .. s
     end
 
     if self.left then

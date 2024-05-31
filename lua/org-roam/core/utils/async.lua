@@ -95,11 +95,9 @@ function M.wrap(f, opts)
 
         f(unpack(args, 1, args.n))
 
-        local success, err = vim.wait(
-            TIME,
-            function() return results.done end,
-            INTERVAL
-        )
+        local success, err = vim.wait(TIME, function()
+            return results.done
+        end, INTERVAL)
 
         -- If we failed to wait, throw an error based on the code
         if not success then

@@ -14,7 +14,7 @@ local seeded = false
 function M.random(m, n)
     if seeded == false then
         -- https://www.lua-users.org/wiki/MathLibraryTutorial
-        math.randomseed(tonumber(tostring(os.time()):reverse():sub(1,6)))
+        math.randomseed(tonumber(tostring(os.time()):reverse():sub(1, 6)))
         seeded = true
     end
     return math.random(m, n)

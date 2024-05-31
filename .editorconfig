@@ -1,0 +1,15 @@
+# see https://github.com/CppCXY/EmmyLuaCodeStyle
+[*.yml]
+quote_style = double
+
+[*.lua]
+
+indent_style = space
+indent_size = 4
+quote_style = double
+
+continuation_indent = 4
+max_line_length = 120
+
+end_of_line = lf
+

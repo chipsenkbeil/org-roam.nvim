@@ -5,9 +5,9 @@ describe("org-roam.core.utils.tree", function()
         -- Tree is built up using the list in order
         local tree = Tree:from_list({
             { 20, 36, "a" },
-            { 3,  41, "b" },
+            { 3, 41, "b" },
             { 29, 99, "c" },
-            { 0,  1,  "d" },
+            { 0, 1, "d" },
             { 10, 15, "e" },
         })
 
@@ -31,9 +31,9 @@ describe("org-roam.core.utils.tree", function()
     it("should support querying for tree nodes that intersect with a point", function()
         local tree = Tree:from_list({
             { 20, 36, "a" },
-            { 3,  41, "b" },
+            { 3, 41, "b" },
             { 29, 99, "c" },
-            { 0,  1,  "d" },
+            { 0, 1, "d" },
             { 10, 15, "e" },
         })
 
@@ -64,9 +64,9 @@ describe("org-roam.core.utils.tree", function()
     it("should support querying for tree nodes that intersect with an interval", function()
         local tree = Tree:from_list({
             { 20, 36, "a" },
-            { 3,  41, "b" },
+            { 3, 41, "b" },
             { 29, 99, "c" },
-            { 0,  1,  "d" },
+            { 0, 1, "d" },
             { 10, 15, "e" },
         })
 

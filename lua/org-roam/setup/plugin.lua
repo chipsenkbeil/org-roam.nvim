@@ -23,8 +23,7 @@ return function(roam)
 
         -- If we found a node, open the file at the start of the node
         if node then
-            log.fmt_debug("Detected node %s under at (%d,%d)",
-                node.id, row, col)
+            log.fmt_debug("Detected node %s under at (%d,%d)", node.id, row, col)
             local winnr = vim.api.nvim_get_current_win()
             vim.cmd.edit(node.file)
 
@@ -32,10 +31,7 @@ return function(roam)
             vim.schedule(function()
                 -- Ensure that we do not jump past our buffer's last line!
                 local bufnr = vim.api.nvim_win_get_buf(winnr)
-                local line = math.min(
-                    vim.api.nvim_buf_line_count(bufnr),
-                    node.range.start.row + 1
-                )
+                local line = math.min(vim.api.nvim_buf_line_count(bufnr), node.range.start.row + 1)
 
                 vim.api.nvim_win_set_cursor(winnr, { line, 0 })
             end)
