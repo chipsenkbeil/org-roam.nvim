@@ -69,10 +69,7 @@ local function make_buffer(opts)
     assert(bufnr ~= 0, "failed to create buffer")
 
     -- Set name to something random (unless specified)
-    vim.api.nvim_buf_set_name(
-        bufnr,
-        opts.name or ("org-roam-" .. random.uuid_v4())
-    )
+    vim.api.nvim_buf_set_name(bufnr, opts.name or ("org-roam-" .. random.uuid_v4()))
 
     -- Clear out all options that we've used explicitly
     opts.name = nil
@@ -96,16 +93,16 @@ function M:new(opts)
     local instance = {}
     setmetatable(instance, M)
 
-    local offset           = opts.offset or 0
-    opts.offset            = nil
+    local offset = opts.offset or 0
+    opts.offset = nil
 
-    instance.__bufnr       = make_buffer(opts)
-    instance.__offset      = offset
-    instance.__namespace   = vim.api.nvim_create_namespace(vim.api.nvim_buf_get_name(instance.__bufnr))
-    instance.__emitter     = Emitter:new()
-    instance.__state       = STATE.IDLE
+    instance.__bufnr = make_buffer(opts)
+    instance.__offset = offset
+    instance.__namespace = vim.api.nvim_create_namespace(vim.api.nvim_buf_get_name(instance.__bufnr))
+    instance.__emitter = Emitter:new()
+    instance.__state = STATE.IDLE
     instance.__keybindings = { registered = {}, callbacks = {} }
-    instance.__components  = {}
+    instance.__components = {}
 
     return instance
 end
@@ -351,8 +348,7 @@ function M:__apply_lines(ui_lines, force)
 
     -- Check if the buffer is empty
     local cnt = vim.api.nvim_buf_line_count(bufnr)
-    local is_empty = cnt == 1
-        and vim.api.nvim_buf_get_lines(bufnr, 0, 1, false)[1] == ""
+    local is_empty = cnt == 1 and vim.api.nvim_buf_get_lines(bufnr, 0, 1, false)[1] == ""
 
     -- Calculate the starting line for appending and highlights
     -- NOTE: This should always be at or after the offset!
@@ -363,7 +359,9 @@ function M:__apply_lines(ui_lines, force)
     local offset_lines_needed = self.__offset - cnt
     if offset_lines_needed > 0 then
         local lines = {}
-        for _ = 1, offset_lines_needed do table.insert(lines, "") end
+        for _ = 1, offset_lines_needed do
+            table.insert(lines, "")
+        end
         vim.api.nvim_buf_set_lines(bufnr, cnt, -1, false, lines)
     end
 
@@ -460,14 +458,7 @@ function M:__apply_lines(ui_lines, force)
 
     -- Apply all highlights
     for _, hl in ipairs(highlights) do
-        vim.api.nvim_buf_add_highlight(
-            self.__bufnr,
-            self.__namespace,
-            hl.group,
-            hl.line,
-            hl.cstart,
-            hl.cend
-        )
+        vim.api.nvim_buf_add_highlight(self.__bufnr, self.__namespace, hl.group, hl.line, hl.cstart, hl.cend)
     end
 
     -- Extract out global lazy functions so we don't call them

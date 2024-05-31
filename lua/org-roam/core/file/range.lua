@@ -39,10 +39,7 @@ end
 ---@param range org-roam.core.file.Range
 ---@return boolean
 function M:contains(range)
-    return (
-        self.start.offset <= range.start.offset
-        and self.end_.offset >= range.end_.offset
-    )
+    return (self.start.offset <= range.start.offset and self.end_.offset >= range.end_.offset)
 end
 
 ---Creates a range from a treesitter node.
@@ -51,18 +48,15 @@ end
 function M:from_node(node)
     local start_row, start_col, start_offset = node:start()
     local end_row, end_col, end_offset = node:end_()
-    return M:new(
-        {
-            row = start_row,
-            column = start_col,
-            offset = start_offset
-        },
-        {
-            row = end_row,
-            column = end_col,
-            offset = end_offset
-        }
-    )
+    return M:new({
+        row = start_row,
+        column = start_col,
+        offset = start_offset,
+    }, {
+        row = end_row,
+        column = end_col,
+        offset = end_offset,
+    })
 end
 
 ---Converts from an nvim-orgmode OrgFile and OrgRange into an org-roam Range.
@@ -87,7 +81,9 @@ function M:from_org_file_and_range(file, range)
     -- up until the line we are on
     for i = 1, range.start_line - 1 do
         local line = file.lines[i]
-        if not line then break end
+        if not line then
+            break
+        end
         start.offset = start.offset + string.len(line) + 1
     end
 
@@ -96,7 +92,9 @@ function M:from_org_file_and_range(file, range)
     -- up until the line we are on
     for i = 1, range.end_line - 1 do
         local line = file.lines[i]
-        if not line then break end
+        if not line then
+            break
+        end
         end_.offset = end_.offset + string.len(line) + 1
     end
 

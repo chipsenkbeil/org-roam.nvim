@@ -28,8 +28,8 @@ end
 
 ---Target-specific expansions (keys only).
 local TARGET_EXPANSION_KEYS = {
-    SEP   = "%[sep]",
-    SLUG  = "%[slug]",
+    SEP = "%[sep]",
+    SLUG = "%[slug]",
     TITLE = "%[title]",
 }
 
@@ -113,10 +113,7 @@ local function make_target_expander(roam, file, opts)
     return function(target)
         -- Resolve target-specific expansions and ensure that
         -- the target is relative to our roam directory
-        return path_utils.join(
-            roam.config.directory,
-            fill_expansions(roam, target, expansions)
-        )
+        return path_utils.join(roam.config.directory, fill_expansions(roam, target, expansions))
     end
 end
 
@@ -133,10 +130,7 @@ local function build_template(roam, template_opts, opts)
     -- Resolve our general expansions in the target
     -- and update the target to be relative to our roam directory
     if template.target then
-        template.target = path_utils.join(
-            roam.config.directory,
-            fill_expansions(roam, template.target)
-        )
+        template.target = path_utils.join(roam.config.directory, fill_expansions(roam, template.target))
     end
 
     -- Always include the entire capture contents, not just
@@ -148,7 +142,9 @@ local function build_template(roam, template_opts, opts)
     ---@param content_type "content"|"target"
     return template:on_compile(function(content, content_type)
         -- Ignore types other than content
-        if content_type ~= "content" then return content end
+        if content_type ~= "content" then
+            return content
+        end
 
         -- Figure out our template's target
         local target = template.target or require("orgmode.config").org_default_notes_file
@@ -179,10 +175,13 @@ local function build_template(roam, template_opts, opts)
             -- Grab the title, which if it does not exist and we detect
             -- that we need it, we will prompt for it
             local title = opts.title
-            if not title and string_contains_one_of(template.target, {
+            if
+                not title
+                and string_contains_one_of(template.target, {
                     TARGET_EXPANSION_KEYS.TITLE,
                     TARGET_EXPANSION_KEYS.SLUG,
-                }) then
+                })
+            then
                 title = vim.fn.input("Enter title for node: ")
 
                 -- If we did not get a title, return nil to cancel
@@ -255,18 +254,23 @@ local function make_on_post_refile(roam, cb)
         if not id then
             for _, headline in ipairs(capture_opts.source_file:get_headlines()) do
                 id = headline:get_property("id", false)
-                if id then break end
+                if id then
+                    break
+                end
             end
         end
 
         -- Reload the file that was written due to a refile
         local filename = capture_opts.destination_file.filename
-        roam.database:load_file({ path = filename })
+        roam.database
+            :load_file({ path = filename })
             :next(function(...)
                 cb(id)
                 return ...
             end)
-            :catch(function(_) cb(nil) end)
+            :catch(function(_)
+                cb(nil)
+            end)
     end
 end
 
@@ -282,44 +286,55 @@ local function roam_capture_immediate(roam, opts)
     }, opts)
 
     ---@param content string[]|nil
-    return template:compile():next(function(content)
-        if not content then
-            return notify.echo_info("canceled")
-        end
-
-        local content_str = table.concat(content, "\n")
-
-        -- Target needs to have target-specific expansions filled
-        local expander = make_target_expander(roam, nil, opts)
-        local path = expander(template.target)
-
-        return io.write_file(path, content_str):next(function()
-            return path
-        end)
-    end):next(function(path) --[[ @cast path string|nil ]]
-        if not path then return nil end
-        return roam.database:load_file({ path = path })
-    end):next(function(result) --[[ @cast result {file:OrgFile}|nil ]]
-        if not result then return nil end
-
-        local file = result.file
-
-        -- Look for the id of the newly-captured file
-        local id = file:get_property("id")
-
-        -- If we don't find a file-level node, look for headline nodes
-        if not id then
-            for _, headline in ipairs(file:get_headlines()) do
-                id = headline:get_property("id", false)
-                if id then break end
+    return template
+        :compile()
+        :next(function(content)
+            if not content then
+                return notify.echo_info("canceled")
             end
-        end
 
-        return id
-    end):catch(function(err)
-        notify.error(err)
-        log.error(err)
-    end)
+            local content_str = table.concat(content, "\n")
+
+            -- Target needs to have target-specific expansions filled
+            local expander = make_target_expander(roam, nil, opts)
+            local path = expander(template.target)
+
+            return io.write_file(path, content_str):next(function()
+                return path
+            end)
+        end)
+        :next(function(path) --[[ @cast path string|nil ]]
+            if not path then
+                return nil
+            end
+            return roam.database:load_file({ path = path })
+        end)
+        :next(function(result) --[[ @cast result {file:OrgFile}|nil ]]
+            if not result then
+                return nil
+            end
+
+            local file = result.file
+
+            -- Look for the id of the newly-captured file
+            local id = file:get_property("id")
+
+            -- If we don't find a file-level node, look for headline nodes
+            if not id then
+                for _, headline in ipairs(file:get_headlines()) do
+                    id = headline:get_property("id", false)
+                    if id then
+                        break
+                    end
+                end
+            end
+
+            return id
+        end)
+        :catch(function(err)
+            notify.error(err)
+            log.error(err)
+        end)
 end
 
 ---Returns a promise when the capture is completed.
@@ -358,7 +373,9 @@ local function roam_capture(roam, opts)
                     templates = templates,
                     on_pre_refile = on_pre_refile,
                     on_post_refile = on_post_refile,
-                    on_cancel_refile = function() resolve(nil) end,
+                    on_cancel_refile = function()
+                        resolve(nil)
+                    end,
                 })
 
                 return capture:prompt()
@@ -417,7 +434,9 @@ local function roam_insert(roam, opts)
                 end_col = opts.ranges[i].end_col -- No -1 because this is exclusive
 
                 -- Don't remove the first range as we will replace instead
-                if i == 1 then break end
+                if i == 1 then
+                    break
+                end
 
                 -- Clear the text of this range
                 vim.api.nvim_buf_set_text(bufnr, start_row, start_col, end_row, end_col, {})
@@ -434,11 +453,12 @@ local function roam_insert(roam, opts)
     end
 
     return Promise.new(function(resolve)
-        roam.ui.select_node({
-            allow_select_missing = true,
-            auto_select = opts.immediate,
-            init_input = opts.title,
-        })
+        roam.ui
+            .select_node({
+                allow_select_missing = true,
+                auto_select = opts.immediate,
+                init_input = opts.title,
+            })
             :on_choice(function(choice)
                 insert_link(choice.id, choice.label)
                 resolve(choice.id)
@@ -492,10 +512,11 @@ local function roam_find(roam, opts)
     end
 
     return Promise.new(function(resolve)
-        roam.ui.select_node({
-            allow_select_missing = true,
-            init_input = opts.title,
-        })
+        roam.ui
+            .select_node({
+                allow_select_missing = true,
+                init_input = opts.title,
+            })
             :on_choice(function(choice)
                 visit_node(choice.id)
                 resolve(choice.id)

@@ -99,7 +99,8 @@ describe("org-roam.core.utils.uri", function()
         }, uri)
 
         -- Full uri with everything filled out
-        uri = assert(Uri:parse("https://username:12345@example.com:6789/some/path?key1=value1&key2=value2#test-fragment"))
+        uri =
+            assert(Uri:parse("https://username:12345@example.com:6789/some/path?key1=value1&key2=value2#test-fragment"))
         assert.are.same({
             scheme = "https",
             path = "/some/path",
@@ -298,8 +299,10 @@ describe("org-roam.core.utils.uri", function()
             query = "key1=value1&key2=value2",
             fragment = "test-fragment",
         })
-        assert.are.equal("https://username:12345@example.com:6789/some/path?key1=value1&key2=value2#test-fragment",
-            uri:as_string())
+        assert.are.equal(
+            "https://username:12345@example.com:6789/some/path?key1=value1&key2=value2#test-fragment",
+            uri:as_string()
+        )
 
         ----------------------------------------------------------------------
         -- Test example URIs from wikipedia
@@ -318,8 +321,10 @@ describe("org-roam.core.utils.uri", function()
             query = "tag=networking&order=newest",
             fragment = "top",
         })
-        assert.are.equal("https://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top",
-            uri:as_string())
+        assert.are.equal(
+            "https://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top",
+            uri:as_string()
+        )
 
         uri = Uri:new({
             scheme = "ldap",

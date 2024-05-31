@@ -20,11 +20,7 @@
 ---@diagnostic disable-next-line:unused-local
 local function notify(this, msg, level, opts)
     vim.schedule(function()
-        vim.notify(
-            msg,
-            level,
-            vim.tbl_extend("force", opts or {}, { title = "org-roam" })
-        )
+        vim.notify(msg, level, vim.tbl_extend("force", opts or {}, { title = "org-roam" }))
     end)
 end
 

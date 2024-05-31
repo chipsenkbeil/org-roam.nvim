@@ -16,34 +16,44 @@ local function roam_add_origin(roam, opts)
     opts = opts or {}
     return Promise.new(function(resolve)
         utils.node_under_cursor(function(node)
-            if not node then return resolve(false) end
+            if not node then
+                return resolve(false)
+            end
 
-            roam.database:load_file({ path = node.file }):next(function(results)
-                -- Get the OrgFile instance
-                local file = results.file
+            roam.database
+                :load_file({ path = node.file })
+                :next(function(results)
+                    -- Get the OrgFile instance
+                    local file = results.file
 
-                -- Look for a file or headline that matches our node
-                local entry = utils.find_id_match(file, node.id)
+                    -- Look for a file or headline that matches our node
+                    local entry = utils.find_id_match(file, node.id)
 
-                if entry and opts.origin then
-                    entry:set_property(ORIGIN_PROP_NAME, opts.origin)
-                    resolve(true)
-                elseif entry then
-                    -- If no origin specified, we load up a selection dialog
-                    -- to pick a node other than the current one
-                    roam.ui.select_node({ exclude = { node.id } })
-                        :on_choice(function(choice)
-                            entry:set_property(ORIGIN_PROP_NAME, choice.id)
-                            resolve(true)
-                        end)
-                        :on_cancel(function() resolve(false) end)
-                        :open()
-                else
+                    if entry and opts.origin then
+                        entry:set_property(ORIGIN_PROP_NAME, opts.origin)
+                        resolve(true)
+                    elseif entry then
+                        -- If no origin specified, we load up a selection dialog
+                        -- to pick a node other than the current one
+                        roam.ui
+                            .select_node({ exclude = { node.id } })
+                            :on_choice(function(choice)
+                                entry:set_property(ORIGIN_PROP_NAME, choice.id)
+                                resolve(true)
+                            end)
+                            :on_cancel(function()
+                                resolve(false)
+                            end)
+                            :open()
+                    else
+                        resolve(false)
+                    end
+
+                    return file
+                end)
+                :catch(function()
                     resolve(false)
-                end
-
-                return file
-            end):catch(function() resolve(false) end)
+                end)
         end)
     end)
 end
@@ -58,16 +68,20 @@ local function roam_goto_prev_node(roam, opts)
     return Promise.new(function(resolve)
         ---@param node org-roam.core.file.Node|nil
         local function goto_node(node)
-            if not node then return resolve(nil) end
+            if not node then
+                return resolve(nil)
+            end
             utils.goto_node({ node = node, win = winnr })
             resolve(node.id)
         end
 
         utils.node_under_cursor(function(node)
-            if not node or not node.origin then return resolve(nil) end
-            roam.database:get(node.origin)
-                :next(goto_node)
-                :catch(function() resolve(nil) end)
+            if not node or not node.origin then
+                return resolve(nil)
+            end
+            roam.database:get(node.origin):next(goto_node):catch(function()
+                resolve(nil)
+            end)
         end, { win = winnr })
     end)
 end
@@ -82,13 +96,17 @@ local function roam_goto_next_node(roam, opts)
     return Promise.new(function(resolve)
         ---@param node org-roam.core.file.Node|nil
         local function goto_node(node)
-            if not node then return resolve(nil) end
+            if not node then
+                return resolve(nil)
+            end
             utils.goto_node({ node = node, win = winnr })
             resolve(node.id)
         end
 
         utils.node_under_cursor(function(node)
-            if not node then return resolve(nil) end
+            if not node then
+                return resolve(nil)
+            end
             roam.database:find_nodes_by_origin(node.id):next(function(nodes)
                 if #nodes == 0 then
                     resolve(nil)
@@ -103,13 +121,16 @@ local function roam_goto_next_node(roam, opts)
                     return n.id
                 end, nodes)
 
-                roam.ui.select_node({ include = ids })
+                roam.ui
+                    .select_node({ include = ids })
                     :on_choice(function(choice)
-                        roam.database:get(choice.id)
-                            :next(goto_node)
-                            :catch(function() resolve(nil) end)
+                        roam.database:get(choice.id):next(goto_node):catch(function()
+                            resolve(nil)
+                        end)
                     end)
-                    :on_cancel(function() resolve(nil) end)
+                    :on_cancel(function()
+                        resolve(nil)
+                    end)
                     :open()
 
                 return nodes
@@ -123,24 +144,31 @@ end
 local function roam_remove_origin(roam)
     return Promise.new(function(resolve)
         utils.node_under_cursor(function(node)
-            if not node then return resolve(false) end
+            if not node then
+                return resolve(false)
+            end
 
-            roam.database:load_file({ path = node.file }):next(function(results)
-                -- Get the OrgFile instance
-                local file = results.file
+            roam.database
+                :load_file({ path = node.file })
+                :next(function(results)
+                    -- Get the OrgFile instance
+                    local file = results.file
 
-                -- Look for a file or headline that matches our node
-                local entry = utils.find_id_match(file, node.id)
+                    -- Look for a file or headline that matches our node
+                    local entry = utils.find_id_match(file, node.id)
 
-                if entry then
-                    entry:set_property(ORIGIN_PROP_NAME, nil)
-                    resolve(true)
-                else
+                    if entry then
+                        entry:set_property(ORIGIN_PROP_NAME, nil)
+                        resolve(true)
+                    else
+                        resolve(false)
+                    end
+
+                    return file
+                end)
+                :catch(function()
                     resolve(false)
-                end
-
-                return file
-            end):catch(function() resolve(false) end)
+                end)
         end)
     end)
 end

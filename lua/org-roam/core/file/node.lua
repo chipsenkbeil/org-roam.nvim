@@ -142,9 +142,12 @@ function M:hash()
         tostring(self.level),
         vim.tbl_map(function(key)
             ---@param loc org-roam.core.file.Position
-            return table.concat(vim.tbl_map(function(loc)
-                return loc.offset
-            end, self.linked[key]), ",")
+            return table.concat(
+                vim.tbl_map(function(loc)
+                    return loc.offset
+                end, self.linked[key]),
+                ","
+            )
         end, linked_keys),
     }))
 end

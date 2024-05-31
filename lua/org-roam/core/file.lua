@@ -5,28 +5,28 @@
 -------------------------------------------------------------------------------
 
 local IntervalTree = require("org-roam.core.utils.tree")
-local Link         = require("org-roam.core.file.link")
-local Node         = require("org-roam.core.file.node")
-local Range        = require("org-roam.core.file.range")
-local utils        = require("org-roam.core.file.utils")
+local Link = require("org-roam.core.file.link")
+local Node = require("org-roam.core.file.node")
+local Range = require("org-roam.core.file.range")
+local utils = require("org-roam.core.file.utils")
 
 -- Cannot serialie `math.huge`. Potentially could use `vim.v.numbermax`, but
 -- this is a safer and more reliable guarantee of maximum size.
-local MAX_NUMBER   = 2 ^ 31
+local MAX_NUMBER = 2 ^ 31
 
-local KEYS         = {
-    DIR_TITLE    = "TITLE",
+local KEYS = {
+    DIR_TITLE = "TITLE",
     PROP_ALIASES = "ROAM_ALIASES",
-    PROP_ID      = "ID",
-    PROP_ORIGIN  = "ROAM_ORIGIN",
+    PROP_ID = "ID",
+    PROP_ORIGIN = "ROAM_ORIGIN",
 }
 
 ---@class org-roam.core.File
 ---@field filename string
 ---@field links org-roam.core.file.Link[]
 ---@field nodes table<string, org-roam.core.file.Node>
-local M            = {}
-M.__index          = M
+local M = {}
+M.__index = M
 
 ---Creates a new org-roam file.
 ---@param opts {filename:string, links?:org-roam.core.file.Link[], nodes?:org-roam.core.file.Node[]}
@@ -120,21 +120,24 @@ function M:from_org_file(file)
         table.sort(tags)
 
         local origin = trim(file:get_property(KEYS.PROP_ORIGIN))
-        table.insert(nodes, Node:new({
-            id = id,
-            origin = origin,
-            range = Range:new(
-                { row = 0, column = 0, offset = 0 },
-                { row = MAX_NUMBER, column = MAX_NUMBER, offset = MAX_NUMBER }
-            ),
-            file = file.filename,
-            mtime = file.metadata.mtime,
-            title = trim(file:get_directive(KEYS.DIR_TITLE)),
-            aliases = utils.parse_property_value(trim(file:get_property(KEYS.PROP_ALIASES)) or ""),
-            tags = tags,
-            level = 0,
-            linked = {},
-        }))
+        table.insert(
+            nodes,
+            Node:new({
+                id = id,
+                origin = origin,
+                range = Range:new(
+                    { row = 0, column = 0, offset = 0 },
+                    { row = MAX_NUMBER, column = MAX_NUMBER, offset = MAX_NUMBER }
+                ),
+                file = file.filename,
+                mtime = file.metadata.mtime,
+                title = trim(file:get_directive(KEYS.DIR_TITLE)),
+                aliases = utils.parse_property_value(trim(file:get_property(KEYS.PROP_ALIASES)) or ""),
+                tags = tags,
+                level = 0,
+                linked = {},
+            })
+        )
     end
 
     -- Build up our section-level nodes
@@ -150,18 +153,21 @@ function M:from_org_file(file)
             table.sort(tags)
 
             local origin = trim(headline:get_property(KEYS.PROP_ORIGIN))
-            table.insert(nodes, Node:new({
-                id = id,
-                origin = origin,
-                range = Range:from_node(headline.headline:parent()),
-                file = file.filename,
-                mtime = file.metadata.mtime,
-                title = headline:get_title(),
-                aliases = utils.parse_property_value(trim(headline:get_property(KEYS.PROP_ALIASES)) or ""),
-                tags = tags,
-                level = headline:get_level(),
-                linked = {},
-            }))
+            table.insert(
+                nodes,
+                Node:new({
+                    id = id,
+                    origin = origin,
+                    range = Range:from_node(headline.headline:parent()),
+                    file = file.filename,
+                    mtime = file.metadata.mtime,
+                    title = headline:get_title(),
+                    aliases = utils.parse_property_value(trim(headline:get_property(KEYS.PROP_ALIASES)) or ""),
+                    tags = tags,
+                    level = headline:get_level(),
+                    linked = {},
+                })
+            )
         end
     end
 
@@ -179,12 +185,15 @@ function M:from_org_file(file)
         if id and range then
             -- Figure out the full range from the file and add the link to our list
             local roam_range = Range:from_org_file_and_range(file, range)
-            table.insert(links, Link:new({
-                kind = "regular",
-                range = roam_range,
-                path = link.url:to_string(),
-                description = link.desc,
-            }))
+            table.insert(
+                links,
+                Link:new({
+                    kind = "regular",
+                    range = roam_range,
+                    path = link.url:to_string(),
+                    description = link.desc,
+                })
+            )
 
             -- Figure out the node that contains the link
             ---@type org-roam.core.file.Node|nil

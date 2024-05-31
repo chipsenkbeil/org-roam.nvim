@@ -11,7 +11,7 @@ describe("org-roam.api.completion", function()
         roam = utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory(),
-            }
+            },
         })
         test_dir = roam.config.directory
     end)

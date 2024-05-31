@@ -51,7 +51,9 @@ local function roam_select_node(roam, opts)
         items = items,
         prompt = prompt,
         ---@param item {id:org-roam.core.database.Id, label:string}
-        format = function(item) return item.label end,
+        format = function(item)
+            return item.label
+        end,
         cancel_on_no_init_matches = true,
     }, opts or {})
 

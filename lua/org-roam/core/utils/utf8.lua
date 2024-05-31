@@ -90,19 +90,11 @@ local function utf8charbytes(s, i)
     i = i or 1
 
     -- argument checking
-    if type(s) ~= 'string' then
-        error(
-            "bad argument #1 to 'utf8charbytes' (string expected, got "
-            .. type(s)
-            .. ')'
-        )
+    if type(s) ~= "string" then
+        error("bad argument #1 to 'utf8charbytes' (string expected, got " .. type(s) .. ")")
     end
-    if type(i) ~= 'number' then
-        error(
-            "bad argument #2 to 'utf8charbytes' (number expected, got "
-            .. type(i)
-            .. ')'
-        )
+    if type(i) ~= "number" then
+        error("bad argument #2 to 'utf8charbytes' (number expected, got " .. type(i) .. ")")
     end
 
     local c = byte(s, i)
@@ -117,12 +109,12 @@ local function utf8charbytes(s, i)
         local c2 = byte(s, i + 1)
 
         if not c2 then
-            error('UTF-8 string terminated early')
+            error("UTF-8 string terminated early")
         end
 
         -- validate byte 2
         if c2 < 128 or c2 > 191 then
-            error('Invalid UTF-8 character')
+            error("Invalid UTF-8 character")
         end
 
         return 2
@@ -132,21 +124,21 @@ local function utf8charbytes(s, i)
         local c3 = byte(s, i + 2)
 
         if not c2 or not c3 then
-            error('UTF-8 string terminated early')
+            error("UTF-8 string terminated early")
         end
 
         -- validate byte 2
         if c == 224 and (c2 < 160 or c2 > 191) then
-            error('Invalid UTF-8 character')
+            error("Invalid UTF-8 character")
         elseif c == 237 and (c2 < 128 or c2 > 159) then
-            error('Invalid UTF-8 character')
+            error("Invalid UTF-8 character")
         elseif c2 < 128 or c2 > 191 then
-            error('Invalid UTF-8 character')
+            error("Invalid UTF-8 character")
         end
 
         -- validate byte 3
         if c3 < 128 or c3 > 191 then
-            error('Invalid UTF-8 character')
+            error("Invalid UTF-8 character")
         end
 
         return 3
@@ -157,46 +149,42 @@ local function utf8charbytes(s, i)
         local c4 = byte(s, i + 3)
 
         if not c2 or not c3 or not c4 then
-            error('UTF-8 string terminated early')
+            error("UTF-8 string terminated early")
         end
 
         -- validate byte 2
         if c == 240 and (c2 < 144 or c2 > 191) then
-            error('Invalid UTF-8 character')
+            error("Invalid UTF-8 character")
         elseif c == 244 and (c2 < 128 or c2 > 143) then
-            error('Invalid UTF-8 character')
+            error("Invalid UTF-8 character")
         elseif c2 < 128 or c2 > 191 then
-            error('Invalid UTF-8 character')
+            error("Invalid UTF-8 character")
         end
 
         -- validate byte 3
         if c3 < 128 or c3 > 191 then
-            error('Invalid UTF-8 character')
+            error("Invalid UTF-8 character")
         end
 
         -- validate byte 4
         if c4 < 128 or c4 > 191 then
-            error('Invalid UTF-8 character')
+            error("Invalid UTF-8 character")
         end
 
         return 4
     else
-        error('Invalid UTF-8 character')
+        error("Invalid UTF-8 character")
     end
 end
 
 -- returns the number of characters in a UTF-8 string
 local function utf8len(s)
     -- argument checking
-    if type(s) ~= 'string' then
+    if type(s) ~= "string" then
         for k, v in pairs(s) do
             print('"', tostring(k), '"', tostring(v), '"')
         end
-        error(
-            "bad argument #1 to 'utf8len' (string expected, got "
-            .. type(s)
-            .. ')'
-        )
+        error("bad argument #1 to 'utf8len' (string expected, got " .. type(s) .. ")")
     end
 
     local pos = 1
@@ -228,7 +216,7 @@ local function utf8sub(s, i, j)
 
     -- can't have start before end!
     if startChar > endChar then
-        return ''
+        return ""
     end
 
     -- byte offsets to pass to string.sub
@@ -302,18 +290,14 @@ end
 -- identical to string.reverse except that it supports UTF-8
 local function utf8reverse(s)
     -- argument checking
-    if type(s) ~= 'string' then
-        error(
-            "bad argument #1 to 'utf8reverse' (string expected, got "
-            .. type(s)
-            .. ')'
-        )
+    if type(s) ~= "string" then
+        error("bad argument #1 to 'utf8reverse' (string expected, got " .. type(s) .. ")")
     end
 
     local bytes = len(s)
     local pos = bytes
     local charbytes
-    local newstr = ''
+    local newstr = ""
 
     while pos > 0 do
         local c = byte(s, pos)
@@ -365,7 +349,7 @@ local function utf8char(unicode)
         return char(Byte0, Byte1, Byte2, Byte3)
     end
 
-    error('Unicode cannot be greater than U+10FFFF!')
+    error("Unicode cannot be greater than U+10FFFF!")
 end
 
 local shift_6 = 2 ^ 6
@@ -408,8 +392,7 @@ utf8unicode = function(str, i, j, byte_pos)
     end
     if bytes == 4 then
         local byte0, byte1, byte2, byte3 = byte(ch, 1, 4)
-        local code0, code1, code2, code3 =
-            byte0 - 0xF0, byte1 - 0x80, byte2 - 0x80, byte3 - 0x80
+        local code0, code1, code2, code3 = byte0 - 0xF0, byte1 - 0x80, byte2 - 0x80, byte3 - 0x80
         unicode = code0 * shift_18 + code1 * shift_12 + code2 * shift_6 + code3
     end
 
@@ -477,41 +460,38 @@ local function classMatchGenerator(class, plain)
     for c, _, be in it do
         skip = be
         if not ignore and not plain then
-            if c == '%' then
+            if c == "%" then
                 ignore = true
-            elseif c == '-' then
+            elseif c == "-" then
                 table.insert(codes, utf8unicode(c))
                 range = true
-            elseif c == '^' then
+            elseif c == "^" then
                 if not firstletter then
-                    error('!!!')
+                    error("!!!")
                 else
                     unmatch = true
                 end
-            elseif c == ']' then
+            elseif c == "]" then
                 break
             else
                 if not range then
                     table.insert(codes, utf8unicode(c))
                 else
                     table.remove(codes) -- removing '-'
-                    table.insert(
-                        ranges,
-                        { table.remove(codes), utf8unicode(c) }
-                    )
+                    table.insert(ranges, { table.remove(codes), utf8unicode(c) })
                     range = false
                 end
             end
         elseif ignore and not plain then
-            if c == 'a' then                      -- %a: represents all letters. (ONLY ASCII)
-                table.insert(ranges, { 65, 90 })  -- A - Z
+            if c == "a" then -- %a: represents all letters. (ONLY ASCII)
+                table.insert(ranges, { 65, 90 }) -- A - Z
                 table.insert(ranges, { 97, 122 }) -- a - z
-            elseif c == 'c' then                  -- %c: represents all control characters.
+            elseif c == "c" then -- %c: represents all control characters.
                 table.insert(ranges, { 0, 31 })
                 table.insert(codes, 127)
-            elseif c == 'd' then                 -- %d: represents all digits.
+            elseif c == "d" then -- %d: represents all digits.
                 table.insert(ranges, { 48, 57 }) -- 0 - 9
-            elseif c == 'g' then                 -- %g: represents all printable characters except space.
+            elseif c == "g" then -- %g: represents all printable characters except space.
                 table.insert(ranges, { 1, 8 })
                 table.insert(ranges, { 14, 31 })
                 table.insert(ranges, { 33, 132 })
@@ -522,14 +502,14 @@ local function classMatchGenerator(class, plain)
                 table.insert(ranges, { 8234, 8238 })
                 table.insert(ranges, { 8240, 8286 })
                 table.insert(ranges, { 8288, 12287 })
-            elseif c == 'l' then                  -- %l: represents all lowercase letters. (ONLY ASCII)
+            elseif c == "l" then -- %l: represents all lowercase letters. (ONLY ASCII)
                 table.insert(ranges, { 97, 122 }) -- a - z
-            elseif c == 'p' then                  -- %p: represents all punctuation characters. (ONLY ASCII)
+            elseif c == "p" then -- %p: represents all punctuation characters. (ONLY ASCII)
                 table.insert(ranges, { 33, 47 })
                 table.insert(ranges, { 58, 64 })
                 table.insert(ranges, { 91, 96 })
                 table.insert(ranges, { 123, 126 })
-            elseif c == 's' then -- %s: represents all space characters.
+            elseif c == "s" then -- %s: represents all space characters.
                 table.insert(ranges, { 9, 13 })
                 table.insert(codes, 32)
                 table.insert(codes, 133)
@@ -541,25 +521,22 @@ local function classMatchGenerator(class, plain)
                 table.insert(codes, 8239)
                 table.insert(codes, 8287)
                 table.insert(codes, 12288)
-            elseif c == 'u' then                  -- %u: represents all uppercase letters. (ONLY ASCII)
-                table.insert(ranges, { 65, 90 })  -- A - Z
-            elseif c == 'w' then                  -- %w: represents all alphanumeric characters. (ONLY ASCII)
-                table.insert(ranges, { 48, 57 })  -- 0 - 9
-                table.insert(ranges, { 65, 90 })  -- A - Z
+            elseif c == "u" then -- %u: represents all uppercase letters. (ONLY ASCII)
+                table.insert(ranges, { 65, 90 }) -- A - Z
+            elseif c == "w" then -- %w: represents all alphanumeric characters. (ONLY ASCII)
+                table.insert(ranges, { 48, 57 }) -- 0 - 9
+                table.insert(ranges, { 65, 90 }) -- A - Z
                 table.insert(ranges, { 97, 122 }) -- a - z
-            elseif c == 'x' then                  -- %x: represents all hexadecimal digits.
-                table.insert(ranges, { 48, 57 })  -- 0 - 9
-                table.insert(ranges, { 65, 70 })  -- A - F
+            elseif c == "x" then -- %x: represents all hexadecimal digits.
+                table.insert(ranges, { 48, 57 }) -- 0 - 9
+                table.insert(ranges, { 65, 70 }) -- A - F
                 table.insert(ranges, { 97, 102 }) -- a - f
             else
                 if not range then
                     table.insert(codes, utf8unicode(c))
                 else
                     table.remove(codes) -- removing '-'
-                    table.insert(
-                        ranges,
-                        { table.remove(codes), utf8unicode(c) }
-                    )
+                    table.insert(ranges, { table.remove(codes), utf8unicode(c) })
                     range = false
                 end
             end
@@ -590,14 +567,12 @@ local function classMatchGenerator(class, plain)
     end
     if not unmatch then
         return function(charCode)
-                return binsearch(codes, charCode) or inRanges(charCode)
-            end,
-            skip
+            return binsearch(codes, charCode) or inRanges(charCode)
+        end, skip
     else
         return function(charCode)
-                return charCode ~= -1
-                    and not (binsearch(codes, charCode) or inRanges(charCode))
-            end,
+            return charCode ~= -1 and not (binsearch(codes, charCode) or inRanges(charCode))
+        end,
             skip
     end
 end
@@ -648,10 +623,10 @@ end
 ]]
 
 local cache = setmetatable({}, {
-    __mode = 'kv',
+    __mode = "kv",
 })
 local cachePlain = setmetatable({}, {
-    __mode = 'kv',
+    __mode = "kv",
 })
 local function matcherGenerator(regex, plain)
     local matcher = {
@@ -704,11 +679,7 @@ local function matcherGenerator(regex, plain)
     local function capture(id)
         return function(_)
             local l = matcher.captures[id][2] - matcher.captures[id][1]
-            local captured = utf8sub(
-                matcher.string,
-                matcher.captures[id][1],
-                matcher.captures[id][2]
-            )
+            local captured = utf8sub(matcher.string, matcher.captures[id][1], matcher.captures[id][2])
             local check = utf8sub(matcher.string, matcher.str, matcher.str + l)
             if captured == check then
                 for _ = 0, l do
@@ -739,24 +710,24 @@ local function matcherGenerator(regex, plain)
         local skip = len(bc) + len(ec)
         bc, ec = utf8unicode(bc), utf8unicode(ec)
         return function(cC)
-                if cC == ec and sum > 0 then
-                    sum = sum - 1
-                    if sum == 0 then
-                        matcher:nextFunc()
-                    end
-                    matcher:nextStr()
-                elseif cC == bc then
-                    sum = sum + 1
-                    matcher:nextStr()
-                else
-                    if sum == 0 or cC == -1 then
-                        sum = 0
-                        matcher:reset()
-                    else
-                        matcher:nextStr()
-                    end
+            if cC == ec and sum > 0 then
+                sum = sum - 1
+                if sum == 0 then
+                    matcher:nextFunc()
                 end
-            end,
+                matcher:nextStr()
+            elseif cC == bc then
+                sum = sum + 1
+                matcher:nextStr()
+            else
+                if sum == 0 or cC == -1 then
+                    sum = 0
+                    matcher:reset()
+                else
+                    matcher:nextStr()
+                end
+            end
+        end,
             skip
     end
 
@@ -764,10 +735,7 @@ local function matcherGenerator(regex, plain)
         matcher:fullResetOnNextStr()
         matcher.seqStart = matcher.str
         matcher:nextFunc()
-        if
-            (matcher.str > matcher.startStr and matcher.fromStart)
-            or matcher.str >= matcher.stringLen
-        then
+        if (matcher.str > matcher.startStr and matcher.fromStart) or matcher.str >= matcher.stringLen then
             matcher.stop = true
             matcher.seqStart = nil
         end
@@ -786,19 +754,16 @@ local function matcherGenerator(regex, plain)
     for c, bs, be in it do
         skip = nil
         if plain then
-            table.insert(
-                matcher.functions,
-                simple(classMatchGenerator(c, plain))
-            )
+            table.insert(matcher.functions, simple(classMatchGenerator(c, plain)))
         else
             if ignore then
-                if find('123456789', c, 1, true) then
+                if find("123456789", c, 1, true) then
                     if lastFunc then
                         table.insert(matcher.functions, simple(lastFunc))
                         lastFunc = nil
                     end
                     table.insert(matcher.functions, capture(tonumber(c)))
-                elseif c == 'b' then
+                elseif c == "b" then
                     if lastFunc then
                         table.insert(matcher.functions, simple(lastFunc))
                         lastFunc = nil
@@ -807,57 +772,57 @@ local function matcherGenerator(regex, plain)
                     b, skip = balancer(sub(regex, be + 1, be + 9))
                     table.insert(matcher.functions, b)
                 else
-                    lastFunc = classMatchGenerator('%' .. c)
+                    lastFunc = classMatchGenerator("%" .. c)
                 end
                 ignore = false
             else
-                if c == '*' then
+                if c == "*" then
                     if lastFunc then
                         table.insert(matcher.functions, star(lastFunc))
                         lastFunc = nil
                     else
-                        error('invalid regex after ' .. sub(regex, 1, bs))
+                        error("invalid regex after " .. sub(regex, 1, bs))
                     end
-                elseif c == '+' then
+                elseif c == "+" then
                     if lastFunc then
                         table.insert(matcher.functions, simple(lastFunc))
                         table.insert(matcher.functions, star(lastFunc))
                         lastFunc = nil
                     else
-                        error('invalid regex after ' .. sub(regex, 1, bs))
+                        error("invalid regex after " .. sub(regex, 1, bs))
                     end
-                elseif c == '-' then
+                elseif c == "-" then
                     if lastFunc then
                         table.insert(matcher.functions, minus(lastFunc))
                         lastFunc = nil
                     else
-                        error('invalid regex after ' .. sub(regex, 1, bs))
+                        error("invalid regex after " .. sub(regex, 1, bs))
                     end
-                elseif c == '?' then
+                elseif c == "?" then
                     if lastFunc then
                         table.insert(matcher.functions, question(lastFunc))
                         lastFunc = nil
                     else
-                        error('invalid regex after ' .. sub(regex, 1, bs))
+                        error("invalid regex after " .. sub(regex, 1, bs))
                     end
-                elseif c == '^' then
+                elseif c == "^" then
                     if bs == 1 then
                         matcher.fromStart = true
                     else
-                        error('invalid regex after ' .. sub(regex, 1, bs))
+                        error("invalid regex after " .. sub(regex, 1, bs))
                     end
-                elseif c == '$' then
+                elseif c == "$" then
                     if be == len(regex) then
                         matcher.toEnd = true
                     else
-                        error('invalid regex after ' .. sub(regex, 1, bs))
+                        error("invalid regex after " .. sub(regex, 1, bs))
                     end
-                elseif c == '[' then
+                elseif c == "[" then
                     if lastFunc then
                         table.insert(matcher.functions, simple(lastFunc))
                     end
                     lastFunc, skip = classMatchGenerator(sub(regex, be + 1))
-                elseif c == '(' then
+                elseif c == "(" then
                     if lastFunc then
                         table.insert(matcher.functions, simple(lastFunc))
                         lastFunc = nil
@@ -865,10 +830,10 @@ local function matcherGenerator(regex, plain)
                     table.insert(matcher.captures, {})
                     table.insert(cs, #matcher.captures)
                     table.insert(matcher.functions, captureStart(cs[#cs]))
-                    if sub(regex, be + 1, be + 1) == ')' then
+                    if sub(regex, be + 1, be + 1) == ")" then
                         matcher.captures[#matcher.captures].empty = true
                     end
-                elseif c == ')' then
+                elseif c == ")" then
                     if lastFunc then
                         table.insert(matcher.functions, simple(lastFunc))
                         lastFunc = nil
@@ -878,14 +843,14 @@ local function matcherGenerator(regex, plain)
                         error('invalid capture: "(" missing')
                     end
                     table.insert(matcher.functions, captureStop(cap))
-                elseif c == '.' then
+                elseif c == "." then
                     if lastFunc then
                         table.insert(matcher.functions, simple(lastFunc))
                     end
                     lastFunc = function(cC)
                         return cC ~= -1
                     end
-                elseif c == '%' then
+                elseif c == "%" then
                     ignore = true
                 else
                     if lastFunc then
@@ -1018,7 +983,7 @@ end
 
 -- string.gmatch
 local function utf8gmatch(str, regex, all)
-    regex = (utf8sub(regex, 1, 1) ~= '^') and regex or '%' .. regex
+    regex = (utf8sub(regex, 1, 1) ~= "^") and regex or "%" .. regex
     local lastChar = 1
     return function()
         local found = { utf8find(str, regex, lastChar) }
@@ -1033,13 +998,13 @@ local function utf8gmatch(str, regex, all)
 end
 
 local function replace(repl, args)
-    local ret = ''
-    if type(repl) == 'string' then
+    local ret = ""
+    if type(repl) == "string" then
         local ignore = false
         local num
         for c in utf8gensub(repl) do
             if not ignore then
-                if c == '%' then
+                if c == "%" then
                     ignore = true
                 else
                     ret = ret .. c
@@ -1054,13 +1019,13 @@ local function replace(repl, args)
                 ignore = false
             end
         end
-    elseif type(repl) == 'table' then
-        ret = repl[args[1] or args[0]] or ''
-    elseif type(repl) == 'function' then
+    elseif type(repl) == "table" then
+        ret = repl[args[1] or args[0]] or ""
+    elseif type(repl) == "function" then
         if #args > 0 then
-            ret = repl(unpack(args, 1)) or ''
+            ret = repl(unpack(args, 1)) or ""
         else
-            ret = repl(args[0]) or ''
+            ret = repl(args[0]) or ""
         end
     end
     return ret
@@ -1068,14 +1033,13 @@ end
 -- string.gsub
 local function utf8gsub(str, regex, repl, limit)
     limit = limit or -1
-    local ret = ''
+    local ret = ""
     local prevEnd = 1
     local it = utf8gmatch(str, regex, true)
     local found = { it() }
     local n = 0
     while #found > 0 and limit ~= n do
-        local args =
-        { [0] = utf8sub(str, found[1], found[2]), unpack(found, 3) }
+        local args = { [0] = utf8sub(str, found[1], found[2]), unpack(found, 3) }
         ret = ret .. utf8sub(str, prevEnd, found[1] - 1) .. replace(repl, args)
         prevEnd = found[2] + 1
         n = n + 1

@@ -51,7 +51,7 @@ describe("org-roam.core.file", function()
         }, file.links)
         assert.are.same({
             ["1234"] = {
-                aliases = { "one alias", "two", "three", "\"four\"" },
+                aliases = { "one alias", "two", "three", '"four"' },
                 file = orgfile.filename,
                 id = "1234",
                 level = 0,
@@ -137,7 +137,7 @@ describe("org-roam.core.file", function()
         }, file.links)
         assert.are.same({
             ["1234"] = {
-                aliases = { "one alias", "two", "three", "\"four\"" },
+                aliases = { "one alias", "two", "three", '"four"' },
                 file = orgfile.filename,
                 id = "1234",
                 level = 1,
@@ -215,12 +215,12 @@ describe("org-roam.core.file", function()
                     end_ = {
                         column = 34,
                         offset = 171,
-                        row = 8
+                        row = 8,
                     },
                     start = {
                         column = 14,
                         offset = 151,
-                        row = 8
+                        row = 8,
                     },
                 },
             },
@@ -232,12 +232,12 @@ describe("org-roam.core.file", function()
                     end_ = {
                         column = 28,
                         offset = 396,
-                        row = 17
+                        row = 17,
                     },
                     start = {
                         column = 8,
                         offset = 376,
-                        row = 17
+                        row = 17,
                     },
                 },
             },
@@ -249,12 +249,12 @@ describe("org-roam.core.file", function()
                     end_ = {
                         column = 28,
                         offset = 601,
-                        row = 23
+                        row = 23,
                     },
                     start = {
                         column = 8,
                         offset = 581,
-                        row = 23
+                        row = 23,
                     },
                 },
             },
@@ -266,15 +266,15 @@ describe("org-roam.core.file", function()
                     end_ = {
                         column = 28,
                         offset = 891,
-                        row = 33
+                        row = 33,
                     },
                     start = {
                         column = 8,
                         offset = 871,
-                        row = 33
+                        row = 33,
                     },
                 },
-            }
+            },
         }, file.links)
 
         assert.are.same({
@@ -284,28 +284,32 @@ describe("org-roam.core.file", function()
                 id = "1234",
                 level = 0,
                 linked = {
-                    ["1111"] = { {
-                        column = 14,
-                        offset = 151,
-                        row = 8
-                    } },
-                    ["3333"] = { {
-                        column = 8,
-                        offset = 581,
-                        row = 23
-                    } }
+                    ["1111"] = {
+                        {
+                            column = 14,
+                            offset = 151,
+                            row = 8,
+                        },
+                    },
+                    ["3333"] = {
+                        {
+                            column = 8,
+                            offset = 581,
+                            row = 23,
+                        },
+                    },
                 },
                 mtime = 0,
                 range = {
                     end_ = {
                         column = MAX_NUMBER,
                         offset = MAX_NUMBER,
-                        row = MAX_NUMBER
+                        row = MAX_NUMBER,
                     },
                     start = {
                         column = 0,
                         offset = 0,
-                        row = 0
+                        row = 0,
                     },
                 },
                 tags = { "tag1", "tag2", "tag3" },
@@ -317,23 +321,25 @@ describe("org-roam.core.file", function()
                 id = "5678",
                 level = 1,
                 linked = {
-                    ["2222"] = { {
-                        column = 8,
-                        offset = 376,
-                        row = 17
-                    } }
+                    ["2222"] = {
+                        {
+                            column = 8,
+                            offset = 376,
+                            row = 17,
+                        },
+                    },
                 },
                 mtime = 0,
                 range = {
                     end_ = {
                         column = 0,
                         offset = 464,
-                        row = 20
+                        row = 20,
                     },
                     start = {
                         column = 0,
                         offset = 175,
-                        row = 10
+                        row = 10,
                     },
                 },
                 tags = { "HEADLINE_TAG", "tag1", "tag2", "tag3" },
@@ -345,28 +351,30 @@ describe("org-roam.core.file", function()
                 id = "abcd-1234",
                 level = 2,
                 linked = {
-                    ["4444"] = { {
-                        column = 8,
-                        offset = 871,
-                        row = 33
-                    } }
+                    ["4444"] = {
+                        {
+                            column = 8,
+                            offset = 871,
+                            row = 33,
+                        },
+                    },
                 },
                 mtime = 0,
                 range = {
                     end_ = {
                         column = 0,
                         offset = 958,
-                        row = 35
+                        row = 35,
                     },
                     start = {
                         column = 0,
                         offset = 678,
-                        row = 26
+                        row = 26,
                     },
                 },
                 tags = { "HEADLINE_TAG_2", "HEADLINE_TAG_3", "tag1", "tag2", "tag3" },
                 title = "Nested headline",
-            }
+            },
         }, file.nodes)
     end)
 end)

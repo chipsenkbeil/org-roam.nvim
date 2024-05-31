@@ -156,7 +156,9 @@ describe("org-roam.database", function()
         ---@return org-roam.core.database.Id[]
         local function retrieve_ids(alias)
             local nodes = db:find_nodes_by_alias_sync(alias)
-            return vim.tbl_map(function(node) return node.id end, nodes)
+            return vim.tbl_map(function(node)
+                return node.id
+            end, nodes)
         end
 
         assert.are.same({ "1" }, retrieve_ids("one"))
@@ -172,7 +174,9 @@ describe("org-roam.database", function()
         ---@return org-roam.core.database.Id[]
         local function retrieve_ids(file)
             local nodes = db:find_nodes_by_file_sync(file)
-            return vim.tbl_map(function(node) return node.id end, nodes)
+            return vim.tbl_map(function(node)
+                return node.id
+            end, nodes)
         end
 
         assert.are.same({ "1" }, retrieve_ids(one_path))
@@ -188,7 +192,9 @@ describe("org-roam.database", function()
         ---@return org-roam.core.database.Id[]
         local function retrieve_ids(origin)
             local nodes = db:find_nodes_by_origin_sync(origin)
-            return vim.tbl_map(function(node) return node.id end, nodes)
+            return vim.tbl_map(function(node)
+                return node.id
+            end, nodes)
         end
 
         assert.are.same({ "2" }, retrieve_ids("1"))
@@ -204,7 +210,9 @@ describe("org-roam.database", function()
         ---@return org-roam.core.database.Id[]
         local function retrieve_ids(tag)
             local nodes = db:find_nodes_by_tag_sync(tag)
-            return vim.tbl_map(function(node) return node.id end, nodes)
+            return vim.tbl_map(function(node)
+                return node.id
+            end, nodes)
         end
 
         assert.are.same({ "1" }, retrieve_ids("one"))
@@ -220,7 +228,9 @@ describe("org-roam.database", function()
         ---@return org-roam.core.database.Id[]
         local function retrieve_ids(title)
             local nodes = db:find_nodes_by_title_sync(title)
-            return vim.tbl_map(function(node) return node.id end, nodes)
+            return vim.tbl_map(function(node)
+                return node.id
+            end, nodes)
         end
 
         assert.are.same({ "1" }, retrieve_ids("one"))
@@ -236,9 +246,12 @@ describe("org-roam.database", function()
         assert.are.same({ ["3"] = 1 }, db:get_file_links_sync(two_path))
 
         -- If we specify a depth, more links are included
-        assert.are.same({ ["3"] = 1, ["1"] = 2 }, db:get_file_links_sync(two_path, {
-            max_depth = 2,
-        }))
+        assert.are.same(
+            { ["3"] = 1, ["1"] = 2 },
+            db:get_file_links_sync(two_path, {
+                max_depth = 2,
+            })
+        )
     end)
 
     it("should support retrieving backlinks by file", function()
@@ -249,8 +262,11 @@ describe("org-roam.database", function()
         assert.are.same({ ["1"] = 1 }, db:get_file_backlinks_sync(two_path))
 
         -- If we specify a depth, more links are included
-        assert.are.same({ ["1"] = 1, ["3"] = 2 }, db:get_file_backlinks_sync(two_path, {
-            max_depth = 2,
-        }))
+        assert.are.same(
+            { ["1"] = 1, ["3"] = 2 },
+            db:get_file_backlinks_sync(two_path, {
+                max_depth = 2,
+            })
+        )
     end)
 end)

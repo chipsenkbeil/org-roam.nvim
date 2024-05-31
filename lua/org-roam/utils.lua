@@ -66,7 +66,7 @@ local function get_buffer_cache(bufnr)
         local node_tree
         if not vim.tbl_isempty(file.nodes) then
             node_tree = IntervalTree:from_list(
-            ---@param node org-roam.core.file.Node
+                ---@param node org-roam.core.file.Node
                 vim.tbl_map(function(node)
                     return {
                         node.range.start.offset,
@@ -81,7 +81,7 @@ local function get_buffer_cache(bufnr)
         local link_tree
         if #file.links > 0 then
             link_tree = IntervalTree:from_list(
-            ---@param link org-roam.core.file.Link
+                ---@param link org-roam.core.file.Link
                 vim.tbl_map(function(link)
                     return {
                         link.range.start.offset,
@@ -198,7 +198,7 @@ M.parse_prop_value = parse_property_value
 ---@param value string
 ---@return string
 function M.wrap_prop_value(value)
-    local text = string.gsub(string.gsub(value, "\\", "\\\\"), "\"", "\\\"")
+    local text = string.gsub(string.gsub(value, "\\", "\\\\"), '"', '\\"')
     return text
 end
 
@@ -308,11 +308,17 @@ function M.get_visual_selection(opts)
 
     -- If single line, we trim everything and collapse newlines into spaces
     if opts.single_line then
-        local text = table.concat(vim.tbl_filter(function(line)
-            return line ~= ""
-        end, vim.tbl_map(function(line)
-            return vim.trim(line)
-        end, lines)), " ")
+        local text = table.concat(
+            vim.tbl_filter(
+                function(line)
+                    return line ~= ""
+                end,
+                vim.tbl_map(function(line)
+                    return vim.trim(line)
+                end, lines)
+            ),
+            " "
+        )
         lines = { text }
     end
 

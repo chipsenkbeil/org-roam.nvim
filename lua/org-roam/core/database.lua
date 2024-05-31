@@ -264,7 +264,7 @@ function M:insert(data, opts)
 
     -- Do any pending indexing of the node
     self:reindex({
-        nodes = { id }
+        nodes = { id },
     })
 
     -- Increment the changed tick counter
@@ -644,7 +644,9 @@ function M:iter_nodes(opts)
 
     local MAX_NODES = opts.max_nodes or DEFAULT_MAX_NODES
     local MAX_DISTANCE = opts.max_distance or DEFAULT_MAX_DISTANCE
-    local filter = opts.filter or function() return true end
+    local filter = opts.filter or function()
+        return true
+    end
 
     ---@type table<org-roam.core.database.Id, boolean>
     local visited = {}

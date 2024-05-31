@@ -49,18 +49,21 @@ describe("org-roam.setup.commands", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
         roam.database:load():wait()
 
         -- Create a new file not loaded by the plugin yet
-        utils.write_to(utils.join_path(directory, "one.org"), utils.indent([=[
+        utils.write_to(
+            utils.join_path(directory, "one.org"),
+            utils.indent([=[
         :PROPERTIES:
         :ID: roam-update-node
         :END:
-        ]=]))
+        ]=])
+        )
 
         -- Trigger the command synchronously
         vim.cmd("RoamUpdate sync")
@@ -79,18 +82,21 @@ describe("org-roam.setup.commands", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
         roam.database:load():wait()
 
         -- Create a new file not loaded by the plugin yet
-        utils.write_to(utils.join_path(directory, "test.org"), utils.indent([=[
+        utils.write_to(
+            utils.join_path(directory, "test.org"),
+            utils.indent([=[
         :PROPERTIES:
         :ID: roam-update-node
         :END:
-        ]=]))
+        ]=])
+        )
 
         -- Trigger the command synchronously
         vim.cmd("RoamUpdate! sync")
@@ -109,18 +115,21 @@ describe("org-roam.setup.commands", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
         roam.database:load():wait()
 
         -- Create a new file not loaded by the plugin yet
-        utils.write_to(utils.join_path(directory, "test.org"), utils.indent([=[
+        utils.write_to(
+            utils.join_path(directory, "test.org"),
+            utils.indent([=[
         :PROPERTIES:
         :ID: roam-update-node
         :END:
-        ]=]))
+        ]=])
+        )
 
         -- Verify the database cache file exists
         assert.are.equal(1, vim.fn.filereadable(roam.config.database.path))
@@ -151,7 +160,7 @@ describe("org-roam.setup.commands", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -177,7 +186,7 @@ describe("org-roam.setup.commands", function()
         assert.are.same({
             ":PROPERTIES:",
             ":ID: 1",
-            ":ROAM_ALIASES: one \"some alias\"",
+            ':ROAM_ALIASES: one "some alias"',
             ":END:",
             "#+FILETAGS: :one:",
             "",
@@ -194,7 +203,7 @@ describe("org-roam.setup.commands", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -236,7 +245,7 @@ describe("org-roam.setup.commands", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done
@@ -280,7 +289,7 @@ describe("org-roam.setup.commands", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         -- Ensure loading is done

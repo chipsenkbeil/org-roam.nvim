@@ -17,7 +17,7 @@ describe("org-roam.setup.modifications", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
-            }
+            },
         })
 
         roam.database:load():wait()

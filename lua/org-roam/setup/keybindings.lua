@@ -21,8 +21,12 @@ local notify = require("org-roam.core.ui.notify")
 ---@param desc string
 ---@param cb fun()
 local function assign(lhs, desc, cb)
-    if type(cb) ~= "function" then return end
-    if not lhs then return end
+    if type(cb) ~= "function" then
+        return
+    end
+    if not lhs then
+        return
+    end
 
     local modes = { "n" }
     if type(lhs) == "table" then
@@ -30,7 +34,9 @@ local function assign(lhs, desc, cb)
         lhs = lhs.lhs
     end
 
-    if vim.trim(lhs) == "" or #modes == 0 then return end
+    if vim.trim(lhs) == "" or #modes == 0 then
+        return
+    end
 
     for _, mode in ipairs(modes) do
         vim.api.nvim_set_keymap(mode, lhs, "", {
@@ -77,37 +83,21 @@ local function assign_core_keybindings(roam)
     -- User can remove all bindings by setting this to nil
     local bindings = roam.config.bindings or {}
 
-    assign(
-        bindings.add_alias,
-        "Adds an alias to the roam node under cursor",
-        function()
-            roam.api.add_alias()
-        end
-    )
+    assign(bindings.add_alias, "Adds an alias to the roam node under cursor", function()
+        roam.api.add_alias()
+    end)
 
-    assign(
-        bindings.remove_alias,
-        "Removes an alias from the roam node under cursor",
-        function()
-            roam.api.remove_alias()
-        end
-    )
+    assign(bindings.remove_alias, "Removes an alias from the roam node under cursor", function()
+        roam.api.remove_alias()
+    end)
 
-    assign(
-        bindings.add_origin,
-        "Adds an origin to the roam node under cursor",
-        function()
-            roam.api.add_origin()
-        end
-    )
+    assign(bindings.add_origin, "Adds an origin to the roam node under cursor", function()
+        roam.api.add_origin()
+    end)
 
-    assign(
-        bindings.remove_origin,
-        "Removes the origin from the roam node under cursor",
-        function()
-            roam.api.remove_origin()
-        end
-    )
+    assign(bindings.remove_origin, "Removes the origin from the roam node under cursor", function()
+        roam.api.remove_origin()
+    end)
 
     assign(
         bindings.goto_prev_node,
@@ -125,62 +115,42 @@ local function assign_core_keybindings(roam)
         end
     )
 
-    assign(
-        bindings.quickfix_backlinks,
-        "Open quickfix of backlinks for org-roam node under cursor",
-        function()
-            roam.ui.open_quickfix_list({
-                backlinks = true,
-                show_preview = true,
-            })
-        end
-    )
+    assign(bindings.quickfix_backlinks, "Open quickfix of backlinks for org-roam node under cursor", function()
+        roam.ui.open_quickfix_list({
+            backlinks = true,
+            show_preview = true,
+        })
+    end)
 
-    assign(
-        bindings.toggle_roam_buffer,
-        "Toggles org-roam buffer for node under cursor",
-        function()
-            roam.ui.toggle_node_buffer({
-                focus = roam.config.ui.node_buffer.focus_on_toggle,
-            })
-        end
-    )
+    assign(bindings.toggle_roam_buffer, "Toggles org-roam buffer for node under cursor", function()
+        roam.ui.toggle_node_buffer({
+            focus = roam.config.ui.node_buffer.focus_on_toggle,
+        })
+    end)
 
-    assign(
-        bindings.toggle_roam_buffer_fixed,
-        "Toggles org-roam buffer for a specific node, not changing",
-        function()
-            roam.ui.toggle_node_buffer({
-                fixed = true,
-                focus = roam.config.ui.node_buffer.focus_on_toggle,
-            })
-        end
-    )
+    assign(bindings.toggle_roam_buffer_fixed, "Toggles org-roam buffer for a specific node, not changing", function()
+        roam.ui.toggle_node_buffer({
+            fixed = true,
+            focus = roam.config.ui.node_buffer.focus_on_toggle,
+        })
+    end)
 
-    assign(
-        bindings.complete_at_point,
-        "Completes link to a node based on expression under cursor",
-        function()
-            roam.api.complete_node()
-        end
-    )
+    assign(bindings.complete_at_point, "Completes link to a node based on expression under cursor", function()
+        roam.api.complete_node()
+    end)
 
-    assign(
-        { lhs = bindings.capture, modes = { "n", "v" } },
-        "Opens org-roam capture window",
-        function()
-            local results = get_visual_selection(roam)
-            local title
-            if type(results) == "table" then
-                title = results.title
-            elseif results == "unsupported" then
-                return
-            end
-            roam.api.capture_node({
-                title = title,
-            })
+    assign({ lhs = bindings.capture, modes = { "n", "v" } }, "Opens org-roam capture window", function()
+        local results = get_visual_selection(roam)
+        local title
+        if type(results) == "table" then
+            title = results.title
+        elseif results == "unsupported" then
+            return
         end
-    )
+        roam.api.capture_node({
+            title = title,
+        })
+    end)
 
     assign(
         { lhs = bindings.find_node, modes = { "n", "v" } },
@@ -244,93 +214,49 @@ local function assign_dailies_keybindings(roam)
     -- User can remove all bindings by setting this to nil
     local bindings = roam.config.extensions.dailies.bindings or {}
 
-    assign(
-        bindings.capture_date,
-        "Capture a specific date's note",
-        function()
-            roam.ext.dailies.capture_date()
-        end
-    )
+    assign(bindings.capture_date, "Capture a specific date's note", function()
+        roam.ext.dailies.capture_date()
+    end)
 
-    assign(
-        bindings.capture_today,
-        "Capture today's note",
-        function()
-            roam.ext.dailies.capture_today()
-        end
-    )
+    assign(bindings.capture_today, "Capture today's note", function()
+        roam.ext.dailies.capture_today()
+    end)
 
-    assign(
-        bindings.capture_tomorrow,
-        "Capture tomorrow's note",
-        function()
-            roam.ext.dailies.capture_tomorrow()
-        end
-    )
+    assign(bindings.capture_tomorrow, "Capture tomorrow's note", function()
+        roam.ext.dailies.capture_tomorrow()
+    end)
 
-    assign(
-        bindings.capture_yesterday,
-        "Capture yesterday's note",
-        function()
-            roam.ext.dailies.capture_yesterday()
-        end
-    )
+    assign(bindings.capture_yesterday, "Capture yesterday's note", function()
+        roam.ext.dailies.capture_yesterday()
+    end)
 
-    assign(
-        bindings.find_directory,
-        "Navigate to dailies note directory",
-        function()
-            roam.ext.dailies.find_directory()
-        end
-    )
+    assign(bindings.find_directory, "Navigate to dailies note directory", function()
+        roam.ext.dailies.find_directory()
+    end)
 
-    assign(
-        bindings.goto_date,
-        "Navigate to a specific date's note",
-        function()
-            roam.ext.dailies.goto_date()
-        end
-    )
+    assign(bindings.goto_date, "Navigate to a specific date's note", function()
+        roam.ext.dailies.goto_date()
+    end)
 
-    assign(
-        bindings.goto_today,
-        "Navigate to today's note",
-        function()
-            roam.ext.dailies.goto_today()
-        end
-    )
+    assign(bindings.goto_today, "Navigate to today's note", function()
+        roam.ext.dailies.goto_today()
+    end)
 
-    assign(
-        bindings.goto_tomorrow,
-        "Navigate to tomorrow's note",
-        function()
-            roam.ext.dailies.goto_tomorrow()
-        end
-    )
+    assign(bindings.goto_tomorrow, "Navigate to tomorrow's note", function()
+        roam.ext.dailies.goto_tomorrow()
+    end)
 
-    assign(
-        bindings.goto_yesterday,
-        "Navigate to yesterday's note",
-        function()
-            roam.ext.dailies.goto_yesterday()
-        end
-    )
+    assign(bindings.goto_yesterday, "Navigate to yesterday's note", function()
+        roam.ext.dailies.goto_yesterday()
+    end)
 
-    assign(
-        bindings.goto_next_date,
-        "Navigate to the next available note",
-        function()
-            roam.ext.dailies.goto_next_date()
-        end
-    )
+    assign(bindings.goto_next_date, "Navigate to the next available note", function()
+        roam.ext.dailies.goto_next_date()
+    end)
 
-    assign(
-        bindings.goto_prev_date,
-        "Navigate to the previous available note",
-        function()
-            roam.ext.dailies.goto_prev_date()
-        end
-    )
+    assign(bindings.goto_prev_date, "Navigate to the previous available note", function()
+        roam.ext.dailies.goto_prev_date()
+    end)
 end
 
 ---@param roam OrgRoam

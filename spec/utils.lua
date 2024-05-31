@@ -40,9 +40,7 @@ local __debug_enabled = nil
 function M.debug_print(...)
     if type(__debug_enabled) ~= "boolean" then
         local enabled = vim.env.ROAM_DEBUG
-        __debug_enabled = type(enabled) == "string"
-            and string.lower(vim.trim(enabled)) == "true"
-            or false
+        __debug_enabled = type(enabled) == "string" and string.lower(vim.trim(enabled)) == "true" or false
     end
 
     if __debug_enabled then
@@ -103,9 +101,12 @@ function M.indent(s)
         end, nonempty_lines)))
     end
 
-    return table.concat(vim.tbl_map(function(line)
-        return string.sub(line, indent + 1)
-    end, lines), "\n")
+    return table.concat(
+        vim.tbl_map(function(line)
+            return string.sub(line, indent + 1)
+        end, lines),
+        "\n"
+    )
 end
 
 ---Creates a new orgfile, stripping common indentation.
@@ -149,9 +150,13 @@ function M.fake_node(opts)
     return Node:new(vim.tbl_deep_extend("keep", opts or {}, {
         id = uuid_v4(),
         range = Range:new({
-            row = 0, column = 0, offset = 0,
+            row = 0,
+            column = 0,
+            offset = 0,
         }, {
-            row = 0, column = 0, offset = 0,
+            row = 0,
+            column = 0,
+            offset = 0,
         }),
         file = uuid_v4() .. ".org",
         mtime = 0,
@@ -447,7 +452,9 @@ function M.clear_autocmds(group)
     local success, cmds = pcall(vim.api.nvim_get_autocmds, {
         group = group,
     })
-    if not success then return end
+    if not success then
+        return
+    end
     for _, cmd in ipairs(cmds or {}) do
         local id = cmd.id
         if id then
@@ -506,7 +513,7 @@ function M.mock_calendar(mock)
                 else
                     return Promise.resolve(mock)
                 end
-            end
+            end,
         }
     end
 end
@@ -608,7 +615,9 @@ function M.mock_vim_inputs(opts)
         if type(value) == "function" then
             tbl[key] = value
         elseif type(value) ~= "nil" then
-            tbl[key] = function() return value end
+            tbl[key] = function()
+                return value
+            end
         end
     end
 

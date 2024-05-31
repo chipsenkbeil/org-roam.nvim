@@ -11,7 +11,7 @@ describe("org-roam.ui.quickfix", function()
         roam = utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory(),
-            }
+            },
         })
         test_path_two = utils.join_path(roam.config.directory, "two.org")
     end)
@@ -103,7 +103,7 @@ describe("org-roam.ui.quickfix", function()
         end)
         assert.are.same({
             { module = "(backlink) one", text = "", lnum = 7, col = 1 },
-            { module = "(link) three",   text = "", lnum = 0, col = 0 },
+            { module = "(link) three", text = "", lnum = 0, col = 0 },
         }, items)
     end)
 
@@ -114,10 +114,12 @@ describe("org-roam.ui.quickfix", function()
         vim.cmd.edit(test_path_two)
 
         -- Open the quickfix list based on the node from two.org
-        roam.ui.open_quickfix_list({
-            backlinks = true,
-            show_preview = true,
-        }):wait()
+        roam.ui
+            .open_quickfix_list({
+                backlinks = true,
+                show_preview = true,
+            })
+            :wait()
 
         -- Verify the quickfix contents
         assert.are.same({

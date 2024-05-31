@@ -79,12 +79,7 @@ function M.__add_big_char_margin(lines)
     --left & right padding
 
     for _, line in ipairs(lines) do
-        local new_line = string.format(
-            "%s%s%s",
-            string.rep(" ", 2),
-            line,
-            string.rep(" ", 2)
-        )
+        local new_line = string.format("%s%s%s", string.rep(" ", 2), line, string.rep(" ", 2))
 
         table.insert(centered_lines, new_line)
     end

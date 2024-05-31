@@ -13,11 +13,7 @@ describe("org-roam.extensions.dailies", function()
             date = os.date("%Y-%m-%d", date.timestamp)
         end
 
-        local path = utils.join_path(
-            roam.config.directory,
-            roam.config.extensions.dailies.directory,
-            date .. ".org"
-        )
+        local path = utils.join_path(roam.config.directory, roam.config.extensions.dailies.directory, date .. ".org")
 
         utils.write_to(path, ...)
 
@@ -38,9 +34,9 @@ describe("org-roam.extensions.dailies", function()
         roam.database:load():wait()
 
         utils.mock_vim_inputs({
-            confirm = 1,                   -- confirm yes for refile
+            confirm = 1, -- confirm yes for refile
             getchar = vim.fn.char2nr("d"), -- select "d" template
-            input   = "Some title",        -- input "Some title" on title prompt
+            input = "Some title", -- input "Some title" on title prompt
         })
 
         -- Mock calendar to select a specific date
@@ -85,9 +81,9 @@ describe("org-roam.extensions.dailies", function()
         roam.database:load():wait()
 
         utils.mock_vim_inputs({
-            confirm = 1,                   -- confirm yes for refile
+            confirm = 1, -- confirm yes for refile
             getchar = vim.fn.char2nr("d"), -- select "d" template
-            input   = "Some title",        -- input "Some title" on title prompt
+            input = "Some title", -- input "Some title" on title prompt
         })
 
         -- Start the capture process
@@ -131,9 +127,9 @@ describe("org-roam.extensions.dailies", function()
         roam.database:load():wait()
 
         utils.mock_vim_inputs({
-            confirm = 1,                   -- confirm yes for refile
+            confirm = 1, -- confirm yes for refile
             getchar = vim.fn.char2nr("d"), -- select "d" template
-            input   = "Some title",        -- input "Some title" on title prompt
+            input = "Some title", -- input "Some title" on title prompt
         })
 
         local date = os.date("%Y-%m-%d", Date.today().timestamp)
@@ -177,9 +173,9 @@ describe("org-roam.extensions.dailies", function()
         roam.database:load():wait()
 
         utils.mock_vim_inputs({
-            confirm = 1,                   -- confirm yes for refile
+            confirm = 1, -- confirm yes for refile
             getchar = vim.fn.char2nr("d"), -- select "d" template
-            input   = "Some title",        -- input "Some title" on title prompt
+            input = "Some title", -- input "Some title" on title prompt
         })
 
         local date = os.date("%Y-%m-%d", Date.tomorrow().timestamp)
@@ -223,9 +219,9 @@ describe("org-roam.extensions.dailies", function()
         roam.database:load():wait()
 
         utils.mock_vim_inputs({
-            confirm = 1,                   -- confirm yes for refile
+            confirm = 1, -- confirm yes for refile
             getchar = vim.fn.char2nr("d"), -- select "d" template
-            input   = "Some title",        -- input "Some title" on title prompt
+            input = "Some title", -- input "Some title" on title prompt
         })
 
         local date = os.date("%Y-%m-%d", Date.today():subtract({ day = 1 }).timestamp)
@@ -275,9 +271,11 @@ describe("org-roam.extensions.dailies", function()
         })
 
         -- Do the navigation without opening the calendar
-        local date = roam.ext.dailies.goto_date({
-            date = "2024-04-27",
-        }):wait()
+        local date = roam.ext.dailies
+            .goto_date({
+                date = "2024-04-27",
+            })
+            :wait()
 
         assert.are.equal(utils.date_from_string("2024-04-27"), date)
 
@@ -292,9 +290,11 @@ describe("org-roam.extensions.dailies", function()
         roam.database:load():wait()
 
         -- Do the navigation without opening the calendar
-        local date = roam.ext.dailies.goto_date({
-            date = "2024-04-27",
-        }):wait()
+        local date = roam.ext.dailies
+            .goto_date({
+                date = "2024-04-27",
+            })
+            :wait()
 
         assert.are.equal(utils.date_from_string("2024-04-27"), date)
 

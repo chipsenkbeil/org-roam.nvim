@@ -20,7 +20,7 @@ describe("org-roam.events", function()
         roam = utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory(),
-            }
+            },
         })
         test_path_one = utils.join_path(roam.config.directory, "one.org")
         test_path_two = utils.join_path(roam.config.directory, "two.org")
@@ -60,7 +60,9 @@ describe("org-roam.events", function()
     it("moving around buffer with multiple nodes should report changes", function()
         -- Save the file without our test directory
         local test_path = utils.join_path(roam.config.directory, "new.org")
-        utils.write_to(test_path, utils.indent([=[
+        utils.write_to(
+            test_path,
+            utils.indent([=[
         :PROPERTIES:
         :ID: 1234
         :END:
@@ -74,7 +76,8 @@ describe("org-roam.events", function()
           :END:
 
           Some inner node text.
-        ]=]))
+        ]=])
+        )
 
         -- Reload the nodes into our database
         roam.database:load():wait()

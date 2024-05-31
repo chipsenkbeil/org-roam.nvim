@@ -21,7 +21,7 @@ describe("org-roam.setup.autocmds", function()
                 database = {
                     update_on_save = true,
                 },
-            }
+            },
         })
 
         -- Ensure we are loaded
@@ -56,7 +56,7 @@ describe("org-roam.setup.autocmds", function()
                 database = {
                     update_on_save = false,
                 },
-            }
+            },
         })
 
         -- Ensure we are loaded
@@ -87,7 +87,7 @@ describe("org-roam.setup.autocmds", function()
                 database = {
                     persist = true,
                 },
-            }
+            },
         })
 
         -- Look for the persistence autocmd
@@ -123,7 +123,7 @@ describe("org-roam.setup.autocmds", function()
                 database = {
                     persist = false,
                 },
-            }
+            },
         })
 
         -- Look for the persistence autocmd

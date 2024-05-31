@@ -44,7 +44,7 @@ describe("org-roam.api.alias", function()
         assert.are.same({
             ":PROPERTIES:",
             ":ID: " .. id,
-            ":ROAM_ALIASES: \"other test\"",
+            ':ROAM_ALIASES: "other test"',
             ":END:",
             "#+TITLE: Test",
         }, utils.read_buffer())
@@ -76,7 +76,7 @@ describe("org-roam.api.alias", function()
         assert.are.same({
             ":PROPERTIES:",
             ":ID: " .. id,
-            ":ROAM_ALIASES: something \"other test\"",
+            ':ROAM_ALIASES: something "other test"',
             ":END:",
             "#+TITLE: Test",
         }, utils.read_buffer())
@@ -177,7 +177,7 @@ describe("org-roam.api.alias", function()
         assert.are.same({
             ":PROPERTIES:",
             ":ID: " .. id,
-            ":ROAM_ALIASES: \"else\"",
+            ':ROAM_ALIASES: "else"',
             ":END:",
             "#+TITLE: Test",
         }, utils.read_buffer())

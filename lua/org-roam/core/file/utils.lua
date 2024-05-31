@@ -14,7 +14,7 @@ local M = {}
 ---@return string[]
 function M.parse_property_value(value)
     local items = {}
-    local QUOTE = string.byte("\"")
+    local QUOTE = string.byte('"')
     local SPACE = string.byte(" ")
     local BACKSLASH = string.byte("\\")
 
@@ -23,7 +23,9 @@ function M.parse_property_value(value)
 
     ---Adds an item using the current i & j
     local function add_item()
-        if i > j then return end
+        if i > j then
+            return
+        end
         local item = vim.trim(string.sub(value, i, j))
         if item ~= "" then
             table.insert(items, item)
@@ -35,10 +37,7 @@ function M.parse_property_value(value)
         local b = string.byte(value, idx)
 
         -- Unescaped quote is a " not preceded by \
-        local unescaped_quote = b == QUOTE and (
-            idx == 1
-            or string.byte(value, idx - 1) ~= BACKSLASH
-        )
+        local unescaped_quote = b == QUOTE and (idx == 1 or string.byte(value, idx - 1) ~= BACKSLASH)
 
         if unescaped_quote or (b == SPACE and not within_quote) then
             add_item()
@@ -63,7 +62,7 @@ function M.parse_property_value(value)
 
     -- Remove any escaped quotes \" from the items
     return vim.tbl_map(function(item)
-        item = string.gsub(item, "\\\"", "\"")
+        item = string.gsub(item, '\\"', '"')
         return item
     end, items)
 end
