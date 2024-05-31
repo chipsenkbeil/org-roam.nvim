@@ -306,6 +306,7 @@ function M:open()
             },
             winopts = {
                 cursorline = false,
+                wrap = false,
             },
             components = {
                 function()
