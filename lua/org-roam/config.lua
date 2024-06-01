@@ -19,50 +19,52 @@ local DEFAULT_CONFIG = {
     ---Bindings associated with org-roam functionality.
     ---@class org-roam.config.Bindings
     bindings = {
+        ---Adjusts the prefix for every keybinding. Can be used in keybindings with <prefix>.
+        prefix = "<Leader>n",
         ---Adds an alias to the node under cursor.
-        add_alias = "<Leader>naa",
+        add_alias = "<prefix>aa",
 
         ---Adds an origin to the node under cursor.
-        add_origin = "<Leader>noa",
+        add_origin = "<prefix>oa",
 
         ---Opens org-roam capture window.
-        capture = "<Leader>nc",
+        capture = "<prefix>c",
 
         ---Completes the node under cursor.
-        complete_at_point = "<Leader>n.",
+        complete_at_point = "<prefix>.",
 
         ---Finds node and moves to it.
-        find_node = "<Leader>nf",
+        find_node = "<prefix>f",
 
         ---Goes to the next node sequentially based on origin of the node under cursor.
         ---
         ---If more than one node has the node under cursor as its origin, a selection
         ---dialog is displayed to choose the node.
-        goto_next_node = "<Leader>nn",
+        goto_next_node = "<prefix>n",
 
         ---Goes to the previous node sequentially based on origin of the node under cursor.
-        goto_prev_node = "<Leader>np",
+        goto_prev_node = "<prefix>p",
 
         ---Inserts node at cursor position.
-        insert_node = "<Leader>ni",
+        insert_node = "<prefix>i",
 
         ---Inserts node at cursor position without opening capture buffer.
-        insert_node_immediate = "<Leader>nm",
+        insert_node_immediate = "<prefix>m",
 
         ---Opens the quickfix menu for backlinks to the current node under cursor.
-        quickfix_backlinks = "<Leader>nq",
+        quickfix_backlinks = "<prefix>q",
 
         ---Removes an alias from the node under cursor.
-        remove_alias = "<Leader>nar",
+        remove_alias = "<prefix>ar",
 
         ---Removes the origin from the node under cursor.
-        remove_origin = "<Leader>nor",
+        remove_origin = "<prefix>or",
 
         ---Toggles the org-roam node-view buffer for the node under cursor.
-        toggle_roam_buffer = "<Leader>nl",
+        toggle_roam_buffer = "<prefix>l",
 
         ---Toggles a fixed org-roam node-view buffer for a selected node.
-        toggle_roam_buffer_fixed = "<Leader>nb",
+        toggle_roam_buffer_fixed = "<prefix>b",
     },
 
     ---Settings associated with org-roam capture logic.
@@ -108,37 +110,37 @@ local DEFAULT_CONFIG = {
             ---@class org-roam.config.extensions.dailies.Bindings
             bindings = {
                 ---Capture a specific date's note.
-                capture_date = "<Leader>ndD",
+                capture_date = "<prefix>dD",
 
                 ---Capture today's note.
-                capture_today = "<Leader>ndN",
+                capture_today = "<prefix>dN",
 
                 ---Capture tomorrow's note.
-                capture_tomorrow = "<Leader>ndT",
+                capture_tomorrow = "<prefix>dT",
 
                 ---Capture yesterday's note.
-                capture_yesterday = "<Leader>ndY",
+                capture_yesterday = "<prefix>dY",
 
                 ---Navigate to dailies note directory.
-                find_directory = "<Leader>nd.",
+                find_directory = "<prefix>d.",
 
                 ---Navigate to specific date's note.
-                goto_date = "<Leader>ndd",
+                goto_date = "<prefix>dd",
 
                 ---Navigate to the next note in date sequence.
-                goto_next_date = "<Leader>ndf",
+                goto_next_date = "<prefix>df",
 
                 ---Navigate to the previous note in date sequence.
-                goto_prev_date = "<Leader>ndb",
+                goto_prev_date = "<prefix>db",
 
                 ---Navigate to today's note.
-                goto_today = "<Leader>ndn",
+                goto_today = "<prefix>dn",
 
                 ---Navigate to tomorrow's note.
-                goto_tomorrow = "<Leader>ndt",
+                goto_tomorrow = "<prefix>dt",
 
                 ---Navigate to yesterday's note.
-                goto_yesterday = "<Leader>ndy",
+                goto_yesterday = "<prefix>dy",
             },
 
             ---Settings tied to org-roam dailies capture templates.

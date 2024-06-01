@@ -22,6 +22,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -47,6 +48,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.add_alias, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         assert.are.same({
@@ -73,6 +75,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -98,6 +101,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.remove_alias, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         assert.are.same({
@@ -123,6 +127,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -148,6 +153,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.add_origin, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         assert.are.same({
@@ -175,6 +181,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -196,6 +203,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.remove_origin, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         assert.are.same({
@@ -232,6 +240,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -242,6 +251,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.goto_prev_node, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Review that we moved to the origin
@@ -268,6 +278,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -278,6 +289,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.goto_next_node, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Review that we moved to the next node
@@ -316,6 +328,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -331,6 +344,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.goto_next_node, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Review that we moved to the next node
@@ -358,6 +372,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -368,6 +383,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.quickfix_backlinks, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Verify the quickfix contents
@@ -388,6 +404,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -398,6 +415,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.toggle_roam_buffer, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Verify we have switched to the appropriate buffer
@@ -427,6 +445,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -439,6 +458,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.toggle_roam_buffer_fixed, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Verify we have switched to the appropriate buffer
@@ -468,6 +488,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -484,6 +505,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.complete_at_point, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Verify we have switched to the appropriate buffer
@@ -506,6 +528,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -523,6 +546,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.capture, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Capture the lines of the capture buffer
@@ -560,6 +584,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -586,6 +611,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.capture, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Capture the lines of the capture buffer
@@ -623,6 +649,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -635,6 +662,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.find_node, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Verify we loaded the buffer for the selected node
@@ -662,6 +690,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -687,6 +716,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.find_node, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Verify we loaded the buffer for the selected node
@@ -714,6 +744,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -726,6 +757,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.insert_node, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Verify we inserted the link
@@ -746,6 +778,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -771,6 +804,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.insert_node, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Verify we inserted the link, replacing the visual selection
@@ -791,6 +825,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -803,6 +838,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.insert_node_immediate, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Verify we inserted the link to the new node
@@ -823,6 +859,7 @@ describe("org-roam.setup.keybindings", function()
                 },
             },
         })
+        local prefix = roam.config.bindings.prefix
 
         -- Ensure loading is done
         roam.database:load():wait()
@@ -843,6 +880,7 @@ describe("org-roam.setup.keybindings", function()
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.insert_node_immediate, {
             wait = utils.wait_time(),
+            prefix = prefix,
         })
 
         -- Verify we inserted the link to the new node

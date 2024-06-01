@@ -312,6 +312,9 @@ end
 ---@param opts? {buf?:integer, wait?:integer}
 function M.trigger_mapping(mode, lhs, opts)
     opts = opts or {}
+    if opts.prefix then
+        lhs = lhs:gsub("<prefix>", opts.prefix)
+    end
 
     local exists, mapping
     if opts.buf then

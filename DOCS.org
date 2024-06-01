@@ -74,6 +74,35 @@
 
    Configuration settings used to specify keybindings.
 
+*** prefix
+
+    Sets an overall prefix, to define common leading keystrokes for other
+    bindings. Defaults to =<Leader>n=.
+
+    #+begin_src lua
+    require("org-roam").setup({
+      bindings = {
+        prefix = "<LocalLeader>n",
+      },
+    })
+    #+end_src
+
+    It can be used in other bindings with =<prefix>=:
+
+    #+begin_src lua
+    require("org-roam").setup({
+      bindings = {
+        prefix = "<LocalLeader>n",
+        -- ...
+        add_alias = "<prefix>A", -- add alias is now bound to <LocalLeader>nA
+      },
+    })
+    #+end_src
+
+    All default keybindings use it, so if you just want to change =<Leader>n= to
+    something else, instead of redefining them all manually, just set
+    =bindings.prefix= to your preference. See also [[*Modifying bindings]].
+
 *** add alias
 
     Adds an alias to the node under cursor.
@@ -810,6 +839,9 @@
   | toggle_roam_buffer       | =<Leader>nl=  | Toggles the org-roam node-view buffer for the node under cursor.          |
   | toggle_roam_buffer_fixed | =<Leader>nb=  | Toggles a fixed org-roam node-view buffer for a selected node.            |
 
+  All these bindings use by default the [[*prefix]] alias and can be changed all
+  at once by modifying ~bindings.prefix~.
+
 ** Dailies Extension
 
    | Name              | Keybinding    | Description                                     |
@@ -826,27 +858,56 @@
    | goto_tomorrow     | =<Leader>ndt= | Navigate to tomorrow's note.                    |
    | goto_yesterday    | =<Leader>ndy= | Navigate to yesterday's note.                   |
 
+   All these bindings use by default the [[*prefix]] alias and can be changed all
+   at once by modifying ~bindings.prefix~.
+
 ** Modifying bindings
 
-  Bindings can be changed during configuration by overwriting them within the =bindings= table:
+   Bindings can be changed during configuration by overwriting them within the
+   =bindings= table: 
 
-  #+begin_src lua
-  require("org-roam").setup({
-    -- ...
-    bindings = {
-      capture = "<LocalLeader>nc",
-    },
-  })
-  #+end_src
+   #+begin_src lua
+   require("org-roam").setup({
+     -- ...
+     bindings = {
+       capture = "<LocalLeader>nc" -- remaps from <Leader>nc to <LocalLeader>nc
+     },
+   })
+   #+end_src
 
-  To disable all bindings, set the =bindings= field to =false=:
+   We use a common [[*prefix]] to define the leading keystrokes in every
+   mapping, which are by default =<Leader>n=. If you only want to adjust these,
+   you can do so by setting =bindings.prefix=:
 
-  #+begin_src lua
-  require("org-roam").setup({
-    -- ...
-    bindings = false,
-  })
-  #+end_src
+   #+begin_src lua
+   require("org-roam").setup({
+     -- ...
+     bindings = {
+       prefix = "<LocalLeader>n", -- replaces <Leader>n in every binding with <LocalLeader>n
+     },
+   })
+   #+end_src
+
+   The [[*prefix]] can also be reused in self-defined bindings:
+
+   #+begin_src lua
+   require("org-roam").setup({
+     -- ...
+     bindings = {
+       toggle_roam_buffer = "<prefix>t.",       -- replaces <Leader>nl with <Leader>nt.
+       toggle_roam_buffer_fixed = "<prefix>tf", -- replaces <Leader>nb with <Leader>ntf
+     },
+   })
+   #+end_src
+
+   To disable all bindings, set the =bindings= field to =false=:
+
+   #+begin_src lua
+   require("org-roam").setup({
+     -- ...
+     bindings = false,
+   })
+   #+end_src
 
 ** Coming from Emacs
 

@@ -20,7 +20,8 @@ local notify = require("org-roam.core.ui.notify")
 ---@param lhs string|{lhs:string, modes:org-roam.config.NvimMode[]}|nil
 ---@param desc string
 ---@param cb fun()
-local function assign(lhs, desc, cb)
+---@param prefix string?
+local function assign(lhs, desc, cb, prefix)
     if type(cb) ~= "function" then
         return
     end
@@ -36,6 +37,10 @@ local function assign(lhs, desc, cb)
 
     if vim.trim(lhs) == "" or #modes == 0 then
         return
+    end
+
+    if prefix then
+        lhs = lhs:gsub("<prefix>", prefix)
     end
 
     for _, mode in ipairs(modes) do
@@ -82,29 +87,31 @@ end
 local function assign_core_keybindings(roam)
     -- User can remove all bindings by setting this to nil
     local bindings = roam.config.bindings or {}
+    local prefix = roam.config.bindings.prefix
 
     assign(bindings.add_alias, "Adds an alias to the roam node under cursor", function()
         roam.api.add_alias()
-    end)
+    end, prefix)
 
     assign(bindings.remove_alias, "Removes an alias from the roam node under cursor", function()
         roam.api.remove_alias()
-    end)
+    end, prefix)
 
     assign(bindings.add_origin, "Adds an origin to the roam node under cursor", function()
         roam.api.add_origin()
-    end)
+    end, prefix)
 
     assign(bindings.remove_origin, "Removes the origin from the roam node under cursor", function()
         roam.api.remove_origin()
-    end)
+    end, prefix)
 
     assign(
         bindings.goto_prev_node,
         "Goes to the previous node sequentially based on origin of the node under cursor",
         function()
             roam.api.goto_prev_node()
-        end
+        end,
+        prefix
     )
 
     assign(
@@ -112,7 +119,8 @@ local function assign_core_keybindings(roam)
         "Goes to the next node sequentially based on origin of the node under cursor",
         function()
             roam.api.goto_next_node()
-        end
+        end,
+        prefix
     )
 
     assign(bindings.quickfix_backlinks, "Open quickfix of backlinks for org-roam node under cursor", function()
@@ -120,24 +128,24 @@ local function assign_core_keybindings(roam)
             backlinks = true,
             show_preview = true,
         })
-    end)
+    end, prefix)
 
     assign(bindings.toggle_roam_buffer, "Toggles org-roam buffer for node under cursor", function()
         roam.ui.toggle_node_buffer({
             focus = roam.config.ui.node_buffer.focus_on_toggle,
         })
-    end)
+    end, prefix)
 
     assign(bindings.toggle_roam_buffer_fixed, "Toggles org-roam buffer for a specific node, not changing", function()
         roam.ui.toggle_node_buffer({
             fixed = true,
             focus = roam.config.ui.node_buffer.focus_on_toggle,
         })
-    end)
+    end, prefix)
 
     assign(bindings.complete_at_point, "Completes link to a node based on expression under cursor", function()
         roam.api.complete_node()
-    end)
+    end, prefix)
 
     assign({ lhs = bindings.capture, modes = { "n", "v" } }, "Opens org-roam capture window", function()
         local results = get_visual_selection(roam)
@@ -150,7 +158,7 @@ local function assign_core_keybindings(roam)
         roam.api.capture_node({
             title = title,
         })
-    end)
+    end, prefix)
 
     assign(
         { lhs = bindings.find_node, modes = { "n", "v" } },
@@ -166,7 +174,8 @@ local function assign_core_keybindings(roam)
             roam.api.find_node({
                 title = title,
             })
-        end
+        end,
+        prefix
     )
 
     assign(
@@ -185,7 +194,8 @@ local function assign_core_keybindings(roam)
                 title = title,
                 ranges = ranges,
             })
-        end
+        end,
+        prefix
     )
 
     assign(
@@ -205,7 +215,8 @@ local function assign_core_keybindings(roam)
                 title = title,
                 ranges = ranges,
             })
-        end
+        end,
+        prefix
     )
 end
 
@@ -213,50 +224,51 @@ end
 local function assign_dailies_keybindings(roam)
     -- User can remove all bindings by setting this to nil
     local bindings = roam.config.extensions.dailies.bindings or {}
+    local prefix = roam.config.bindings.prefix
 
     assign(bindings.capture_date, "Capture a specific date's note", function()
         roam.ext.dailies.capture_date()
-    end)
+    end, prefix)
 
     assign(bindings.capture_today, "Capture today's note", function()
         roam.ext.dailies.capture_today()
-    end)
+    end, prefix)
 
     assign(bindings.capture_tomorrow, "Capture tomorrow's note", function()
         roam.ext.dailies.capture_tomorrow()
-    end)
+    end, prefix)
 
     assign(bindings.capture_yesterday, "Capture yesterday's note", function()
         roam.ext.dailies.capture_yesterday()
-    end)
+    end, prefix)
 
     assign(bindings.find_directory, "Navigate to dailies note directory", function()
         roam.ext.dailies.find_directory()
-    end)
+    end, prefix)
 
     assign(bindings.goto_date, "Navigate to a specific date's note", function()
         roam.ext.dailies.goto_date()
-    end)
+    end, prefix)
 
     assign(bindings.goto_today, "Navigate to today's note", function()
         roam.ext.dailies.goto_today()
-    end)
+    end, prefix)
 
     assign(bindings.goto_tomorrow, "Navigate to tomorrow's note", function()
         roam.ext.dailies.goto_tomorrow()
-    end)
+    end, prefix)
 
     assign(bindings.goto_yesterday, "Navigate to yesterday's note", function()
         roam.ext.dailies.goto_yesterday()
-    end)
+    end, prefix)
 
     assign(bindings.goto_next_date, "Navigate to the next available note", function()
         roam.ext.dailies.goto_next_date()
-    end)
+    end, prefix)
 
     assign(bindings.goto_prev_date, "Navigate to the previous available note", function()
         roam.ext.dailies.goto_prev_date()
-    end)
+    end, prefix)
 end
 
 ---@param roam OrgRoam
