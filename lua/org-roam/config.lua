@@ -168,6 +168,16 @@ local DEFAULT_CONFIG = {
         },
     },
 
+    ---Additional org files to load. If an entry does not end on ".org" it assumes a directory and searches for org
+    ---files recusrively.
+    ---Supports globbing like org_agenda_files setting in orgmode
+    ---@type string[]
+    org_files = {
+        -- ~/additonal_org_files,
+        -- ~/a/single/org_file.org,
+        -- ~/more/org/files/but/not/recusive/search/*.org
+    },
+
     ---Settings tied to org-roam immediate mode.
     ---@class org-roam.config.Immediate
     immediate = {

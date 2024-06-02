@@ -15,6 +15,7 @@ return function(roam)
     roam.database = roam.database:new({
         db_path = roam.config.database.path,
         directory = roam.config.directory,
+        org_files = roam.config.org_files,
     })
 
     -- Load the database asynchronously, forcing a full sweep of directory

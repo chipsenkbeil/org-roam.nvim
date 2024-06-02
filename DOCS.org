@@ -59,16 +59,55 @@
 
 ** directory
 
-   Path to the directory containing org files for use with org-roam.
+   Path to the directory containing org files for use with org-roam and where
+   org-roam stores org files which represent new nodes created with org-roam.
 
    Takes a string representing the path to the directory, which can
    can contain =~= that will expand to your home directory.
 
    #+begin_src lua
    require("org-roam").setup({
-     directory = "~/orgfiles",
+     directory = "~/orgroamfiles",
    })
    #+end_src
+
+   Configuring additional folders and files to be loaded by org-roam is also
+   supported, see [[#configuration-org_files][org_files]].
+
+** org_files
+
+   To include existing org files in the knowledge graph of org roam, additional
+   files can be registered. Supported syntax is like =org_agenda_files= in
+   orgmode. If the entry does not end on =.org= a directory is assumed and
+   searched recursively for org files.
+
+   #+begin_src lua
+   require("org-roam").setup({
+     org_files = {
+       "~/more_org_files",
+       "~/additional/org_files/*.org",
+     },
+   })
+   #+end_src
+
+   To actually connect the content of these files with org-roams knowledge
+   graph, you can use the "store link" feature of orgmode (=<Leader>ols=), which adds
+   an ID to an existing headline. This headline is then treated as a roam node
+   by org-roam.
+
+   If you want a whole file to be treated as a node by org-roam, you need to add
+   a global property section and a title at the top of the org file.
+
+   #+begin_example org
+   :PROPERTIES:
+   :ID: 8b2c3d3e-9800-4186-80e5-d07ce7bc5327
+   :END:
+   #+TITLE: My node
+   #+end_example
+
+   Tip: Because "store link" in orgmode currently does not support whole files, the
+   quick workaround is to apply =<Leader>ols= on a headline and move the =:PROPERTIES:=
+   section with the generated ID to the top of the file.
 
 ** bindings
 
@@ -685,6 +724,7 @@
       },
     })
     #+end_src
+
 
 ** templates
 
