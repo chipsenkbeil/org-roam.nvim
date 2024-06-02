@@ -1,4 +1,4 @@
-*org-roam.txt*             For NVIM v0.9.2            Last change: 2024 May 14
+*org-roam.txt*            For NVIM v0.9.2            Last change: 2024 June 02
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -164,6 +164,36 @@ Takes a string representing the path to the directory, which can can contain
 BINDINGS                                     *org-roam-configuration-bindings*
 
 Configuration settings used to specify keybindings.
+
+
+PREFIX ~
+
+Sets an overall prefix, to define common leading keystrokes for other bindings.
+Defaults to `<Leader>n`.
+
+>lua
+    require("org-roam").setup({
+      bindings = {
+        prefix = "<LocalLeader>n",
+      },
+    })
+<
+
+It can be used in other bindings with `<prefix>`:
+
+>lua
+    require("org-roam").setup({
+      bindings = {
+        prefix = "<LocalLeader>n",
+        -- ...
+        add_alias = "<prefix>A", -- add alias is now bound to <LocalLeader>nA
+      },
+    })
+<
+
+All default keybindings use it, so if you just want to change `<Leader>n` to
+something else, instead of redefining them all manually, just set
+`bindings.prefix` to your preference. See also _*Modifying bindings_.
 
 
 ADD ALIAS ~
@@ -951,6 +981,9 @@ Takes a boolean. Defaults to `false`.
   remove_(origin)            <Leader>nor   Removes the origin from the node under cursor.
   toggle_(roambuffer)        <Leader>nl    Toggles the org-roam node-view buffer for the node under cursor.
   toggle_(roambufferfixed)   <Leader>nb    Toggles a fixed org-roam node-view buffer for a selected node.
+All these bindings use by default the _*prefix_ alias and can be changed all at
+once by modifying `bindings.prefix`.
+
 
 DAILIES EXTENSION                        *org-roam-bindings-dailies-extension*
 
@@ -967,6 +1000,9 @@ DAILIES EXTENSION                        *org-roam-bindings-dailies-extension*
   goto_(today)          <Leader>ndn   Navigate to today's note.
   goto_(tomorrow)       <Leader>ndt   Navigate to tomorrow's note.
   goto_(yesterday)      <Leader>ndy   Navigate to yesterday's note.
+All these bindings use by default the _*prefix_ alias and can be changed all at
+once by modifying `bindings.prefix`.
+
 
 MODIFYING BINDINGS                      *org-roam-bindings-modifying-bindings*
 
@@ -977,7 +1013,32 @@ Bindings can be changed during configuration by overwriting them within the
     require("org-roam").setup({
       -- ...
       bindings = {
-        capture = "<LocalLeader>nc",
+        capture = "<LocalLeader>nc" -- remaps from <Leader>nc to <LocalLeader>nc
+      },
+    })
+<
+
+We use a common _*prefix_ to define the leading keystrokes in every mapping,
+which are by default `<Leader>n`. If you only want to adjust these, you can do
+so by setting `bindings.prefix`:
+
+>lua
+    require("org-roam").setup({
+      -- ...
+      bindings = {
+        prefix = "<LocalLeader>n", -- replaces <Leader>n in every binding with <LocalLeader>n
+      },
+    })
+<
+
+The _*prefix_ can also be reused in self-defined bindings:
+
+>lua
+    require("org-roam").setup({
+      -- ...
+      bindings = {
+        toggle_roam_buffer = "<prefix>t.",       -- replaces <Leader>nl with <Leader>nt.
+        toggle_roam_buffer_fixed = "<prefix>tf", -- replaces <Leader>nb with <Leader>ntf
       },
     })
 <
