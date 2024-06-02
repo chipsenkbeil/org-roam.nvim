@@ -16,10 +16,11 @@ local schema = require("org-roam.database.schema")
 ---@field private __loader org-roam.database.Loader
 ---@field private __database_path string
 ---@field private __directory string
+---@field private __org_files string[]
 local M = {}
 
 ---Creates a new, unloaded instance of the database.
----@param opts {db_path:string, directory:string}
+---@param opts {db_path:string, directory:string, org_files:string[]}
 ---@return org-roam.Database
 function M:new(opts)
     local instance = {}
@@ -28,6 +29,7 @@ function M:new(opts)
     instance.__loader = nil
     instance.__database_path = opts.db_path
     instance.__directory = opts.directory
+    instance.__org_files = opts.org_files or {}
     return instance
 end
 
@@ -73,9 +75,11 @@ end
 function M:__get_loader()
     local loader = self.__loader
     if not loader then
+        local files = self.__org_files
+        table.insert(files, self.__directory)
         loader = Loader:new({
             database = self.__database_path,
-            files = self.__directory,
+            files = files,
         })
         self.__loader = loader
     end
@@ -92,6 +96,12 @@ end
 ---@return string
 function M:files_path()
     return self.__directory
+end
+
+---Returns the additional file paths where org-roam is looking for org files to index.
+---@return string[]
+function M:org_files()
+    return self.__org_files
 end
 
 ---Returns the internal database wrapped by this interface.

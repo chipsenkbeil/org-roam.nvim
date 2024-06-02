@@ -18,6 +18,7 @@ describe("org-roam.database", function()
         db = Database:new({
             db_path = utils.join_path(test_dir, "db"),
             directory = test_dir,
+            org_files = {},
         })
     end)
 

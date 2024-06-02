@@ -66,6 +66,7 @@ function M:new(config)
         return Database:new({
             db_path = instance.config.database.path,
             directory = instance.config.directory,
+            org_files = instance.config.org_files,
         })
     end
 
