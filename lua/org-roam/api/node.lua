@@ -505,7 +505,9 @@ local function roam_find(roam, opts)
         -- in case we did something like close that window inbetween
         pcall(vim.api.nvim_set_current_win, winnr)
 
+        -- Load the file and re-apply filetype to trigger orgmode filetype processing
         vim.cmd("edit! " .. node.file)
+        vim.cmd("filetype detect")
 
         -- Force ourselves back into normal mode
         vim.cmd.stopinsert()
