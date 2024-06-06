@@ -286,7 +286,7 @@ return function(roam)
         if type(date) == "table" then
             date_promise = Promise.resolve(date)
         else
-            date_promise = Calendar.new({ on_day = make_render_on_day(roam) }):open()
+            date_promise = Calendar.new({ date = Date.today(), on_day = make_render_on_day(roam) }):open()
         end
 
         return date_promise:next(function(date)
