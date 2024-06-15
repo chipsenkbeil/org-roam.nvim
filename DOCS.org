@@ -1045,6 +1045,52 @@
    - Press =<C-r>= to refresh the buffer. This can be handy if some
      information has changed in the database.
 
+** Select Buffer
+
+   When within the /select buffer/, you can filter the list by typing. 
+   - Press =<Enter>= to confirm the selection
+   - Press =<S-Enter>= to confirm the typed title if no selection is available
+     (e.g. when using [[#org-roam-api-find-node][Find Node]])
+   - Press =<C-n>= or =<Down>= to select the next item in the list 
+   - Press =<C-n>= or =<Up>= to select the next item in the list 
+
+*** Disable nvim-cmp completion in select buffer
+
+    If you use buffer completions with
+    [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), you might want to disable
+    them in the /select buffer/. This can be done by implementing the
+    =enabled= function in nvim-cmp's options.
+
+    The simplest implementation would be to look for the =nofile= buffer type
+
+    #+begin_src lua
+    require('nvim-cmp').setup({
+      enabled = function()
+        local buftype = vim.api.nvim_get_option_value("buftype", { buf = 0 })
+        if buftype == "nofile" then
+          return false
+        end
+        -- ... handling other conditions
+      end
+    })
+    #+end_src
+
+    If for some reason you don't want to disable completion for all =nofile=
+    buffers, you can also specifically identify the /select buffer/ by it's
+    name =org-roam-select=.
+
+    #+begin_src lua
+    require('nvim-cmp').setup({
+      enabled = function()
+        local bufname = vim.api.nvim_buf_get_name(0)
+        if bufname:match("org%-roam%-select$") ~= nil then
+          return false
+        end
+        -- ...
+      end
+    })
+    #+end_src
+
 * API
 
 ** Add Alias
@@ -1440,6 +1486,8 @@
        end)
        :open()
    #+end_src
+
+   See also [[#org-roam-user-interface-select-buffer][Select Buffer]].
 
 ** Toggle Node Buffer
 
