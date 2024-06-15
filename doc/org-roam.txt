@@ -1,4 +1,4 @@
-*org-roam.txt*            For NVIM v0.9.2            Last change: 2024 June 02
+*org-roam.txt*            For NVIM v0.9.2            Last change: 2024 June 15
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -27,6 +27,7 @@ Table of Contents                                 *org-roam-table-of-contents*
   - RoamUpdate                                  |org-roam-commands-roamupdate|
 5. User Interface                                    |org-roam-user-interface|
   - Org Roam Buffer                  |org-roam-user-interface-org-roam-buffer|
+  - Select Buffer                      |org-roam-user-interface-select-buffer|
 6. API                                                          |org-roam-api|
   - Add Alias                                         |org-roam-api-add-alias|
   - Add Origin                                       |org-roam-api-add-origin|
@@ -1202,6 +1203,55 @@ couple of specific bindings available:
     information has changed in the database.
 
 
+SELECT BUFFER                          *org-roam-user-interface-select-buffer*
+
+When within the _select buffer_, you can filter the list by typing.
+
+- Press `<Enter>` to confirm the selection
+- Press `<S-Enter>` to confirm the typed title if no selection is available
+    (e.g. when using |org-roam-find-node|)
+- Press `<C-n>` or `<Down>` to select the next item in the list
+- Press `<C-n>` or `<Up>` to select the next item in the list
+
+
+DISABLE NVIM-CMP COMPLETION IN SELECT BUFFER ~
+
+If you use buffer completions with
+[nvim-cmp](<https://github.com/hrsh7th/nvim-cmp>), you might want to disable
+them in the _select buffer_. This can be done by implementing the `enabled`
+function in nvim-cmp's options.
+
+The simplest implementation would be to look for the `nofile` buffer type
+
+>lua
+    require('nvim-cmp').setup({
+      enabled = function()
+        local buftype = vim.api.nvim_get_option_value("buftype", { buf = 0 })
+        if buftype == "nofile" then
+          return false
+        end
+        -- ... handling other conditions
+      end
+    })
+<
+
+If for some reason you don't want to disable completion for all `nofile`
+buffers, you can also specifically identify the _select buffer_ by it's name
+`org-roam-select`.
+
+>lua
+    require('nvim-cmp').setup({
+      enabled = function()
+        local bufname = vim.api.nvim_buf_get_name(0)
+        if bufname:match("org%-roam%-select$") ~= nil then
+          return false
+        end
+        -- ...
+      end
+    })
+<
+
+
 ==============================================================================
 6. API                                                          *org-roam-api*
 
@@ -1607,6 +1657,8 @@ Example:
         end)
         :open()
 <
+
+See also |org-roam-select-buffer|.
 
 
 TOGGLE NODE BUFFER                           *org-roam-api-toggle-node-buffer*
