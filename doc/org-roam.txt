@@ -1,4 +1,4 @@
-*org-roam.txt*            For NVIM v0.9.2            Last change: 2024 June 15
+*org-roam.txt*            For NVIM v0.9.2            Last change: 2024 June 23
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -7,6 +7,7 @@ Table of Contents                                 *org-roam-table-of-contents*
   - Installation                       |org-roam-getting-started-installation|
 2. Configuration                                      |org-roam-configuration|
   - directory                               |org-roam-configuration-directory|
+  - orgfiles                                 |org-roam-configuration-orgfiles|
   - bindings                                 |org-roam-configuration-bindings|
   - database                                 |org-roam-configuration-database|
   - extensions                             |org-roam-configuration-extensions|
@@ -150,16 +151,49 @@ PACKER.NVIM ~
 
 DIRECTORY                                   *org-roam-configuration-directory*
 
-Path to the directory containing org files for use with org-roam.
+Path to the directory containing org files for use with org-roam and where
+org-roam stores org files which represent new nodes created with org-roam.
 
 Takes a string representing the path to the directory, which can can contain
 `~` that will expand to your home directory.
 
 >lua
     require("org-roam").setup({
-      directory = "~/orgfiles",
+      directory = "~/orgroamfiles",
     })
 <
+
+Configuring additional folders and files to be loaded by org-roam is also
+supported, see |org-roam-org_files|.
+
+
+ORGFILES                                     *org-roam-configuration-orgfiles*
+
+To include existing org files in the knowledge graph of org roam, additional
+files can be registered. Supported syntax is like `org_agenda_files` in
+orgmode. If the entry does not end on `.org` a directory is assumed and
+searched recursively for org files.
+
+>lua
+    require("org-roam").setup({
+      org_files = {
+        "~/more_org_files",
+        "~/additional/org_files/*.org",
+      },
+    })
+<
+
+To actually connect the content of these files with org-roams knowledge graph,
+you can use the "store link" feature of orgmode (`<Leader>ols`), which adds an
+ID to an existing headline. This headline is then treated as a roam node by
+org-roam.
+
+If you want a whole file to be treated as a node by org-roam, you need to add a
+global property section and a title at the top of the org file.
+
+Tip: Because "store link" in orgmode currently does not support whole files,
+the quick workaround is to apply `<Leader>ols` on a headline and move the
+`:PROPERTIES:` section with the generated ID to the top of the file.
 
 
 BINDINGS                                     *org-roam-configuration-bindings*
