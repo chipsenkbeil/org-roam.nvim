@@ -85,9 +85,9 @@ end
 
 ---@param roam OrgRoam
 local function assign_core_keybindings(roam)
-    -- User can remove all bindings by setting this to nil
+    -- User can remove all bindings by setting this to false
     local bindings = roam.config.bindings or {}
-    local prefix = roam.config.bindings.prefix
+    local prefix = bindings.prefix
 
     assign(bindings.add_alias, "Adds an alias to the roam node under cursor", function()
         roam.api.add_alias()
@@ -222,9 +222,14 @@ end
 
 ---@param roam OrgRoam
 local function assign_dailies_keybindings(roam)
-    -- User can remove all bindings by setting this to nil
+    -- User can remove all bindings by setting this to false
     local bindings = roam.config.extensions.dailies.bindings or {}
-    local prefix = roam.config.bindings.prefix
+    -- If core bindings are disabled, extension bindings are disabled as well.
+    local core_bindings = roam.config.bindings
+    if not core_bindings then
+        return
+    end
+    local prefix = core_bindings.prefix
 
     assign(bindings.capture_date, "Capture a specific date's note", function()
         roam.ext.dailies.capture_date()
