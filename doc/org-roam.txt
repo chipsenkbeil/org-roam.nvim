@@ -1,4 +1,4 @@
-*org-roam.txt*            For NVIM v0.9.2            Last change: 2024 June 23
+*org-roam.txt*           For NVIM v0.9.2           Last change: 2024 August 03
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -1078,12 +1078,27 @@ The _*prefix_ can also be reused in self-defined bindings:
     })
 <
 
-To disable all bindings, set the `bindings` field to `false`:
+To disable all bindings (including those of extensions), set the `bindings`
+field to `false`:
 
 >lua
     require("org-roam").setup({
       -- ...
       bindings = false,
+    })
+<
+
+To disable only the bindings of an extension, set its respective `bindings`
+field to `false`:
+
+>lua
+    require("org-roam").setup({
+      -- ...
+      extensions = {
+        dailies = {
+          bindings = false,
+        }
+      },
     })
 <
 
