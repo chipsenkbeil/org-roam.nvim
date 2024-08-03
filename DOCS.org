@@ -904,7 +904,7 @@
 ** Modifying bindings
 
    Bindings can be changed during configuration by overwriting them within the
-   =bindings= table: 
+   =bindings= table:
 
    #+begin_src lua
    require("org-roam").setup({
@@ -940,12 +940,27 @@
    })
    #+end_src
 
-   To disable all bindings, set the =bindings= field to =false=:
+   To disable all bindings (including those of extensions), set the =bindings=
+   field to =false=:
 
    #+begin_src lua
    require("org-roam").setup({
      -- ...
      bindings = false,
+   })
+   #+end_src
+
+   To disable only the bindings of an extension, set its respective =bindings=
+   field to =false=:
+
+   #+begin_src lua
+   require("org-roam").setup({
+     -- ...
+     extensions = {
+       dailies = {
+         bindings = false,
+       }
+     },
    })
    #+end_src
 

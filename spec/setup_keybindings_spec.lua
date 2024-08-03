@@ -889,4 +889,84 @@ describe("org-roam.setup.keybindings", function()
         assert(id, "could not find id of newly-inserted node")
         assert.are.same({ "some [[id:" .. id .. "][series of text on multiple]] lines" }, lines)
     end)
+
+    it("bindings can be disabled by setting them to false", function()
+        -- Remove binding created by other tests.
+        local binding = "<Leader>nc"
+        if utils.global_mapping_exists("n", binding) then
+            vim.api.nvim_del_keymap("n", binding)
+        end
+
+        -- Configure plugin to set up _no_ key bindings.
+        utils.init_plugin({
+            setup = { bindings = false },
+        })
+
+        local exists = utils.global_mapping_exists("n", binding)
+        assert(not exists, "found global mapping " .. binding .. " despite disabling it")
+    end)
+
+    it("default binding for capture is <Leader>nc", function()
+        -- Remove binding created by other tests.
+        local binding = "<Leader>nc"
+        if utils.global_mapping_exists("n", binding) then
+            vim.api.nvim_del_keymap("n", binding)
+        end
+
+        -- Configure plugin to set up key bindings.
+        utils.init_plugin({ setup = true })
+
+        -- This test exists to confirm that the previous
+        -- test's success wasn't a silent failure.
+        local exists = utils.global_mapping_exists("n", binding)
+        assert(exists, "could not find global mapping " .. binding)
+    end)
+
+    it("dailies bindings can be disabled by setting them to false", function()
+        -- Remove binding created by other tests.
+        local binding = "<Leader>ndN"
+        if utils.global_mapping_exists("n", binding) then
+            vim.api.nvim_del_keymap("n", binding)
+        end
+
+        -- Configure plugin to set up _no_ key bindings.
+        utils.init_plugin({
+            setup = { extensions = { dailies = { bindings = false } } },
+        })
+
+        local exists = utils.global_mapping_exists("n", binding)
+        assert(not exists, "found global mapping " .. binding .. " despite disabling it")
+    end)
+
+    it("dailies bindings can be disabled by setting core bindings to false", function()
+        -- Remove binding created by other tests.
+        local binding = "<Leader>ndN"
+        if utils.global_mapping_exists("n", binding) then
+            vim.api.nvim_del_keymap("n", binding)
+        end
+
+        -- Configure plugin to set up _no_ key bindings.
+        utils.init_plugin({
+            setup = { bindings = false },
+        })
+
+        local exists = utils.global_mapping_exists("n", binding)
+        assert(not exists, "found global mapping " .. binding .. " despite disabling it")
+    end)
+
+    it("default binding for capture today is <Leader>ndN", function()
+        -- Remove binding created by other tests.
+        local binding = "<Leader>ndN"
+        if utils.global_mapping_exists("n", binding) then
+            vim.api.nvim_del_keymap("n", binding)
+        end
+
+        -- Configure plugin to set up key bindings.
+        utils.init_plugin({ setup = true })
+
+        -- This test exists to confirm that the previous
+        -- test's success wasn't a silent failure.
+        local exists = utils.global_mapping_exists("n", binding)
+        assert(exists, "could not find global mapping " .. binding)
+    end)
 end)
