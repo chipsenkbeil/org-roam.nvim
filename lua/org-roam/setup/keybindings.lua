@@ -33,6 +33,9 @@ local function assign(lhs, desc, cb, prefix)
     if type(lhs) == "table" then
         modes = lhs.modes
         lhs = lhs.lhs
+        if not lhs then
+            return
+        end
     end
 
     if vim.trim(lhs) == "" or #modes == 0 then
