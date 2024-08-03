@@ -309,7 +309,7 @@ end
 ---If `wait` provided, schedules mapping and waits N milliseconds.
 ---@param mode org-roam.config.NvimMode
 ---@param lhs string
----@param opts? {buf?:integer, wait?:integer}
+---@param opts? {buf?:integer, wait?:integer, prefix?:string}
 function M.trigger_mapping(mode, lhs, opts)
     opts = opts or {}
     if opts.prefix then
