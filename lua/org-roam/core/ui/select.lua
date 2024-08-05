@@ -303,6 +303,7 @@ function M:open()
             bufopts = {
                 offset = 1,
                 modifiable = true,
+                filetype = "org-roam-select",
             },
             winopts = {
                 cursorline = false,
