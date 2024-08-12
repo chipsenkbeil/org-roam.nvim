@@ -180,7 +180,7 @@ function M:from_org_file(file)
     -- Build links with full ranges and connect them to nodes
     local links = {}
     for _, link in ipairs(file:get_links()) do
-        local id = trim(link.url:get_id())
+        local id = trim(link.link.id)
         local range = link.range
         if id and range then
             -- Figure out the full range from the file and add the link to our list
@@ -190,7 +190,7 @@ function M:from_org_file(file)
                 Link:new({
                     kind = "regular",
                     range = roam_range,
-                    path = link.url:to_string(),
+                    path = link.link:__tostring(),
                     description = link.desc,
                 })
             )

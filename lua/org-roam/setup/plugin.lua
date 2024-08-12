@@ -17,8 +17,8 @@ return function(roam)
     ---@diagnostic disable-next-line:duplicate-set-field
     require("orgmode").org_mappings.open_at_point = function(self)
         local row, col = vim.fn.getline("."), vim.fn.col(".") or 0
-        local link = require("orgmode.org.hyperlinks.link").at_pos(row, col)
-        local id = link and link.url:get_id()
+        local link = require("orgmode.org.hyperlinks").at_pos(row, col)
+        local id = link and link.link and link.link.id
         local node = id and roam.database:get_sync(id)
 
         -- If we found a node, open the file at the start of the node
