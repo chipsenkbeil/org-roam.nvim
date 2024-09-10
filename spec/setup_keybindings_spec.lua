@@ -970,7 +970,7 @@ describe("org-roam.setup.keybindings", function()
         assert(exists, "could not find global mapping " .. binding)
     end)
 
-    it("can send bindings with a table that includes desc", function()
+    it("can send bindings with a table that includes 'desc' or 'mode'", function()
         -- Configure plugin to set up key bindings.
         utils.init_plugin({
             setup = true,
