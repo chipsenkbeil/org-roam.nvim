@@ -34,7 +34,11 @@ local function assign(lhs, desc, cb, prefix)
         if lhs.desc then
             desc = lhs.desc
         end
-        modes = lhs.modes
+
+        if lhs.modes then
+            modes = lhs.modes
+        end
+
         lhs = lhs.lhs
         if not lhs then
             return
