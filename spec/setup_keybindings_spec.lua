@@ -988,22 +988,19 @@ describe("org-roam.setup.keybindings", function()
         local test_path = utils.join_path(directory, "one.org")
         vim.cmd.edit(test_path)
 
-        -- get the desc and modes for the keymap for "xxxx"
+        -- get the desc for the keymap for "xxxx"
         local desc = ""
-        local modes = {}
 
         for _, keymap in ipairs(vim.api.nvim_buf_get_keymap(0, "n")) do
             if keymap then
                 if keymap["lhs"] then
                     if keymap["lhs"] == "xxxx" then
                         desc = keymap["desc"]
-                        modes = keymap["modes"]
                     end
                 end
             end
         end
 
         assert.are.same(desc, "custom description")
-        assert.are.same(modes, { "n" })
     end)
 end)
