@@ -17,7 +17,7 @@ local notify = require("org-roam.core.ui.notify")
 ---| "c"
 ---| "t"
 
----@param lhs string|{lhs:string, modes:org-roam.config.NvimMode[], desc: string?}|nil
+---@param lhs string|{lhs:string, modes:org-roam.config.NvimMode[]?, desc: string?}|nil
 ---@param desc string
 ---@param cb fun()
 ---@param prefix string?
