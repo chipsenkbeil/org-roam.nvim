@@ -146,7 +146,8 @@
 
     All of the following keymaps can be set using a string or a table.
 
-    When set using a table, an optional "desc" can be provided, plus an optional "modes" table.
+    When set using a table, an optional "desc" can be provided, as well as an
+    optional "modes" table.
 
     #+begin_src lua
     require("org-roam").setup({
