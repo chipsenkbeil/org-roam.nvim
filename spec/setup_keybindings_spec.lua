@@ -978,7 +978,7 @@ describe("org-roam.setup.keybindings", function()
                 add_alias = {
                     lhs = "xxxx",
                     desc = "custom description",
-                    modes = { "i" },
+                    modes = { "n" },
                 },
             },
         })
@@ -1004,6 +1004,6 @@ describe("org-roam.setup.keybindings", function()
         end
 
         assert.are.same(desc, "custom description")
-        assert.are.same(modes, { "i" })
+        assert.are.same(modes, { "n" })
     end)
 end)
