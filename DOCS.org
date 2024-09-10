@@ -146,7 +146,7 @@
 
     All of the following keymaps can be set using a string or a table.
 
-    When set using a table, an optional "desc" can be provided.
+    When set using a table, an optional "desc" can be provided, plus an optional "modes" table.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -154,7 +154,11 @@
             -- setting a keymap with a string
             add_alias = "<LocalLeader>naa",
             -- setting a keymap with a table
-            add_origin = { "<LocalLeader>noa", desc = "Setting an optional description" },
+            add_origin = {
+                "<LocalLeader>noa",
+                desc = "Setting an optional description",
+                modes = { "n", "v" }
+            },
         },
     })
     #+end_src
