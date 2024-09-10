@@ -969,4 +969,34 @@ describe("org-roam.setup.keybindings", function()
         local exists = utils.global_mapping_exists("n", binding)
         assert(exists, "could not find global mapping " .. binding)
     end)
+
+    it("can send bindings with a table that includes desc", function()
+        -- Configure plugin to set up key bindings.
+        utils.init_plugin({
+            setup = true,
+            bindings = {
+                add_alias = { "xxxx", desc = "custom description" },
+            },
+        })
+
+        -- Open up the some test file
+        local directory = utils.make_temp_org_files_directory()
+        local test_path = utils.join_path(directory, "one.org")
+        vim.cmd.edit(test_path)
+
+        -- get the desc for the keymap for "xxxx"
+        local desc = ""
+
+        for _, keymap in ipairs(vim.api.nvim_buf_get_keymap(0, "n")) do
+            if keymap then
+                if keymap["lhs"] then
+                    if keymap["lhs"] == "xxxx" then
+                        desc = keymap["desc"]
+                    end
+                end
+            end
+        end
+
+        assert.are.same(desc, "custom description")
+    end)
 end)

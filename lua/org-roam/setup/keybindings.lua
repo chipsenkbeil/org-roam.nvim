@@ -17,7 +17,7 @@ local notify = require("org-roam.core.ui.notify")
 ---| "c"
 ---| "t"
 
----@param lhs string|{lhs:string, modes:org-roam.config.NvimMode[]}|nil
+---@param lhs string|{lhs:string, modes:org-roam.config.NvimMode[], desc: string?}|nil
 ---@param desc string
 ---@param cb fun()
 ---@param prefix string?
@@ -31,6 +31,9 @@ local function assign(lhs, desc, cb, prefix)
 
     local modes = { "n" }
     if type(lhs) == "table" then
+        if lhs.desc then
+            desc = lhs.desc
+        end
         modes = lhs.modes
         lhs = lhs.lhs
         if not lhs then
