@@ -142,7 +142,7 @@
     something else, instead of redefining them all manually, just set
     =bindings.prefix= to your preference. See also [[*Modifying bindings]].
 
-*** Setting an optional 'desc' on a keymap.
+*** Setting an optional 'desc' on a keymap
 
     All of the following keymaps can be set using a string or a table.
 
@@ -151,9 +151,9 @@
     #+begin_src lua
     require("org-roam").setup({
         bindings = {
-            -- setting a mapping with a string
+            -- setting a keymap with a string
             add_alias = "<LocalLeader>naa",
-            -- setting a mapping with a table
+            -- setting a keymap with a table
             add_origin = { "<LocalLeader>noa", desc = "Setting an optional description" },
         },
     })
