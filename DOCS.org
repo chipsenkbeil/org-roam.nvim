@@ -142,7 +142,7 @@
     something else, instead of redefining them all manually, just set
     =bindings.prefix= to your preference. See also [[*Modifying bindings]].
 
-*** Setting an optional 'desc' on a keymap
+*** Setting optional properties on a keymap
 
     All of the following keymaps can be set using a string or a table.
 
