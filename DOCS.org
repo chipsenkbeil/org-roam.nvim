@@ -155,7 +155,7 @@
             add_alias = "<LocalLeader>naa",
             -- setting a keymap with a table
             add_origin = {
-                "<LocalLeader>noa",
+                lhs = "<LocalLeader>noa",
                 desc = "Setting an optional description",
                 modes = { "n", "v" }
             },
