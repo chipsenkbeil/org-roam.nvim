@@ -348,6 +348,14 @@ function M:load_file(opts)
                         insert_new_file_into_database(db, file, {
                             force = opts.force or file.metadata.changedtick ~= changedtick,
                         })
+
+                        -- To allow a newly created roam file to be accessible for refiling and other
+                        -- convenience features of orgmode, it must be add to the orgmode database.
+                        -- Although it might be expected, that files:add_to_paths already does that,
+                        -- this is currently not the case.
+                        -- So the next line is a workaround to achieve this goal. Some rework at orgmodes
+                        -- file-loading is to be expected and when it's done, this line can be removed.
+                        require("orgmode").files:add_to_paths(file.filename)
                     end
 
                     resolve({
