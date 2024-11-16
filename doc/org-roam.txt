@@ -1,4 +1,4 @@
-*org-roam.txt*           For NVIM v0.9.2           Last change: 2024 August 03
+*org-roam.txt*          For NVIM v0.9.2          Last change: 2024 November 16
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -79,6 +79,7 @@ Table of Contents                                 *org-roam-table-of-contents*
   - Graph                                          |org-roam-extensions-graph|
   - Protocol                                    |org-roam-extensions-protocol|
 11. Changelog                                             |org-roam-changelog|
+  - 0.1.1                                           |org-roam-changelog-0.1.1|
 12. Credits                                                 |org-roam-credits|
 
 ==============================================================================
@@ -87,20 +88,21 @@ Table of Contents                                 *org-roam-table-of-contents*
 Port of Org-roam <https://www.orgroam.com/> to neovim <https://neovim.io/>
 using nvim-orgmode <https://github.com/nvim-orgmode/orgmode>.
 
-Requires **neovim 0.9.2+**.
+Requires **neovim 0.9.4+**.
 
 
 INSTALLATION                           *org-roam-getting-started-installation*
 
 This plugin depends on nvim-orgmode/orgmode
-<https://github.com/nvim-orgmode/orgmode> 0.3.4
-<https://github.com/nvim-orgmode/orgmode/releases/tag/0.3.4> or newer.
+<https://github.com/nvim-orgmode/orgmode> 0.3.7
+<https://github.com/nvim-orgmode/orgmode/releases/tag/0.3.7> or newer.
 
 It is recommended to install and maintain the latest version of orgmode, or
 lock into the commit that this plugin needs, which is illustrated below.
 
   Org Roam Version   Orgmode Version
   ------------------ -----------------
+  0.1.1              0.3.7
   0.1.0              0.3.4
 
 LAZY.NVIM ~
@@ -108,11 +110,11 @@ LAZY.NVIM ~
 >lua
     {
       "chipsenkbeil/org-roam.nvim",
-      tag = "0.1.0",
+      tag = "0.1.1",
       dependencies = {
         {
           "nvim-orgmode/orgmode",
-          tag = "0.3.4",
+          tag = "0.3.7",
         },
       },
       config = function()
@@ -129,11 +131,11 @@ PACKER.NVIM ~
 >lua
     use {
       "chipsenkbeil/org-roam.nvim",
-      tag = "0.1.0",
+      tag = "0.1.1",
       requires = {
         {
           "nvim-orgmode/orgmode",
-          tag = "0.3.4",
+          tag = "0.3.7",
         },
       },
       config = function()
@@ -2953,7 +2955,20 @@ Unimplemented for now!
 ==============================================================================
 11. Changelog                                             *org-roam-changelog*
 
-TODO
+
+0.1.1                                               *org-roam-changelog-0.1.1*
+
+1. `fix` orgmode database now refreshes on roam node creation (#64)
+2. `feat` selection dialog buffer now has a filetype of **org-roam-select** (#59)
+3. `fix` type error when specifying **config.bindings = false** (#57)
+4. `feat` allow to add more org file locations via an **orgfiles** list (#42)
+5. `chore` add documentation for select buffer (#53)
+6. `fix` dailies extension now opens the calendar at the current day (#48)
+7. `fix` orgmode filetype is now detected open first opening buffer using find api
+8. `feat` new keybinding **prefix** option to support changing across all keybindings (#46)
+9. `fix` selection UI no longer wraps lines that are too long (#45)
+10. `chore` unify formatting by providing a **.editorconfig** and adding stylua action (#44)
+11. `chore` doc now recommends users specify tag for org-roam plugin
 
 
 ==============================================================================
