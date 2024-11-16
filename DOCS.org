@@ -2739,11 +2739,11 @@
 1. =fix= orgmode database now refreshes on roam node creation (#64)
 2. =feat= selection dialog buffer now has a filetype of *org-roam-select* (#59)
 3. =fix= type error when specifying *config.bindings = false* (#57)
-4. =feat= allow to add more org file locations via an *org_files* list (#42)
+4. =feat= allow to add more org file locations via an *org_files* list (#55)
 5. =chore= add documentation for select buffer (#53)
 6. =fix= dailies extension now opens the calendar at the current day (#48)
 7. =fix= orgmode filetype is now detected open first opening buffer using find api
-8. =feat= new keybinding *prefix* option to support changing across all keybindings (#46)
+8. =feat= new keybinding *prefix* option to support changing across all keybindings (#47)
 9. =fix= selection UI no longer wraps lines that are too long (#45)
 10. =chore= unify formatting by providing a *.editorconfig* and adding stylua action (#44)
 11. =chore= doc now recommends users specify tag for org-roam plugin
