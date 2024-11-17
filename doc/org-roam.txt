@@ -1,4 +1,4 @@
-*org-roam.txt*          For NVIM v0.9.2          Last change: 2024 November 16
+*org-roam.txt*          For NVIM v0.9.2          Last change: 2024 November 17
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -100,10 +100,10 @@ This plugin depends on nvim-orgmode/orgmode
 It is recommended to install and maintain the latest version of orgmode, or
 lock into the commit that this plugin needs, which is illustrated below.
 
-  Org Roam Version   Orgmode Version
-  ------------------ -----------------
-  0.1.1              0.3.7
-  0.1.0              0.3.4
+  Org Roam Version   Orgmode Version   Neovim Version
+  ------------------ ----------------- ----------------
+  0.1.1              0.3.7             0.9.4+
+  0.1.0              0.3.4             0.9.2+
 
 LAZY.NVIM ~
 
