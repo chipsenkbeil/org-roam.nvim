@@ -60,7 +60,7 @@ describe("org-roam.core.file", function()
                         { column = 4, offset = 143, row = 6 },
                     },
                 },
-                mtime = 0,
+                mtime = orgfile.metadata.mtime,
                 range = {
                     end_ = {
                         column = MAX_NUMBER,
@@ -146,7 +146,7 @@ describe("org-roam.core.file", function()
                         { column = 8, offset = 323, row = 12 },
                     },
                 },
-                mtime = 0,
+                mtime = orgfile.metadata.mtime,
                 range = {
                     end_ = {
                         column = 0,
@@ -299,7 +299,7 @@ describe("org-roam.core.file", function()
                         },
                     },
                 },
-                mtime = 0,
+                mtime = orgfile.metadata.mtime,
                 range = {
                     end_ = {
                         column = MAX_NUMBER,
@@ -329,7 +329,7 @@ describe("org-roam.core.file", function()
                         },
                     },
                 },
-                mtime = 0,
+                mtime = orgfile.metadata.mtime,
                 range = {
                     end_ = {
                         column = 0,
@@ -359,7 +359,7 @@ describe("org-roam.core.file", function()
                         },
                     },
                 },
-                mtime = 0,
+                mtime = orgfile.metadata.mtime,
                 range = {
                     end_ = {
                         column = 0,
