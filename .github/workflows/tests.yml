@@ -36,11 +36,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: [v0.9.2, v0.9.4, v0.9.5, nightly]
+        # NOTE: Nightly disabled until neovim/neovim#30792 is fixed!
+        #       Once it is fixed, add "nightly" back to version list.
+        version: [v0.9.4, v0.9.5, v0.10.2, v0.10.3]
         os: [ubuntu-latest]
         include:
           - os: windows-latest
-            version: v0.9.5
+            version: v0.10.3
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

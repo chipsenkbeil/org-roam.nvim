@@ -43,6 +43,7 @@ function M:new(opts)
     return instance
 end
 
+---@private
 ---@param window integer
 ---@return {x:number, y:number}
 function M:__get_float_win_pos(window)
@@ -57,6 +58,7 @@ function M:__get_float_win_pos(window)
     return point
 end
 
+---@private
 ---@param lines string[]
 ---@return string[]
 function M.__add_big_char_margin(lines)
@@ -87,6 +89,7 @@ function M.__add_big_char_margin(lines)
     return centered_lines
 end
 
+---@private
 ---@param window integer
 ---@param char string
 ---@return integer
@@ -119,9 +122,29 @@ function M:__show_letter_in_window(window, char)
     return window_id
 end
 
+---Draws a letter as a window on top of each valid, visible window supplied.
 ---@param windows integer[]
 function M:draw(windows)
-    for i, window in ipairs(windows) do
+    -- Filter out to only include valid windows
+    local valid_windows = {}
+    for _, window in ipairs(windows) do
+        if self:__should_draw_on_window(window) then
+            table.insert(valid_windows, window)
+        end
+    end
+
+    -- If we still have too many windows to populate with our characters,
+    -- fail cleanly with a recommendation
+    local max_windows = self:__max_windows()
+    assert(
+        #valid_windows <= max_windows,
+        table.concat({
+            "Too many valid, visible windows!",
+            "Increase the characters available to the window picker.",
+        }, " ")
+    )
+
+    for i, window in ipairs(valid_windows) do
         local char = string.sub(self.config.chars, i, i)
         local big_char = assert(font[char:lower()], "font missing for " .. char:lower())
         local window_id = self:__show_letter_in_window(window, big_char)
@@ -129,6 +152,7 @@ function M:draw(windows)
     end
 end
 
+---Clears the hint.
 function M:clear()
     for _, window in ipairs(self.__windows) do
         if vim.api.nvim_win_is_valid(window) then
@@ -139,6 +163,27 @@ function M:clear()
     end
 
     self.__windows = {}
+end
+
+---@private
+---Returns true if the window should be drawn on, meaning it's valid and visible.
+---@param window integer #handle of the window
+---@return boolean
+function M:__should_draw_on_window(window)
+    if not vim.api.nvim_win_is_valid(window) then
+        return false
+    end
+
+    ---@type vim.api.keyset.win_config
+    local config = vim.api.nvim_win_get_config(window)
+    return config.relative == ""
+end
+
+---@private
+---Returns the maximum number of valid, visible windows supported.
+---@return integer
+function M:__max_windows()
+    return string.len(self.config.chars)
 end
 
 return M

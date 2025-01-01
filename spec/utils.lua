@@ -111,7 +111,7 @@ end
 
 ---Creates a new orgfile, stripping common indentation.
 ---@param content string
----@param opts? {path?:string}
+---@param opts? {path?:string, skip_write?:boolean}
 ---@return OrgFile
 function M.org_file(content, opts)
     opts = opts or {}
@@ -119,6 +119,12 @@ function M.org_file(content, opts)
     local filename = opts.path or vim.fn.tempname()
     if not vim.endswith(filename, ".org") then
         filename = filename .. ".org"
+    end
+
+    -- Write to the file to ensure that it matches the content
+    -- to avoid testing race conditions somehow
+    if not opts.skip_write then
+        M.write_to(filename, content)
     end
 
     ---@type OrgFile
