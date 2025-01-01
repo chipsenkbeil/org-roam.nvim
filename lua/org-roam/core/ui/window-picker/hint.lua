@@ -136,10 +136,13 @@ function M:draw(windows)
     -- If we still have too many windows to populate with our characters,
     -- fail cleanly with a recommendation
     local max_windows = self:__max_windows()
-    assert(#valid_windows <= max_windows, table.concat({
-        "Too many valid, visible windows!",
-        "Increase the characters available to the window picker.",
-    }, " "))
+    assert(
+        #valid_windows <= max_windows,
+        table.concat({
+            "Too many valid, visible windows!",
+            "Increase the characters available to the window picker.",
+        }, " ")
+    )
 
     for i, window in ipairs(valid_windows) do
         local char = string.sub(self.config.chars, i, i)
