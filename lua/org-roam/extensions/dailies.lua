@@ -67,7 +67,7 @@ local function roam_dailies_files(roam)
             local filename = vim.fn.fnamemodify(entry.filename, ":t:r")
             local ext = vim.fn.fnamemodify(entry.filename, ":e")
             local is_org = ext == "org" or ext == "org_archive"
-            local is_date = Date.is_valid_date(filename) ~= nil
+            local is_date = Date.is_valid_date_string(filename) ~= nil
             return entry.type == "file" and is_org and is_date
         end)
         :map(function(entry)
