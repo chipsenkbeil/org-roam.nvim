@@ -501,16 +501,27 @@ local function roam_find(roam, opts)
             return
         end
 
+        -- NOTE: Basically `utils.goto_node` but with a `pcall` around `nvim_set_current_win`.
+
         -- Try to switch back to the original window, but ignore errors
         -- in case we did something like close that window inbetween
         pcall(vim.api.nvim_set_current_win, winnr)
 
         -- Load the file and re-apply filetype to trigger orgmode filetype processing
-        vim.cmd("edit! " .. node.file)
-        vim.cmd("filetype detect")
+        vim.cmd.edit({ node.file, bang = true })
+        vim.cmd.filetype("detect")
 
         -- Force ourselves back into normal mode
         vim.cmd.stopinsert()
+
+        local row = node.range.start.row + 1
+        local col = node.range.start.column
+
+        -- NOTE: We need to schedule to ensure the file has loaded
+        --       into the buffer before we try to move the cursor!
+        vim.schedule(function()
+            vim.api.nvim_win_set_cursor(winnr, { row, col })
+        end)
     end
 
     return Promise.new(function(resolve)
