@@ -21,7 +21,8 @@ local notify = require("org-roam.core.ui.notify")
 ---@param desc string
 ---@param cb fun()
 ---@param prefix string?
-local function assign(lhs, desc, cb, prefix)
+---@param buffer boolean|number?
+local function assign(lhs, desc, cb, prefix, buffer)
     if type(cb) ~= "function" then
         return
     end
@@ -47,11 +48,11 @@ local function assign(lhs, desc, cb, prefix)
     end
 
     for _, mode in ipairs(modes) do
-        vim.api.nvim_set_keymap(mode, lhs, "", {
-            desc = desc,
-            noremap = true,
-            callback = cb,
-        })
+        local opts = { desc = desc }
+        if type(buffer) == "number" or type(buffer) == "boolean" then
+            opts = vim.tbl_extend("keep", opts, { buffer = buffer })
+        end
+        vim.keymap.set(mode, lhs, cb, opts)
     end
 end
 
@@ -89,66 +90,9 @@ end
 ---@param roam OrgRoam
 local function assign_core_keybindings(roam)
     -- User can remove all bindings by setting this to false
+
     local bindings = roam.config.bindings or {}
     local prefix = bindings.prefix
-
-    assign(bindings.add_alias, "Adds an alias to the roam node under cursor", function()
-        roam.api.add_alias()
-    end, prefix)
-
-    assign(bindings.remove_alias, "Removes an alias from the roam node under cursor", function()
-        roam.api.remove_alias()
-    end, prefix)
-
-    assign(bindings.add_origin, "Adds an origin to the roam node under cursor", function()
-        roam.api.add_origin()
-    end, prefix)
-
-    assign(bindings.remove_origin, "Removes the origin from the roam node under cursor", function()
-        roam.api.remove_origin()
-    end, prefix)
-
-    assign(
-        bindings.goto_prev_node,
-        "Goes to the previous node sequentially based on origin of the node under cursor",
-        function()
-            roam.api.goto_prev_node()
-        end,
-        prefix
-    )
-
-    assign(
-        bindings.goto_next_node,
-        "Goes to the next node sequentially based on origin of the node under cursor",
-        function()
-            roam.api.goto_next_node()
-        end,
-        prefix
-    )
-
-    assign(bindings.quickfix_backlinks, "Open quickfix of backlinks for org-roam node under cursor", function()
-        roam.ui.open_quickfix_list({
-            backlinks = true,
-            show_preview = true,
-        })
-    end, prefix)
-
-    assign(bindings.toggle_roam_buffer, "Toggles org-roam buffer for node under cursor", function()
-        roam.ui.toggle_node_buffer({
-            focus = roam.config.ui.node_buffer.focus_on_toggle,
-        })
-    end, prefix)
-
-    assign(bindings.toggle_roam_buffer_fixed, "Toggles org-roam buffer for a specific node, not changing", function()
-        roam.ui.toggle_node_buffer({
-            fixed = true,
-            focus = roam.config.ui.node_buffer.focus_on_toggle,
-        })
-    end, prefix)
-
-    assign(bindings.complete_at_point, "Completes link to a node based on expression under cursor", function()
-        roam.api.complete_node()
-    end, prefix)
 
     assign({ lhs = bindings.capture, modes = { "n", "v" } }, "Opens org-roam capture window", function()
         local results = get_visual_selection(roam)
@@ -176,47 +120,6 @@ local function assign_core_keybindings(roam)
             end
             roam.api.find_node({
                 title = title,
-            })
-        end,
-        prefix
-    )
-
-    assign(
-        { lhs = bindings.insert_node, modes = { "n", "v" } },
-        "Inserts at cursor position the selected node, creating new one if missing",
-        function()
-            local results = get_visual_selection(roam)
-            local title, ranges
-            if type(results) == "table" then
-                title = results.title
-                ranges = results.ranges
-            elseif results == "unsupported" then
-                return
-            end
-            roam.api.insert_node({
-                title = title,
-                ranges = ranges,
-            })
-        end,
-        prefix
-    )
-
-    assign(
-        { lhs = bindings.insert_node_immediate, modes = { "n", "v" } },
-        "Inserts at cursor position the selected node, creating new one if missing without opening a capture buffer",
-        function()
-            local results = get_visual_selection(roam)
-            local title, ranges
-            if type(results) == "table" then
-                title = results.title
-                ranges = results.ranges
-            elseif results == "unsupported" then
-                return
-            end
-            roam.api.insert_node({
-                immediate = true,
-                title = title,
-                ranges = ranges,
             })
         end,
         prefix
@@ -279,8 +182,130 @@ local function assign_dailies_keybindings(roam)
     end, prefix)
 end
 
+local function assign_org_ft_keybindings(roam, bufnr)
+    local bindings = roam.config.bindings or {}
+    local prefix = bindings.prefix
+
+    assign(bindings.add_alias, "Adds an alias to the roam node under cursor", function()
+        roam.api.add_alias()
+    end, prefix, true)
+
+    assign(bindings.remove_alias, "Removes an alias from the roam node under cursor", function()
+        roam.api.remove_alias()
+    end, prefix, true)
+
+    assign(bindings.add_origin, "Adds an origin to the roam node under cursor", function()
+        roam.api.add_origin()
+    end, prefix, true)
+
+    assign(bindings.remove_origin, "Removes the origin from the roam node under cursor", function()
+        roam.api.remove_origin()
+    end, prefix, true)
+
+    assign(
+        bindings.goto_prev_node,
+        "Goes to the previous node sequentially based on origin of the node under cursor",
+        function()
+            roam.api.goto_prev_node()
+        end,
+        prefix,
+        true
+    )
+
+    assign(
+        bindings.goto_next_node,
+        "Goes to the next node sequentially based on origin of the node under cursor",
+        function()
+            roam.api.goto_next_node()
+        end,
+        prefix,
+        true
+    )
+
+    assign(bindings.quickfix_backlinks, "Open quickfix of backlinks for org-roam node under cursor", function()
+        roam.ui.open_quickfix_list({
+            backlinks = true,
+            show_preview = true,
+        })
+    end, prefix, true)
+
+    assign(bindings.toggle_roam_buffer, "Toggles org-roam buffer for node under cursor", function()
+        roam.ui.toggle_node_buffer({
+            focus = roam.config.ui.node_buffer.focus_on_toggle,
+        })
+    end, prefix, true)
+
+    assign(bindings.toggle_roam_buffer_fixed, "Toggles org-roam buffer for a specific node, not changing", function()
+        roam.ui.toggle_node_buffer({
+            fixed = true,
+            focus = roam.config.ui.node_buffer.focus_on_toggle,
+        })
+    end, prefix, true)
+
+    assign(bindings.complete_at_point, "Completes link to a node based on expression under cursor", function()
+        roam.api.complete_node()
+    end, prefix, true)
+
+    assign(
+        { lhs = bindings.insert_node, modes = { "n", "v" } },
+        "Inserts at cursor position the selected node, creating new one if missing",
+        function()
+            local results = get_visual_selection(roam)
+            local title, ranges
+            if type(results) == "table" then
+                title = results.title
+                ranges = results.ranges
+            elseif results == "unsupported" then
+                return
+            end
+            roam.api.insert_node({
+                title = title,
+                ranges = ranges,
+            })
+        end,
+        prefix,
+        true
+    )
+
+    assign(
+        { lhs = bindings.insert_node_immediate, modes = { "n", "v" } },
+        "Inserts at cursor position the selected node, creating new one if missing without opening a capture buffer",
+        function()
+            local results = get_visual_selection(roam)
+            local title, ranges
+            if type(results) == "table" then
+                title = results.title
+                ranges = results.ranges
+            elseif results == "unsupported" then
+                return
+            end
+            roam.api.insert_node({
+                immediate = true,
+                title = title,
+                ranges = ranges,
+            })
+        end,
+        prefix,
+        true
+    )
+end
+
+local AUGROUP = vim.api.nvim_create_augroup("org-roam-mappings.nvim", {})
+local function create_org_file_specific_maps(roam)
+    vim.api.nvim_create_autocmd({ "FileType" }, {
+        group = AUGROUP,
+        pattern = { "org" },
+        callback = function()
+            assign_org_ft_keybindings(roam)
+            vim.keymap.set("n", "dd", function() end, { buffer = true })
+        end,
+        desc = "Delete entry from Quickfix list",
+    })
+end
+
 ---@param roam OrgRoam
 return function(roam)
     assign_core_keybindings(roam)
     assign_dailies_keybindings(roam)
+    create_org_file_specific_maps(roam)
 end
