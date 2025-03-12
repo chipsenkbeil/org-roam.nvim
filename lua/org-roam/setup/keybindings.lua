@@ -297,9 +297,8 @@ local function create_org_file_specific_maps(roam)
         pattern = { "org" },
         callback = function()
             assign_org_ft_keybindings(roam)
-            vim.keymap.set("n", "dd", function() end, { buffer = true })
         end,
-        desc = "Delete entry from Quickfix list",
+        desc = "Create org file specific keybinds for org roam",
     })
 end
 
