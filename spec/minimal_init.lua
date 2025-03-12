@@ -8,9 +8,17 @@ if vim.endswith(cwd, "lua") or vim.endswith(cwd, "lua/") or vim.endswith(cwd, "l
     cwd = vim.fs.dirname(cwd)
 end
 
----@type string|false
-local report_enabled = vim.fn.getenv("ROAM_TEST_REPORT")
-if report_enabled == vim.NIL or vim.trim(report_enabled):lower() == "false" then
+---@param name string
+---@return string|nil
+local function getenv(name)
+    local value = vim.fn.getenv(name)
+    if value ~= vim.NIL then
+        return value
+    end
+end
+
+local report_enabled = getenv("ROAM_TEST_REPORT") or false
+if not report_enabled or vim.trim(report_enabled):lower() == "false" then
     report_enabled = false
 end
 local function report(...)
@@ -23,6 +31,7 @@ end
 ---@field name string
 ---@field path string
 ---@field repo string
+---@field branch? string|vim.NIL
 ---@field config? fun()
 
 -- List of plugins to process. Order matters!
@@ -40,6 +49,7 @@ local plugins = {
         name = "orgmode",
         path = cwd .. "/vendor/orgmode.nvim",
         repo = "https://github.com/nvim-orgmode/orgmode",
+        branch = getenv("ROAM_TEST_ORGMODE_BRANCH"),
         config = function()
             -- Setup orgmode
             report("Running orgmode setup")
@@ -55,14 +65,26 @@ local plugins = {
 for _, plugin in ipairs(plugins) do
     -- If plugin not yet downloaded, do that now
     if vim.fn.isdirectory(plugin.path) == 0 then
-        report("Downloading " .. plugin.name .. " into: " .. plugin.path)
-        vim.fn.system({
-            "git",
-            "clone",
-            "--depth=1",
-            plugin.repo,
-            plugin.path,
-        })
+        report(
+            "Downloading "
+                .. plugin.name
+                .. (plugin.branch and (" @ " .. plugin.branch) or "")
+                .. " into: "
+                .. plugin.path
+        )
+        local cmd = { "git", "clone", "--depth=1" }
+
+        -- If given a specific branch, clone that
+        if plugin.branch then
+            table.insert(cmd, "--branch")
+            table.insert(cmd, plugin.branch)
+            table.insert(cmd, "--single-branch")
+        end
+
+        table.insert(cmd, plugin.repo)
+        table.insert(cmd, plugin.path)
+
+        vim.fn.system(cmd)
     end
 
     -- Add plugin to our runtime path

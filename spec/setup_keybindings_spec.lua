@@ -844,6 +844,7 @@ describe("org-roam.setup.keybindings", function()
         -- Verify we inserted the link to the new node
         local lines = utils.read_buffer()
         local _, _, id = string.find(lines[1], "%[%[id:([^]]+)]%[new node]]")
+        assert(id, "could not find id of newly-inserted node; line = '" .. lines[1] .. "'")
         assert.are.same({ "[[id:" .. id .. "][new node]]" }, lines)
     end)
 
@@ -886,7 +887,7 @@ describe("org-roam.setup.keybindings", function()
         -- Verify we inserted the link to the new node
         local lines = utils.read_buffer()
         local _, _, id = string.find(lines[1], "%[%[id:([^]]+)]%[[^]]+]]")
-        assert(id, "could not find id of newly-inserted node")
+        assert(id, "could not find id of newly-inserted node; line = '" .. lines[1] .. "'")
         assert.are.same({ "some [[id:" .. id .. "][series of text on multiple]] lines" }, lines)
     end)
 
