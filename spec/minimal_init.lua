@@ -65,10 +65,13 @@ local plugins = {
 for _, plugin in ipairs(plugins) do
     -- If plugin not yet downloaded, do that now
     if vim.fn.isdirectory(plugin.path) == 0 then
-        report("Downloading "
-            .. plugin.name
-            .. (plugin.branch and (" @ " .. plugin.branch) or "")
-            .. " into: " .. plugin.path)
+        report(
+            "Downloading "
+                .. plugin.name
+                .. (plugin.branch and (" @ " .. plugin.branch) or "")
+                .. " into: "
+                .. plugin.path
+        )
         local cmd = { "git", "clone", "--depth=1" }
 
         -- If given a specific branch, clone that

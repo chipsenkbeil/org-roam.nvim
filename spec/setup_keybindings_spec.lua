@@ -538,9 +538,9 @@ describe("org-roam.setup.keybindings", function()
 
         -- Select the default template
         utils.mock_vim_inputs({
-            confirm = 0,                   -- confirm no for refile
+            confirm = 0, -- confirm no for refile
             getchar = vim.fn.char2nr("d"), -- select "d" template
-            input = "Some title",          -- input "Some title" on title prompt
+            input = "Some title", -- input "Some title" on title prompt
         })
 
         -- Trigger the keybinding and wait a bit
@@ -594,7 +594,7 @@ describe("org-roam.setup.keybindings", function()
 
         -- Select the default template
         utils.mock_vim_inputs({
-            confirm = 0,                   -- confirm no for refile
+            confirm = 0, -- confirm no for refile
             getchar = vim.fn.char2nr("d"), -- select "d" template
         })
 
