@@ -234,6 +234,13 @@ local DEFAULT_CONFIG = {
             unique = false,
         },
     },
+
+    ---Node Display formatting used for completions in node-find
+    ---Available template fields: title, alias, tags, separator
+    ---You can specify a max lenght for the field e.g. {title:10}
+    ---@type string
+    -- node_display_template = "{title}",
+    node_display_template = "{title:50} {separator} {tags}",
 }
 
 ---Global configuration settings leveraged through org-roam.

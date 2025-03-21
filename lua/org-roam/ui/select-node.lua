@@ -6,6 +6,63 @@
 
 local Select = require("org-roam.core.ui.select")
 
+local function gather_node_tags(node)
+    local tags
+    if #node.tags ~= 0 then
+        tags = ":" .. table.concat(node.tags, ":") .. ":"
+    else
+        tags = ""
+    end
+    return tags
+end
+
+
+local function gather_node_aliases(node)
+    local aliases
+    if #node.aliases ~= 0 then
+        aliases = "/" .. table.concat(node.aliases, ":") .. "/"
+    else
+        aliases = ""
+    end
+    return aliases
+end
+
+local function get_value(node, key)
+    local value = ""
+    if key == "title" then
+        value = node.title
+    elseif key == "tags" then
+        value = gather_node_tags(node)
+    elseif key == "alias" then
+        value = gather_node_aliases(node)
+    elseif key == "separator" then
+        value = "|||"
+    end
+    return value
+end
+
+local function format_node_for_display(node, display_template, available_width)
+
+    local function replace_values(key, width)
+        width = tonumber(width) or 0
+        local value = get_value(node, key)
+        if width > 0 and #value > width then
+                value = value:sub(1, width)
+            end
+        return value
+    end
+
+    local intermediate_template = string.gsub(display_template, "{([%w_]+):?(%d*)}", replace_values)
+    local parts = vim.split(intermediate_template, "|||", { plain = true })
+    local left = parts[1]
+    local right = parts[2] or ""
+
+    local spaces_required = available_width - string.len(left) - string.len(right)
+    if spaces_required < 1 then spaces_required = 1 end
+    local spacing = string.rep(" ", spaces_required)
+    return left .. spacing .. right
+end
+
 ---@param roam OrgRoam
 ---@param opts {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
 ---@return org-roam.core.ui.Select
@@ -16,6 +73,8 @@ local function roam_select_node(roam, opts)
     --       and by aliases to get candidate ids.
     ---@type {id:org-roam.core.database.Id, label:string}
     local items = {}
+    local window_width = vim.o.columns - 2
+
     for _, id in ipairs(opts.include or roam.database:ids()) do
         local skip = false
 
@@ -28,13 +87,9 @@ local function roam_select_node(roam, opts)
         if not skip then
             local node = roam.database:get_sync(id)
             if node then
-                table.insert(items, { id = id, label = node.title })
-                for _, alias in ipairs(node.aliases) do
-                    -- Avoid repeat of alias that is same as title
-                    if alias ~= node.title then
-                        table.insert(items, { id = id, label = alias })
-                    end
-                end
+                -- local label = format_node_for_display(node, roam.node_display_template, window_width)
+                local label = format_node_for_display(node, roam.config.node_display_template, window_width)
+                table.insert(items, { id = id, label = label })
             end
         end
     end
