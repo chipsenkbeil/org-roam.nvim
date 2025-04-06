@@ -455,6 +455,8 @@ function M:close()
     if window then
         window:close()
     end
+
+    pcall(vim.api.nvim_set_current_win, self.__state.last_win)
 end
 
 ---Returns true if the selection dialog is open.
