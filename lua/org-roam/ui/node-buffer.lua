@@ -135,7 +135,7 @@ local function roam_toggle_fixed_buffer(roam, opts)
             toggle_node_buffer(opts.id)
         else
             roam.ui
-                .select_node()
+                .select_node({ skip_window_refocus = opts.focus })
                 :on_choice(function(choice)
                     toggle_node_buffer(choice.id)
                 end)
