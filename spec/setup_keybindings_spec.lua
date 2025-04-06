@@ -443,6 +443,11 @@ describe("org-roam.setup.keybindings", function()
                 database = {
                     path = utils.join_path(directory, "db"),
                 },
+                ui = {
+                    node_buffer = {
+                        focus_on_toggle = true,
+                    },
+                },
             },
         })
         local prefix = roam.config.bindings.prefix
