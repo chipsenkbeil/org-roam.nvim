@@ -117,7 +117,7 @@ function M.expr_under_cursor(opts)
     -- if we are in an orgmode buffer, otherwise
     -- defaulting back to the vim word under cursor
     local word = vim.fn.expand("<cword>")
-    if vim.api.nvim_buf_get_option(bufnr, "filetype") == "org" then
+    if vim.bo[bufnr].filetype == "org" then
         ---@type TSNode|nil
         local ts_node = vim.treesitter.get_node()
         if ts_node and ts_node:type() == "expr" then
