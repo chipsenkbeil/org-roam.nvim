@@ -106,6 +106,7 @@ end)()
 ---@field items table #raw items available for selection (non-filtered)
 ---@field init_input string #initial text to supply at the beginning
 ---@field auto_select boolean #if true, will select automatically if only one item (filtered) based on init_input
+---@field refocus_window boolean #if true, focus the window active before node selection
 ---@field allow_select_missing boolean #if true, enables selecting non-existent items
 ---@field cancel_on_no_init_matches boolean #if true, cancels if input provided and no matches found
 ---@field bindings org-roam.core.ui.select.Bindings #bindings associated with the window
@@ -133,6 +134,7 @@ M.__index = M
 ---@field init_input? string
 ---@field auto_select? boolean
 ---@field allow_select_missing? boolean
+---@field skip_window_refocus? boolean
 ---@field cancel_on_no_init_matches? boolean
 ---@field bindings? {down?:string|string[], up?:string|string[], select?:string|string[], select_missing?:string|string[]}
 ---@field format? fun(item:any):string
@@ -201,6 +203,7 @@ function M:new(opts)
         init_input = opts.init_input or "",
         auto_select = opts.auto_select or false,
         allow_select_missing = allow_select_missing,
+        refocus_window = opts.skip_window_refocus ~= true,
         cancel_on_no_init_matches = cancel_on_no_init_matches,
         bindings = vim.tbl_deep_extend("keep", bindings, default_bindings),
         format = format,
@@ -456,7 +459,9 @@ function M:close()
         window:close()
     end
 
-    pcall(vim.api.nvim_set_current_win, self.__state.last_win)
+    if self.__params.refocus_window then
+        pcall(vim.api.nvim_set_current_win, self.__state.last_win)
+    end
 end
 
 ---Returns true if the selection dialog is open.
