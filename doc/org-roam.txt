@@ -1,4 +1,4 @@
-*org-roam.txt*          For NVIM v0.9.2          Last change: 2024 November 17
+*org-roam.txt*            For NVIM v0.9.2           Last change: 2025 April 18
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -237,9 +237,8 @@ ADD ALIAS ~
 
 Adds an alias to the node under cursor.
 
-By default only available in org files.
-
-Takes a string representing the keybinding. Defaults to `<Leader>naa`.
+Takes a string representing the keybinding. Defaults to `<Leader>naa`. Bound to
+the org filetype by default.
 
 >lua
     require("org-roam").setup({
@@ -254,9 +253,8 @@ ADD ORIGIN ~
 
 Adds an origin to the node under cursor.
 
-By default only available in org files.
-
-Takes a string representing the keybinding. Defaults to `<Leader>noa`.
+Takes a string representing the keybinding. Defaults to `<Leader>noa`. Bound to
+the org filetype by default.
 
 >lua
     require("org-roam").setup({
@@ -271,7 +269,8 @@ CAPTURE ~
 
 Opens a roam capture window.
 
-Takes a string representing the keybinding. Defaults to `<Leader>nc`.
+Takes a string representing the keybinding. Defaults to `<Leader>nc`. Bound
+globally by default.
 
 >lua
     require("org-roam").setup({
@@ -288,9 +287,8 @@ Completes the node under cursor by searching for a node with matching title or
 alias. If exactly one match is found, the text under cursor is replaced with
 the link; otherwise, a selection dialog pops up to pick the node.
 
-By default only available in org files.
-
-Takes a string representing the keybinding. Defaults to `<Leader>n.`.
+Takes a string representing the keybinding. Defaults to `<Leader>n.`. Bound to
+the org filetype by default.
 
 >lua
     require("org-roam").setup({
@@ -308,7 +306,8 @@ Finds a node by title or alias and opens it in the current window.
 If the node does not exist, opens a capture buffer for the new node using the
 title.
 
-Takes a string representing the keybinding. Defaults to `<Leader>nf`.
+Takes a string representing the keybinding. Defaults to `<Leader>nf`. Bound
+globally by default.
 
 >lua
     require("org-roam").setup({
@@ -323,12 +322,11 @@ GOTO NEXT NODE ~
 
 Goes to the next node sequentially based on origin of the node under cursor.
 
-By default only available in org files.
-
 If more than one node has the node under cursor as its origin, a selection
 dialog is displayed to choose the node.
 
-Takes a string representing the keybinding. Defaults to `<Leader>nn`.
+Takes a string representing the keybinding. Defaults to `<Leader>nn`. Bound to
+the org filetype by default.
 
 >lua
     require("org-roam").setup({
@@ -344,7 +342,8 @@ GOTO PREV NODE ~
 Goes to the previous node sequentially based on origin of the node under
 cursor.
 
-Takes a string representing the keybinding. Defaults to `<Leader>np`.
+Takes a string representing the keybinding. Defaults to `<Leader>np`. Bound to
+the org filetype by default.
 
 >lua
     require("org-roam").setup({
@@ -359,12 +358,11 @@ INSERT NODE ~
 
 Inserts a link at cursor position to a node by title or alias.
 
-By default only available in org files.
-
 If the node does not exist, opens a capture buffer for the new node using the
 title.
 
-Takes a string representing the keybinding. Defaults to `<Leader>ni`.
+Takes a string representing the keybinding. Defaults to `<Leader>ni`. Bound to
+the org filetype by default.
 
 >lua
     require("org-roam").setup({
@@ -380,9 +378,8 @@ INSERT NODE IMMEDIATE ~
 Inserts a link at cursor position to a node by title or alias. Unlike
 `insert_node`, this does not open a capture buffer if a new node is created.
 
-By default only available in org files.
-
-Takes a string representing the keybinding. Defaults to `<Leader>nm`.
+Takes a string representing the keybinding. Defaults to `<Leader>nm`. Bound to
+the org filetype by default.
 
 >lua
     require("org-roam").setup({
@@ -398,9 +395,8 @@ QUICKFIX BACKLINKS ~
 Opens the quickfix list, populating it with backlinks for the node under
 cursor.
 
-By default only available in org files.
-
-Takes a string representing the keybinding. Defaults to `<Leader>nq`.
+Takes a string representing the keybinding. Defaults to `<Leader>nq`. Bound to
+the org filetype by default.
 
 >lua
     require("org-roam").setup({
@@ -415,9 +411,8 @@ REMOVE ALIAS ~
 
 Removes an alias from the node under cursor.
 
-By default only available in org files.
-
-Takes a string representing the keybinding. Defaults to `<Leader>nar`.
+Takes a string representing the keybinding. Defaults to `<Leader>nar`. Bound to
+the org filetype by default.
 
 >lua
     require("org-roam").setup({
@@ -432,9 +427,8 @@ REMOVE ORIGIN ~
 
 Removes the origin from the node under cursor.
 
-By default only available in org files.
-
-Takes a string representing the keybinding. Defaults to `<Leader>nor`.
+Takes a string representing the keybinding. Defaults to `<Leader>nor`. Bound to
+the org filetype by default.
 
 >lua
     require("org-roam").setup({
@@ -451,9 +445,8 @@ Opens the roam buffer for the node under cursor, updating the buffer when the
 cursor moves to a different node. See the user interface
 |org-roam-org-roam-buffer| section for details.
 
-By default only available in org files.
-
-Takes a string representing the keybinding. Defaults to `<Leader>nl`.
+Takes a string representing the keybinding. Defaults to `<Leader>nl`. Bound to
+the org filetype by default.
 
 >lua
     require("org-roam").setup({
@@ -470,9 +463,8 @@ Opens the roam buffer for a specific node, and will not change as the cursor
 moves across nodes. See the user interface |org-roam-org-roam-buffer| section
 for details.
 
-By default only available in org files.
-
-Takes a string representing the keybinding. Defaults to `<Leader>nb`.
+Takes a string representing the keybinding. Defaults to `<Leader>nb`. Bound to
+the org filetype by default.
 
 >lua
     require("org-roam").setup({
@@ -1024,46 +1016,46 @@ Takes a boolean. Defaults to `false`.
 ==============================================================================
 3. Bindings                                                *org-roam-bindings*
 
-  Name                       Keybinding    Description
-  -------------------------- ------------- ---------------------------------------------------------------------------
-  add_(alias)                <Leader>naa   Adds an alias to the node under cursor.
-  add_(origin)               <Leader>noa   Adds an origin to the node under cursor.
-  capture                    <Leader>nc    Opens org-roam capture window.
-  complete_(atpoint)         <Leader>n.    Completes the node under cursor.
-  find_(node)                <Leader>nf    Finds node and moves to it, creating it if it does not exist.
-  goto_(nextnode)            <Leader>nn    Goes to the next node in sequence (via origin) for the node under cursor.
-  goto_(prevnode)            <Leader>np    Goes to the prev node in sequence (via origin) for the node under cursor.
-  insert_(node)              <Leader>ni    Inserts node at cursor position, creating it if it does not exist.
-  insert_(nodeimmediate)     <Leader>nm    Same as insert_node, but skips opening capture buffer.
-  quickfix_(backlinks)       <Leader>nq    Opens the quickfix menu for backlinks to the current node under cursor.
-  remove_(alias)             <Leader>nar   Removes an alias from the node under cursor.
-  remove_(origin)            <Leader>nor   Removes the origin from the node under cursor.
-  toggle_(roambuffer)        <Leader>nl    Toggles the org-roam node-view buffer for the node under cursor.
-  toggle_(roambufferfixed)   <Leader>nb    Toggles a fixed org-roam node-view buffer for a selected node.
+  Name                       Keybinding    Filetype   Description
+  -------------------------- ------------- ---------- ---------------------------------------------------------------------------
+  add_(alias)                <Leader>naa   Org        Adds an alias to the node under cursor.
+  add_(origin)               <Leader>noa   Org        Adds an origin to the node under cursor.
+  capture                    <Leader>nc    Global     Opens org-roam capture window.
+  complete_(atpoint)         <Leader>n.    Org        Completes the node under cursor.
+  find_(node)                <Leader>nf    Global     Finds node and moves to it, creating it if it does not exist.
+  goto_(nextnode)            <Leader>nn    Org        Goes to the next node in sequence (via origin) for the node under cursor.
+  goto_(prevnode)            <Leader>np    Org        Goes to the prev node in sequence (via origin) for the node under cursor.
+  insert_(node)              <Leader>ni    Org        Inserts node at cursor position, creating it if it does not exist.
+  insert_(nodeimmediate)     <Leader>nm    Org        Same as insert_node, but skips opening capture buffer.
+  quickfix_(backlinks)       <Leader>nq    Org        Opens the quickfix menu for backlinks to the current node under cursor.
+  remove_(alias)             <Leader>nar   Org        Removes an alias from the node under cursor.
+  remove_(origin)            <Leader>nor   Org        Removes the origin from the node under cursor.
+  toggle_(roambuffer)        <Leader>nl    Org        Toggles the org-roam node-view buffer for the node under cursor.
+  toggle_(roambufferfixed)   <Leader>nb    Org        Toggles a fixed org-roam node-view buffer for a selected node.
 All these bindings use by default the _*prefix_ alias and can be changed all at
 once by modifying `bindings.prefix`.
 
-Only `capture` and `find` are global mappings, the rest are only bound to
-`FileType=org`
+Only **capture** and **findnode** are global mappings, the rest are only bound
+to `FileType=org`.
 
 
 DAILIES EXTENSION                        *org-roam-bindings-dailies-extension*
 
-  Name                  Keybinding    Description
-  --------------------- ------------- -------------------------------------------------
-  capture_(date)        <Leader>ndD   Capture a specific date's note.
-  capture_(today)       <Leader>ndN   Capture today's note.
-  capture_(tomorrow)    <Leader>ndT   Capture tomorrow's note.
-  capture_(yesterday)   <Leader>ndY   Capture yesterday's note.
-  find_(directory)      <Leader>nd.   Navigate to dailies note directory.
-  goto_(date)           <Leader>ndd   Navigate to specific date's note.
-  goto_(nextdate)       <Leader>ndf   Navigate to the next note in date sequence.
-  goto_(prevdate)       <Leader>ndb   Navigate to the previous note in date sequence.
-  goto_(today)          <Leader>ndn   Navigate to today's note.
-  goto_(tomorrow)       <Leader>ndt   Navigate to tomorrow's note.
-  goto_(yesterday)      <Leader>ndy   Navigate to yesterday's note.
+  Name                  Keybinding    Filetype   Description
+  --------------------- ------------- ---------- -------------------------------------------------
+  capture_(date)        <Leader>ndD   Global     Capture a specific date's note.
+  capture_(today)       <Leader>ndN   Global     Capture today's note.
+  capture_(tomorrow)    <Leader>ndT   Global     Capture tomorrow's note.
+  capture_(yesterday)   <Leader>ndY   Global     Capture yesterday's note.
+  find_(directory)      <Leader>nd.   Global     Navigate to dailies note directory.
+  goto_(date)           <Leader>ndd   Global     Navigate to specific date's note.
+  goto_(nextdate)       <Leader>ndf   Global     Navigate to the next note in date sequence.
+  goto_(prevdate)       <Leader>ndb   Global     Navigate to the previous note in date sequence.
+  goto_(today)          <Leader>ndn   Global     Navigate to today's note.
+  goto_(tomorrow)       <Leader>ndt   Global     Navigate to tomorrow's note.
+  goto_(yesterday)      <Leader>ndy   Global     Navigate to yesterday's note.
 All these bindings use by default the _*prefix_ alias and can be changed all at
-once by modifying `bindings.prefix`.
+once by modifying `bindings.prefix`. All dailies bindings are global.
 
 
 MODIFYING BINDINGS                      *org-roam-bindings-modifying-bindings*
