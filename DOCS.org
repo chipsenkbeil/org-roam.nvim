@@ -148,6 +148,7 @@
     Adds an alias to the node under cursor.
 
     Takes a string representing the keybinding. Defaults to =<Leader>naa=.
+    Bound to the org filetype by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -162,6 +163,7 @@
     Adds an origin to the node under cursor.
 
     Takes a string representing the keybinding. Defaults to =<Leader>noa=.
+    Bound to the org filetype by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -176,6 +178,7 @@
     Opens a roam capture window.
 
     Takes a string representing the keybinding. Defaults to =<Leader>nc=.
+    Bound globally by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -192,6 +195,7 @@
     with the link; otherwise, a selection dialog pops up to pick the node.
 
     Takes a string representing the keybinding. Defaults to =<Leader>n.=.
+    Bound to the org filetype by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -209,6 +213,7 @@
     using the title.
 
     Takes a string representing the keybinding. Defaults to =<Leader>nf=.
+    Bound globally by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -226,6 +231,7 @@
     dialog is displayed to choose the node.
 
     Takes a string representing the keybinding. Defaults to =<Leader>nn=.
+    Bound to the org filetype by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -240,6 +246,7 @@
     Goes to the previous node sequentially based on origin of the node under cursor.
 
     Takes a string representing the keybinding. Defaults to =<Leader>np=.
+    Bound to the org filetype by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -257,6 +264,7 @@
     using the title.
 
     Takes a string representing the keybinding. Defaults to =<Leader>ni=.
+    Bound to the org filetype by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -272,6 +280,7 @@
     =insert_node=, this does not open a capture buffer if a new node is created.
 
     Takes a string representing the keybinding. Defaults to =<Leader>nm=.
+    Bound to the org filetype by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -287,6 +296,7 @@
     under cursor.
 
     Takes a string representing the keybinding. Defaults to =<Leader>nq=.
+    Bound to the org filetype by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -301,6 +311,7 @@
     Removes an alias from the node under cursor.
 
     Takes a string representing the keybinding. Defaults to =<Leader>nar=.
+    Bound to the org filetype by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -315,6 +326,7 @@
     Removes the origin from the node under cursor.
 
     Takes a string representing the keybinding. Defaults to =<Leader>nor=.
+    Bound to the org filetype by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -331,6 +343,7 @@
     [[#org-roam-buffer][Org Roam Buffer]] section for details.
 
     Takes a string representing the keybinding. Defaults to =<Leader>nl=.
+    Bound to the org filetype by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -347,6 +360,7 @@
     [[#org-roam-buffer][Org Roam Buffer]] section for details.
 
     Takes a string representing the keybinding. Defaults to =<Leader>nb=.
+    Bound to the org filetype by default.
 
     #+begin_src lua
     require("org-roam").setup({
@@ -863,44 +877,47 @@
 
 * Bindings
 
-  | Name                     | Keybinding    | Description                                                               |
-  |--------------------------+---------------+---------------------------------------------------------------------------|
-  | add_alias                | =<Leader>naa= | Adds an alias to the node under cursor.                                   |
-  | add_origin               | =<Leader>noa= | Adds an origin to the node under cursor.                                  |
-  | capture                  | =<Leader>nc=  | Opens org-roam capture window.                                            |
-  | complete_at_point        | =<Leader>n.=  | Completes the node under cursor.                                          |
-  | find_node                | =<Leader>nf=  | Finds node and moves to it, creating it if it does not exist.             |
-  | goto_next_node           | =<Leader>nn=  | Goes to the next node in sequence (via origin) for the node under cursor. |
-  | goto_prev_node           | =<Leader>np=  | Goes to the prev node in sequence (via origin) for the node under cursor. |
-  | insert_node              | =<Leader>ni=  | Inserts node at cursor position, creating it if it does not exist.        |
-  | insert_node_immediate    | =<Leader>nm=  | Same as =insert_node=, but skips opening capture buffer.                  |
-  | quickfix_backlinks       | =<Leader>nq=  | Opens the quickfix menu for backlinks to the current node under cursor.   |
-  | remove_alias             | =<Leader>nar= | Removes an alias from the node under cursor.                              |
-  | remove_origin            | =<Leader>nor= | Removes the origin from the node under cursor.                            |
-  | toggle_roam_buffer       | =<Leader>nl=  | Toggles the org-roam node-view buffer for the node under cursor.          |
-  | toggle_roam_buffer_fixed | =<Leader>nb=  | Toggles a fixed org-roam node-view buffer for a selected node.            |
+| Name                     | Keybinding    | Filetype | Description                                                               |
+|--------------------------+---------------+----------+---------------------------------------------------------------------------|
+| add_alias                | =<Leader>naa= | Org      | Adds an alias to the node under cursor.                                   |
+| add_origin               | =<Leader>noa= | Org      | Adds an origin to the node under cursor.                                  |
+| capture                  | =<Leader>nc=  | Global   | Opens org-roam capture window.                                            |
+| complete_at_point        | =<Leader>n.=  | Org      | Completes the node under cursor.                                          |
+| find_node                | =<Leader>nf=  | Global   | Finds node and moves to it, creating it if it does not exist.             |
+| goto_next_node           | =<Leader>nn=  | Org      | Goes to the next node in sequence (via origin) for the node under cursor. |
+| goto_prev_node           | =<Leader>np=  | Org      | Goes to the prev node in sequence (via origin) for the node under cursor. |
+| insert_node              | =<Leader>ni=  | Org      | Inserts node at cursor position, creating it if it does not exist.        |
+| insert_node_immediate    | =<Leader>nm=  | Org      | Same as =insert_node=, but skips opening capture buffer.                  |
+| quickfix_backlinks       | =<Leader>nq=  | Org      | Opens the quickfix menu for backlinks to the current node under cursor.   |
+| remove_alias             | =<Leader>nar= | Org      | Removes an alias from the node under cursor.                              |
+| remove_origin            | =<Leader>nor= | Org      | Removes the origin from the node under cursor.                            |
+| toggle_roam_buffer       | =<Leader>nl=  | Org      | Toggles the org-roam node-view buffer for the node under cursor.          |
+| toggle_roam_buffer_fixed | =<Leader>nb=  | Org      | Toggles a fixed org-roam node-view buffer for a selected node.            |
 
   All these bindings use by default the [[*prefix]] alias and can be changed all
   at once by modifying ~bindings.prefix~.
 
+  Only *capture* and *find_node* are global mappings, the rest are only bound
+  to ~FileType=org~.
+
 ** Dailies Extension
 
-   | Name              | Keybinding    | Description                                     |
-   |-------------------+---------------+-------------------------------------------------|
-   | capture_date      | =<Leader>ndD= | Capture a specific date's note.                 |
-   | capture_today     | =<Leader>ndN= | Capture today's note.                           |
-   | capture_tomorrow  | =<Leader>ndT= | Capture tomorrow's note.                        |
-   | capture_yesterday | =<Leader>ndY= | Capture yesterday's note.                       |
-   | find_directory    | =<Leader>nd.= | Navigate to dailies note directory.             |
-   | goto_date         | =<Leader>ndd= | Navigate to specific date's note.               |
-   | goto_next_date    | =<Leader>ndf= | Navigate to the next note in date sequence.     |
-   | goto_prev_date    | =<Leader>ndb= | Navigate to the previous note in date sequence. |
-   | goto_today        | =<Leader>ndn= | Navigate to today's note.                       |
-   | goto_tomorrow     | =<Leader>ndt= | Navigate to tomorrow's note.                    |
-   | goto_yesterday    | =<Leader>ndy= | Navigate to yesterday's note.                   |
+| Name              | Keybinding    | Filetype | Description                                     |
+|-------------------+---------------+----------+-------------------------------------------------|
+| capture_date      | =<Leader>ndD= | Global   | Capture a specific date's note.                 |
+| capture_today     | =<Leader>ndN= | Global   | Capture today's note.                           |
+| capture_tomorrow  | =<Leader>ndT= | Global   | Capture tomorrow's note.                        |
+| capture_yesterday | =<Leader>ndY= | Global   | Capture yesterday's note.                       |
+| find_directory    | =<Leader>nd.= | Global   | Navigate to dailies note directory.             |
+| goto_date         | =<Leader>ndd= | Global   | Navigate to specific date's note.               |
+| goto_next_date    | =<Leader>ndf= | Global   | Navigate to the next note in date sequence.     |
+| goto_prev_date    | =<Leader>ndb= | Global   | Navigate to the previous note in date sequence. |
+| goto_today        | =<Leader>ndn= | Global   | Navigate to today's note.                       |
+| goto_tomorrow     | =<Leader>ndt= | Global   | Navigate to tomorrow's note.                    |
+| goto_yesterday    | =<Leader>ndy= | Global   | Navigate to yesterday's note.                   |
 
    All these bindings use by default the [[*prefix]] alias and can be changed all
-   at once by modifying ~bindings.prefix~.
+   at once by modifying ~bindings.prefix~. All dailies bindings are global.
 
 ** Modifying bindings
 
