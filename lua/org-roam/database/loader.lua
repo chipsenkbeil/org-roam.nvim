@@ -29,7 +29,7 @@ function M:new(opts)
 
     instance.path = {
         database = opts.database,
-        files = vim.tbl_flatten({ opts.files }),
+        files = vim.iter(opts.files):flatten():totable(),
     }
 
     -- For file specified, check if they are explicitly
