@@ -443,13 +443,21 @@ local function roam_insert(roam, opts)
             end
         end
 
+        local has_content = string.len(vim.api.nvim_buf_get_lines(bufnr, start_row, start_row + 1, true)[1]) > 0
+        if has_content and start_col == end_col then
+            start_col = start_col + 1
+            end_col = start_col
+        end
         -- Replace or insert the link
+        local link_text = string.format("[[id:%s][%s]]", node.id, label or node.title)
         vim.api.nvim_buf_set_text(bufnr, start_row, start_col, end_row, end_col, {
-            string.format("[[id:%s][%s]]", node.id, label or node.title),
+            link_text,
         })
 
         -- Force ourselves back into normal mode
         vim.cmd.stopinsert()
+        -- Set cursor to after the link
+        pcall(vim.api.nvim_win_set_cursor, winnr, { start_row + 1, start_col + string.len(link_text) })
     end
 
     return Promise.new(function(resolve)

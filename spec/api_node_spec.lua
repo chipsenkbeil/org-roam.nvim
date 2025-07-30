@@ -175,9 +175,10 @@ describe("org-roam.api.node", function()
             end
         end)
 
-        -- Move cursor to the bottom of the buffer, in front of the text
+        -- Move cursor to the end of the last line in the buffer
         local row = vim.api.nvim_buf_line_count(0)
-        vim.api.nvim_win_set_cursor(0, { row, 0 })
+        local col = utils.cursor_end_of_line_col(row)
+        vim.api.nvim_win_set_cursor(0, { row, col })
 
         -- Trigger node insertion, which will bring up the dialog
         local id = roam.api.insert_node():wait()
@@ -196,7 +197,7 @@ describe("org-roam.api.node", function()
             ":END:",
             "#+FILETAGS: :one:",
             "",
-            "[[id:1][one]][[id:2]]",
+            "[[id:2]][[id:1][one]]",
         }, utils.read_buffer())
     end)
 
@@ -221,9 +222,10 @@ describe("org-roam.api.node", function()
             return helpers.pick_with_label("some test alias")
         end)
 
-        -- Move cursor to the bottom of the buffer, in front of the text
+        -- Move cursor to the end of the last line in the buffer
         local row = vim.api.nvim_buf_line_count(0)
-        vim.api.nvim_win_set_cursor(0, { row, 0 })
+        local col = utils.cursor_end_of_line_col(row)
+        vim.api.nvim_win_set_cursor(0, { row, col })
 
         -- Trigger node insertion, which will bring up the dialog
         local id = roam.api.insert_node():wait()
@@ -239,7 +241,7 @@ describe("org-roam.api.node", function()
             ":END:",
             "#+FILETAGS: :one:",
             "",
-            "[[id:test-node-id][some test alias]][[id:2]]",
+            "[[id:2]][[id:test-node-id][some test alias]]",
         }, utils.read_buffer())
     end)
 
@@ -260,9 +262,10 @@ describe("org-roam.api.node", function()
             return "some custom node"
         end)
 
-        -- Move cursor to the bottom of the buffer, in front of the text
+        -- Move cursor to the end of the last line in the buffer
         local row = vim.api.nvim_buf_line_count(0)
-        vim.api.nvim_win_set_cursor(0, { row, 0 })
+        local col = utils.cursor_end_of_line_col(row)
+        vim.api.nvim_win_set_cursor(0, { row, col })
 
         -- Trigger node insertion, which will bring up the dialog
         local id = roam.api.insert_node()
@@ -290,7 +293,7 @@ describe("org-roam.api.node", function()
             ":END:",
             "#+FILETAGS: :one:",
             "",
-            "[[id:" .. id .. "][some custom node]][[id:2]]",
+            "[[id:2]][[id:" .. id .. "][some custom node]]",
         }, utils.read_buffer())
     end)
 
@@ -311,9 +314,10 @@ describe("org-roam.api.node", function()
             return "some custom node"
         end)
 
-        -- Move cursor to the bottom of the buffer, in front of the text
+        -- Move cursor to the end of the last line in the buffer
         local row = vim.api.nvim_buf_line_count(0)
-        vim.api.nvim_win_set_cursor(0, { row, 0 })
+        local col = utils.cursor_end_of_line_col(row)
+        vim.api.nvim_win_set_cursor(0, { row, col })
 
         -- Trigger node insertion, which will bring up the dialog
         local id = roam.api.insert_node({
@@ -349,7 +353,7 @@ describe("org-roam.api.node", function()
             ":END:",
             "#+FILETAGS: :one:",
             "",
-            "[[id:" .. id .. "][some custom node]][[id:2]]",
+            "[[id:2]][[id:" .. id .. "][some custom node]]",
         }, utils.read_buffer())
     end)
 
@@ -365,9 +369,10 @@ describe("org-roam.api.node", function()
             return "some custom node"
         end)
 
-        -- Move cursor to the bottom of the buffer, in front of the text
+        -- Move cursor to the end of the last line in the buffer
         local row = vim.api.nvim_buf_line_count(0)
-        vim.api.nvim_win_set_cursor(0, { row, 0 })
+        local col = utils.cursor_end_of_line_col(row)
+        vim.api.nvim_win_set_cursor(0, { row, col })
 
         -- Trigger node insertion, which will not bring up the
         -- selection dialog as it's immediate
@@ -384,7 +389,7 @@ describe("org-roam.api.node", function()
             ":END:",
             "#+FILETAGS: :one:",
             "",
-            "[[id:" .. id .. "][some custom node]][[id:2]]",
+            "[[id:2]][[id:" .. id .. "][some custom node]]",
         }, utils.read_buffer())
     end)
 

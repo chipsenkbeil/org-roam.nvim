@@ -683,4 +683,12 @@ function M.unpatch_vim_cmd()
     vim.cmd = VIM_CMD
 end
 
+--- Computes the cursor position such that it is at the end of the line
+--- of the current buffer and the given row
+--- @param row integer (one-based)
+--- @return integer (zero-based)
+function M.cursor_end_of_line_col(row)
+    return string.len(vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]) - 1
+end
+
 return M
