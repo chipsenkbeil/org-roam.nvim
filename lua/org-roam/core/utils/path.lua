@@ -141,6 +141,8 @@ local function path_resolve_dot(path)
     return (is_path_absolute and "/" or "") .. table.concat(new_path_components, "/")
 end
 
+local has_v_0_11 = vim.fn.has("nvim-0.11") > 0
+
 ---Noramlizes a path. Taken from neovim 0.10 nightly.
 ---
 ---@param path (string) Path to normalize
@@ -149,11 +151,18 @@ end
 function M.normalize(path, opts)
     opts = opts or {}
 
-    vim.validate({
-        path = { path, { "string" } },
-        expand_env = { opts.expand_env, { "boolean" }, true },
-        win = { opts.win, { "boolean" }, true },
-    })
+    if has_v_0_11 then
+        vim.validate("path", path, "string")
+        vim.validate("expand_env", opts.expand_env, "boolean", true)
+        vim.validate("win", opts.win, "boolean", true)
+    else
+        -- deprecated syntax since v0.11
+        vim.validate({
+            path = { path, { "string" } },
+            expand_env = { opts.expand_env, { "boolean" }, true },
+            win = { opts.win, { "boolean" }, true },
+        })
+    end
 
     local win = opts.win == nil and ISWIN or not not opts.win
     local os_sep_local = win and "\\" or "/"
