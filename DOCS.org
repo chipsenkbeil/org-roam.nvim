@@ -1438,7 +1438,7 @@
                   exactly one character and opts is the orgmode template. Note
                   that the target MUST be specified for each template!
      - title: optional, seeds the select dialog with the title string.
-     - ranges: optional, list of ranges to replace. Each range is comprised of
+     - ranges: optional, list of ranges to replace. Each range comprises
                the following fields:
        - start_row: integer (one-indexed, inclusive)
        - start_col: integer (one-indexed, inclusive)
