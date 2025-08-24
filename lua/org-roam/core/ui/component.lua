@@ -4,6 +4,8 @@
 -- Base interface for an org-roam ui component.
 -------------------------------------------------------------------------------
 
+local islist = require("org-roam.core.utils.table").islist
+
 ---@alias org-roam.core.ui.ComponentFunction
 ---| fun():org-roam.core.ui.Line[]
 
@@ -94,7 +96,7 @@ function M.group(...)
     ---@type org-roam.core.ui.LineSegment[]
     local segments = {}
     for _, seg in ipairs({ ... }) do
-        if not vim.tbl_islist(seg) then
+        if not islist(seg) then
             ---@cast seg org-roam.core.ui.LineSegment
             table.insert(segments, seg)
         else

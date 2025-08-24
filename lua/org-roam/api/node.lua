@@ -8,6 +8,7 @@ local io = require("org-roam.core.utils.io")
 local log = require("org-roam.core.log")
 local notify = require("org-roam.core.ui.notify")
 local path_utils = require("org-roam.core.utils.path")
+local tbl_utils = require("org-roam.core.utils.table")
 local Promise = require("orgmode.utils.promise")
 local random = require("org-roam.core.utils.random")
 local utils = require("org-roam.utils")
@@ -50,7 +51,7 @@ end
 ---@param ... string|string[]
 local function string_contains_one_of(s, ...)
     ---@type string[]
-    local candidates = vim.tbl_flatten({ ... })
+    local candidates = tbl_utils.flatten({ ... })
     for _, c in ipairs(candidates) do
         if string.match(s, vim.pesc(c)) then
             return true

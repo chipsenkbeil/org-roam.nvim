@@ -58,4 +58,25 @@ function M.get(o, ...)
     return o
 end
 
+local has_v_0_10 = vim.fn.has("nvim-0.10") > 0
+
+---Wrapper around deprecated vim.tbl_flatten.
+---@param table table Table to flatten
+function M.flatten(table)
+    if has_v_0_10 then
+        return vim.iter(table):flatten():totable()
+    else
+        return vim.tbl_flatten(table)
+    end
+end
+
+---Wrapper around deprecated vim.tbl_islist.
+---@param table table Table to check
+function M.islist(table)
+    if has_v_0_10 then
+        return vim.islist(table)
+    else
+        return vim.tbl_islist(table)
+    end
+end
 return M

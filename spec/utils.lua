@@ -6,9 +6,9 @@ local Promise = require("orgmode.utils.promise")
 local io = require("org-roam.core.utils.io")
 local Node = require("org-roam.core.file.node")
 local path = require("org-roam.core.utils.path")
+local tbl_utils = require("org-roam.core.utils.table")
 local Range = require("org-roam.core.file.range")
 local Select = require("org-roam.core.ui.select")
-local unpack = require("org-roam.core.utils.table").unpack
 local uuid_v4 = require("org-roam.core.utils.random").uuid_v4
 
 local ORG_FILES_DIR = (function()
@@ -95,7 +95,7 @@ function M.indent(s)
     local indent = 0
     if #nonempty_lines > 0 then
         ---@type integer
-        indent = math.min(unpack(vim.tbl_map(function(line)
+        indent = math.min(tbl_utils.unpack(vim.tbl_map(function(line)
             local _, cnt = string.find(line, "^%s+")
             return cnt or 0
         end, nonempty_lines)))
@@ -227,7 +227,7 @@ end
 ---@param path string
 ---@param ... string|string[]
 function M.write_to(path, ...)
-    local lines = vim.tbl_flatten({ ... })
+    local lines = tbl_utils.flatten({ ... })
     local content = table.concat(lines, "\n")
 
     local err = io.write_file_sync(path, content)
@@ -237,7 +237,7 @@ end
 ---@param path string
 ---@param ... string|string[]
 function M.append_to(path, ...)
-    local lines = vim.tbl_flatten({ ... })
+    local lines = tbl_utils.flatten({ ... })
     local content = table.concat(lines, "\n")
 
     local err, data = io.read_file_sync(path)
@@ -306,7 +306,7 @@ function M.edit_files(...)
         local win = vim.api.nvim_get_current_win()
         table.insert(windows, win)
     end
-    return unpack(windows)
+    return tbl_utils.unpack(windows)
 end
 
 ---Triggers the specified mapping.
