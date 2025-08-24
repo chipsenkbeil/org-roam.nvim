@@ -321,7 +321,7 @@ function M:get_many(...)
     local nodes = {}
 
     ---@type string[]
-    local ids = vim.tbl_flatten({ ... })
+    local ids = tbl_utils.flatten({ ... })
 
     for _, id in ipairs(ids) do
         nodes[id] = self:get(id)
@@ -562,7 +562,7 @@ function M:link(id, ...)
     local outbound = self.__outbound[id] or {}
 
     ---@type org-roam.core.database.Id[]
-    local ids = vim.tbl_flatten({ ... })
+    local ids = tbl_utils.flatten({ ... })
 
     -- Ensure the new nodes are cached as an outbound edges
     for _, node in ipairs(ids) do
@@ -591,7 +591,7 @@ function M:unlink(id, ...)
 
     -- Build the list of nodes we will be removing from the edges list
     ---@type org-roam.core.database.Id[]
-    local nodes = vim.tbl_flatten({ ... })
+    local nodes = tbl_utils.flatten({ ... })
     if #nodes == 0 then
         nodes = vim.tbl_keys(outbound)
     end
