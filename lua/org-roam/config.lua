@@ -204,6 +204,24 @@ local DEFAULT_CONFIG = {
     ---Settings tied to the user interface.
     ---@class org-roam.config.UserInterface
     ui = {
+        ---Select-node dialog configuration settings.
+        ---@class org-roam.config.ui.SelectNode
+        select = {
+            ---If not nil, should be a function that takes a node returns a string or
+            ---list of strings to add to the selection dialog.
+            ---If nil, one string is returned for the node title and one for each alias.
+            ---@type fun(node: org-roam.core.file.Node): string|string[]
+            label = function(node)
+                local items = {}
+                table.insert(items, node.title)
+                for _, alias in ipairs(node.aliases) do
+                    if alias ~= node.title then
+                        table.insert(items, alias)
+                    end
+                end
+                return items
+            end,
+        },
         ---Node view buffer configuration settings.
         ---@class org-roam.config.ui.NodeView
         node_buffer = {
