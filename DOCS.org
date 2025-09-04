@@ -777,6 +777,50 @@
 
    Configuration settings tied to the user interface.
 
+*** selection dialog
+
+    Bindings tied specifically to the node selection dialog.
+
+**** label
+
+     If nil or not set, each selection item is the unmodified title or alias of a node.
+
+     If set to a function, it is called with each node. It should return either a single
+     string to show for this node in the dialog, or a list of strings that all refer to
+     the same node.
+
+     #+begin_src lua
+     require("org-roam").setup({
+       ui = {
+         select = {
+           ---@type fun(node: org-roam.core.file.Node): string|string[]
+           label = function(node)
+             local format
+             if #node.tags == 0 then
+               format = function(label)
+                 return label
+               end
+             else
+               local tags = table.concat(node.tags, ", ")
+               format = function(label)
+                 return ("(%s) %s"):format(tags, label)
+               end
+             end
+             local labels = {}
+             table.insert(labels, format(node.title))
+             for _,alias in ipairs(node.alias) do
+               -- Avoid repeat of alias that is same as title
+               if alias ~= node.title then
+                 table.insert(labels, format(alias))
+               end
+             end
+             return labels
+           end,
+         },
+       },
+     })
+     #+end_src
+
 *** node view
 
     Bindings tied specifically to the roam buffer.

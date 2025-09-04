@@ -73,6 +73,31 @@ describe("org-roam.ui.select-node", function()
         }, lines)
     end)
 
+    it("should allow formatting the labels of all nodes", function()
+        local function label(node)
+            return ("%s :%s:"):format(node.title, table.concat(node.tags, ":"))
+        end
+        roam.config.ui.select.label = label
+        roam.database:load():wait()
+        local win = vim.api.nvim_get_current_win()
+
+        -- Load up the selection interface for all nodes
+        roam.ui.select_node():open()
+        utils.wait()
+
+        -- Grab lines from current buffer
+        local lines = read_trimmed_sorted_buf_lines()
+
+        -- Aliases are not included
+        assert.are_not.equal(win, vim.api.nvim_get_current_win())
+        assert.are.same({
+            "", -- line containing filter text
+            "one :one:",
+            "three :three:",
+            "two :two:",
+        }, lines)
+    end)
+
     it("should support limiting to only included node ids", function()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
