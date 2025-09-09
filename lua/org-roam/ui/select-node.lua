@@ -10,6 +10,8 @@ local Select = require("org-roam.core.ui.select")
 ---@param opts {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
 ---@return org-roam.core.ui.Select
 local function roam_select_node(roam, opts)
+    local get_labels = roam.config.ui.select.label
+
     -- TODO: Make this more optimal. Probably involves supporting
     --       an async function to return items instead of an
     --       item list so we can query the database by name
@@ -28,11 +30,12 @@ local function roam_select_node(roam, opts)
         if not skip then
             local node = roam.database:get_sync(id)
             if node then
-                table.insert(items, { id = id, label = node.title })
-                for _, alias in ipairs(node.aliases) do
-                    -- Avoid repeat of alias that is same as title
-                    if alias ~= node.title then
-                        table.insert(items, { id = id, label = alias })
+                local labels = get_labels(node)
+                if type(labels) == "string" then
+                    table.insert(items, { id = id, label = labels })
+                else
+                    for _, label in ipairs(labels) do
+                        table.insert(items, { id = id, label = label })
                     end
                 end
             end
