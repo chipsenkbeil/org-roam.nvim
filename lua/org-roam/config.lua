@@ -207,14 +207,25 @@ local DEFAULT_CONFIG = {
         ---Select-node dialog configuration settings.
         ---@class org-roam.config.ui.SelectNode
         select = {
-            ---If not nil, should be a function that takes a node returns a string or
-            ---list of strings to add to the selection dialog.
-            ---If nil, one string is returned for the node title and one for each alias.
-            ---@type fun(node: org-roam.core.file.Node): string|string[]
-            label = function(node)
+            ---@alias org-roam.config.ui.SelectNodeItems (string|{label:string, value:any})[]
+            ---
+            ---Converts an org-roam node into one or more items to display in
+            ---the select dialog. The function returns either a list of strings
+            ---that will both populate the selection dialog AND be injected into
+            ---buffers (e.g. for link descriptions), or returns a list of tables
+            ---that contain both a `label` (string) and `value` (anything) where
+            ---the label is displayed in the selection and the value is injected
+            ---into buffers.
+            ---
+            ---By default, this will convert each node into its title and each
+            ---individual alias.
+            ---@type fun(node:org-roam.core.file.Node):org-roam.config.ui.SelectNodeItems
+            node_to_items = function(node)
+                ---@type string[]
                 local items = {}
                 table.insert(items, node.title)
                 for _, alias in ipairs(node.aliases) do
+                    -- Avoid duplicating the title if the alias is the same
                     if alias ~= node.title then
                         table.insert(items, alias)
                     end

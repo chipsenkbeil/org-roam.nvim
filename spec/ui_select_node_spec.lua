@@ -73,11 +73,126 @@ describe("org-roam.ui.select-node", function()
         }, lines)
     end)
 
-    it("should allow formatting the labels of all nodes", function()
-        local function label(node)
-            return ("%s :%s:"):format(node.title, table.concat(node.tags, ":"))
-        end
-        roam.config.ui.select.label = label
+    it("should support custom translations of nodes to items for selection using strings", function()
+        roam.database:load():wait()
+        local win = vim.api.nvim_get_current_win()
+
+        -- Load up the selection interface for all nodes
+        roam.ui
+            .select_node({
+                node_to_items = function(node)
+                    return {
+                        ("%s :%s:"):format(node.title, table.concat(node.tags, ":")),
+                    }
+                end,
+            })
+            :open()
+        utils.wait()
+
+        -- Grab lines from current buffer
+        local lines = read_trimmed_sorted_buf_lines()
+
+        -- Aliases are not included
+        assert.are_not.equal(win, vim.api.nvim_get_current_win())
+        assert.are.same({
+            "", -- line containing filter text
+            "one :one:",
+            "three :three:",
+            "two :two:",
+        }, lines)
+    end)
+
+    it("should support custom translations of nodes to items for selection using tables", function()
+        roam.database:load():wait()
+        local win = vim.api.nvim_get_current_win()
+
+        -- Load up the selection interface for all nodes
+        roam.ui
+            .select_node({
+                node_to_items = function(node)
+                    return {
+                        ("%s :%s:"):format(node.title, table.concat(node.tags, ":")),
+                    }
+                end,
+            })
+            :open()
+        utils.wait()
+
+        -- Grab lines from current buffer
+        local lines = read_trimmed_sorted_buf_lines()
+
+        -- Aliases are not included
+        assert.are_not.equal(win, vim.api.nvim_get_current_win())
+        assert.are.same({
+            "", -- line containing filter text
+            "one :one:",
+            "three :three:",
+            "two :two:",
+        }, lines)
+    end)
+
+    it("should support custom translations of nodes into multiple items", function()
+        roam.database:load():wait()
+        local win = vim.api.nvim_get_current_win()
+
+        -- Load up the selection interface for all nodes
+        roam.ui
+            .select_node({
+                node_to_items = function(node)
+                    return {
+                        node.title,
+                        "another " .. node.title,
+                    }
+                end,
+            })
+            :open()
+        utils.wait()
+
+        -- Grab lines from current buffer
+        local lines = read_trimmed_sorted_buf_lines()
+
+        -- Aliases are not included
+        assert.are_not.equal(win, vim.api.nvim_get_current_win())
+        assert.are.same({
+            "", -- line containing filter text
+            "another one",
+            "another three",
+            "another two",
+            "one",
+            "three",
+            "two",
+        }, lines)
+    end)
+
+    it("should support displaying an item differently than its value", function()
+        roam.database:load():wait()
+        local win = vim.api.nvim_get_current_win()
+
+        -- Load up the selection interface for all nodes
+        roam.ui
+            .select_node({
+                node_to_items = function(node)
+                    return {
+                        { label = node.title, value = "VALUE " .. node.title },
+                    }
+                end,
+            })
+            :open()
+        utils.wait()
+
+        -- Grab lines from current buffer
+        local lines = read_trimmed_sorted_buf_lines()
+
+        assert.are_not.equal(win, vim.api.nvim_get_current_win())
+        assert.are.same({
+            "", -- line containing filter text
+            "one",
+            "three",
+            "two",
+        }, lines)
+    end)
+
+    it("should use the node_to_items ui config by default", function()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -92,9 +207,9 @@ describe("org-roam.ui.select-node", function()
         assert.are_not.equal(win, vim.api.nvim_get_current_win())
         assert.are.same({
             "", -- line containing filter text
-            "one :one:",
-            "three :three:",
-            "two :two:",
+            "one",
+            "three",
+            "two",
         }, lines)
     end)
 
@@ -156,6 +271,45 @@ describe("org-roam.ui.select-node", function()
             "one",
             "two",
         }, lines)
+    end)
+
+    it("should populate selection choice using label & value of item", function()
+        local function node_to_items(node)
+            return {
+                {
+                    label = node.title,
+                    value = "VALUE " .. node.title,
+                },
+            }
+        end
+
+        roam.database:load():wait()
+        local win = vim.api.nvim_get_current_win()
+
+        -- Load up the selection interface for all nodes with autoselect, which
+        -- will automatically select a node and close itself
+        local label = nil
+        local value = nil
+        roam.ui
+            .select_node({
+                auto_select = true,
+                init_input = "one",
+                node_to_items = node_to_items,
+            })
+            :on_choice(function(choice)
+                label = choice.label
+                value = choice.value
+            end)
+            :open()
+        utils.wait()
+
+        -- Verify we're on the original window
+        assert.are.equal(win, vim.api.nvim_get_current_win())
+        assert.are.same({ "" }, utils.read_buffer(vim.api.nvim_get_current_buf()))
+
+        -- Check that we populated with choice's information for the item
+        assert.are.equal("one", label)
+        assert.are.equal("VALUE one", value)
     end)
 
     it("should support selecting automatically if filter matches one node", function()

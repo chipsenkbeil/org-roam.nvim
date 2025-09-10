@@ -6,17 +6,25 @@
 
 local Select = require("org-roam.core.ui.select")
 
+---@class (exact) org-roam.ui.SelectNodeOpts
+---@field allow_select_missing? boolean
+---@field auto_select? boolean
+---@field exclude? string[]
+---@field include? string[]
+---@field init_input? string
+---@field node_to_items? fun(node:org-roam.core.file.Node):org-roam.config.ui.SelectNodeItems
+
 ---@param roam OrgRoam
----@param opts {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
+---@param opts org-roam.ui.SelectNodeOpts
 ---@return org-roam.core.ui.Select
 local function roam_select_node(roam, opts)
-    local get_labels = roam.config.ui.select.label
+    local node_to_items = opts.node_to_items or roam.config.ui.select.node_to_items
 
     -- TODO: Make this more optimal. Probably involves supporting
     --       an async function to return items instead of an
     --       item list so we can query the database by name
     --       and by aliases to get candidate ids.
-    ---@type {id:org-roam.core.database.Id, label:string}
+    ---@type {id:org-roam.core.database.Id, label:string, value:any}[]
     local items = {}
     for _, id in ipairs(opts.include or roam.database:ids()) do
         local skip = false
@@ -30,12 +38,20 @@ local function roam_select_node(roam, opts)
         if not skip then
             local node = roam.database:get_sync(id)
             if node then
-                local labels = get_labels(node)
-                if type(labels) == "string" then
-                    table.insert(items, { id = id, label = labels })
-                else
-                    for _, label in ipairs(labels) do
-                        table.insert(items, { id = id, label = label })
+                local node_items = node_to_items(node)
+                for _, item in ipairs(node_items) do
+                    if type(item) == "string" then
+                        table.insert(items, {
+                            id = id,
+                            label = item,
+                            value = item,
+                        })
+                    elseif type(item) == "table" then
+                        table.insert(items, {
+                            id = id,
+                            label = item.label,
+                            value = item.value,
+                        })
                     end
                 end
             end
@@ -53,7 +69,7 @@ local function roam_select_node(roam, opts)
     local select_opts = vim.tbl_extend("keep", {
         items = items,
         prompt = prompt,
-        ---@param item {id:org-roam.core.database.Id, label:string}
+        ---@param item {id:org-roam.core.database.Id, label:string, value:any}
         format = function(item)
             return item.label
         end,
@@ -70,7 +86,7 @@ return function(roam)
     local M = {}
 
     ---Opens up a selection dialog populated with nodes (titles and aliases).
-    ---@param opts? {allow_select_missing?:boolean, auto_select?:boolean, exclude?:string[], include?:string[], init_input?:string}
+    ---@param opts? org-roam.ui.SelectNodeOpts
     ---@return org-roam.ui.NodeSelect
     function M.select_node(opts)
         opts = opts or {}
@@ -78,7 +94,7 @@ return function(roam)
         ---@class org-roam.ui.NodeSelect
         local select = { __select = roam_select_node(roam, opts) }
 
-        ---@param f fun(selection:{id:org-roam.core.database.Id, label:string})
+        ---@param f fun(selection:{id:org-roam.core.database.Id, label:string, value:any})
         ---@return org-roam.ui.NodeSelect
         function select:on_choice(f)
             self.__select:on_choice(f)

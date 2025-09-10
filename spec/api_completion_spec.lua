@@ -145,4 +145,55 @@ describe("org-roam.api.completion", function()
             "[[id:2][two]]",
         }, utils.read_buffer())
     end)
+
+    it("should populate the link's description with the selection dialog's item's value", function()
+        local id = utils.random_id()
+        local test_path = utils.make_temp_filename({
+            dir = test_dir,
+            ext = "org",
+        })
+
+        -- Create our test file with an expression that matches nothing
+        utils.write_to(test_path, {
+            ":PROPERTIES:",
+            ":ID: " .. id,
+            ":END:",
+            "",
+            "o",
+        })
+
+        -- Load files into the database
+        roam.database:load():wait()
+
+        -- Open our test file into a buffer
+        vim.cmd.edit(test_path)
+
+        -- Move our cursor down to the expression
+        vim.api.nvim_win_set_cursor(0, { 5, 0 })
+
+        -- Pick two as the choice
+        utils.mock_select_pick(function(choices)
+            for _, choice in ipairs(choices) do
+                if choice.label == "two" then
+                    -- Modify the value of the item so we can assert that it is used
+                    choice.item.value = "VALUE TWO"
+
+                    return choice
+                end
+            end
+        end)
+
+        -- Try to complete
+        local ok = roam.api.complete_node():wait()
+        assert.is_true(ok)
+
+        -- Review that buffer was not updated
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: " .. id,
+            ":END:",
+            "",
+            "[[id:2][VALUE TWO]]",
+        }, utils.read_buffer())
+    end)
 end)

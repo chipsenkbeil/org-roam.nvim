@@ -19,5 +19,8 @@ test-file: ## Run specific test file denoted by FILE environment variable
 		-u spec/minimal_init.lua \
 		-c "lua require('plenary.test_harness').test_directory('spec/$(FILE)', {minimal_init='spec/minimal_init.lua', sequential=true})"
 
+format: ## Uses stylua to format lua files
+	@stylua **/*.lua
+
 clean: ## Cleans out vendor directory
 	@rm -rf vendor/*
