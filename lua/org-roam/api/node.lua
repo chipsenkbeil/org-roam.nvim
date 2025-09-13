@@ -469,7 +469,8 @@ local function roam_insert(roam, opts)
                 init_input = opts.title,
             })
             :on_choice(function(choice)
-                insert_link(choice.id, choice.label)
+                local label = type(choice.value) == "string" and choice.value or choice.label
+                insert_link(choice.id, label)
                 resolve(choice.id)
             end)
             :on_choice_missing(function(label)

@@ -86,7 +86,11 @@ local function roam_complete_node_under_cursor(roam, opts)
 
                 -- Replace the text (this will place us into insert mode)
                 vim.api.nvim_buf_set_text(bufnr, row, col, row, col + #selection, {
-                    string.format("[[id:%s][%s]]", node.id, choice.label),
+                    string.format(
+                        "[[id:%s][%s]]",
+                        node.id,
+                        type(choice.value) == "string" and choice.value or choice.label
+                    ),
                 })
 
                 -- Force ourselves back into normal mode
