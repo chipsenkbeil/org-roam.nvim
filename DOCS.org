@@ -2,7 +2,9 @@
 
   Port of [[https://www.orgroam.com/][Org-roam]] to [[https://neovim.io/][neovim]] using [[https://github.com/nvim-orgmode/orgmode][nvim-orgmode]].
 
-  Requires *neovim 0.10.2+*.
+  Main branch requires *neovim 0.11.0+*. For all tagged versions, see
+  installation table to find the supported neovim version.
+
 
 ** Installation
 

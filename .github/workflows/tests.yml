@@ -20,7 +20,7 @@ env:
   CI: true
   ROAM_DEBUG: true
   ROAM_TEST_REPORT: true
-  ROAM_TEST_ORGMODE_BRANCH: 0.7.0
+  ROAM_TEST_ORGMODE_BRANCH: 0.7.1
   ROAM_WAIT_TIME: 500
 
 jobs:
@@ -39,11 +39,11 @@ jobs:
       matrix:
         # NOTE: Nightly disabled until neovim/neovim#30792 is fixed!
         #       Once it is fixed, add "nightly" back to version list.
-        version: [v0.10.2, v0.10.3, v0.10.4, v0.11.0]
+        version: [v0.11.0, v0.11.1, v0.11.2, v0.11.3, v0.11.4, nightly]
         os: [ubuntu-latest]
         include:
           - os: windows-latest
-            version: v0.10.4
+            version: v0.11.4
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
