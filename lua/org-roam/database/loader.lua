@@ -17,6 +17,7 @@ local schema = require("org-roam.database.schema")
 ---@field path {database:string, files:string[]}
 ---@field __db org-roam.core.Database #cache of loaded database
 ---@field __files OrgFiles #cache of loaded org files
+---@field __load_state 'loading' | 'loaded' | nil
 local M = {}
 M.__index = M
 
@@ -373,38 +374,48 @@ end
 ---Loads database (or retrieves from cache) asynchronously.
 ---@return OrgPromise<org-roam.core.Database>
 function M:database()
-    return self.__db and Promise.resolve(self.__db)
-        or Promise.new(function(resolve)
-            -- Load our database from disk if it is available
-            io.stat(self.path.database)
-                :next(function()
-                    return Database:load_from_disk(self.path.database)
-                        :next(function(db)
-                            schema:update(db)
-                            self.__db = db
+    if self.__load_state then
+        if self.__load_state == "loading" then
+            self:ensure_loaded()
+        end
+        return Promise.resolve(self.__db)
+    end
 
-                            resolve(db)
-                            return db
-                        end)
-                        :catch(function(err)
-                            log.fmt_error("Failed to load database: %s", err)
+    self.__load_state = "loading"
+    return Promise.new(function(resolve)
+        -- Load our database from disk if it is available
+        io.stat(self.path.database)
+            :next(function()
+                return Database:load_from_disk(self.path.database)
+                    :next(function(db)
+                        schema:update(db)
+                        self.__db = db
+                        self.__load_state = "loaded"
 
-                            -- Set up database with a clean slate instead
-                            local db = Database:new()
-                            schema:update(db)
-                            self.__db = db
+                        resolve(db)
+                        return db
+                    end)
+                    :catch(function(err)
+                        log.fmt_error("Failed to load database: %s", err)
 
-                            resolve(db)
-                        end)
-                end)
-                :catch(function()
-                    local db = Database:new()
-                    schema:update(db)
-                    self.__db = db
+                        -- Set up database with a clean slate instead
+                        local db = Database:new()
+                        schema:update(db)
+                        self.__db = db
+                        self.__load_state = "loaded"
 
-                    return resolve(db)
-                end)
-        end)
+                        resolve(db)
+                    end)
+            end)
+            :catch(function()
+                local db = Database:new()
+                schema:update(db)
+                self.__db = db
+                self.__load_state = "loaded"
+
+                return resolve(db)
+            end)
+    end)
 end
 
 ---Loads database (or retrieves from cache) synchronously.
@@ -413,6 +424,17 @@ end
 function M:database_sync(opts)
     opts = opts or {}
     return self:database():wait(opts.timeout)
+end
+
+---Ensure that the database is fully loaded.
+---@return true?
+function M:ensure_loaded()
+    if self.__load_state == "loaded" then
+        return true
+    end
+    vim.wait(5000, function()
+        return self.__load_state == "loaded"
+    end, 5)
 end
 
 ---Loads org files (or retrieves from cache) asynchronously.
