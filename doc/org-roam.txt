@@ -1,4 +1,4 @@
-*org-roam.txt*          For NVIM v0.9.2         Last change: 2025 September 09
+*org-roam.txt*          For NVIM v0.9.2         Last change: 2025 September 13
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -912,41 +912,60 @@ SELECTION DIALOG ~
 
 Bindings tied specifically to the node selection dialog.
 
-1. label
+1. node_toitems
 
-If nil or not set, each selection item is the unmodified title or alias of a
-node.
+Converts an org-roam node into one or more items to display in the select
+dialog. The function returns either a list of strings that will both populate
+the selection dialog AND be injected into buffers (e.g. for link descriptions),
+or returns a list of tables that contain both a `label` (string) and `value`
+(anything) where the label is displayed in the selection and the value is
+injected into buffers.
 
-If set to a function, it is called with each node. It should return either a
-single string to show for this node in the dialog, or a list of strings that
-all refer to the same node.
+By default, this will convert each node into its title and each individual
+alias.
 
 >lua
     require("org-roam").setup({
       ui = {
         select = {
-          ---@type fun(node: org-roam.core.file.Node): string|string[]
-          label = function(node)
-            local format
-            if #node.tags == 0 then
-              format = function(label)
+          ---@type fun(node:org-roam.core.file.Node):org-roam.config.ui.SelectNodeItems
+          node_to_items = function(node)
+            ---@type string[]
+            local items = {}
+    
+            local function make_item(label)
+              if #node.tags == 0 then
+                -- We can pass a string if the label and value
+                -- are the same
                 return label
-              end
-            else
-              local tags = table.concat(node.tags, ", ")
-              format = function(label)
-                return ("(%s) %s"):format(tags, label)
-              end
-            end
-            local labels = {}
-            table.insert(labels, format(node.title))
-            for _,alias in ipairs(node.alias) do
-              -- Avoid repeat of alias that is same as title
-              if alias ~= node.title then
-                table.insert(labels, format(alias))
+              else
+                local tags = table.concat(node.tags, ", ")
+    
+                -- In the case that the label (displayed) and
+                -- value (injected) are different, we can pass
+                -- a table with `label` and `value` back
+                return {
+                    label = ("(%s) %s"):format(tags, label),
+                    value = label,
+                }
               end
             end
-            return labels
+    
+            -- For the node's title and its aliases, we want
+            -- to create an item where the title/alias is the
+            -- value and we show them alongside tags if they exist
+            --
+            -- This allows us to search tags, but not insert
+            -- tags as part of a link if selected
+            table.insert(items, make_item(node.title))
+            for _, alias in ipairs(node.aliases) do
+                -- Avoid duplicating the title if the alias is the same
+                if alias ~= node.title then
+                    table.insert(items, make_item(alias))
+                end
+            end
+    
+            return items
           end,
         },
       },
@@ -1738,6 +1757,7 @@ Parameters:
         not provided, all nodes will immediately be available.
     - init_input: optional, string representing initial input to provide to
         the selection dialog, as if the user typed it.
+    - node_toitems: optional, function to convert node to displayed items
 
 Returns:
 
