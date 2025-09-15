@@ -6,6 +6,8 @@
 
 local Select = require("org-roam.core.ui.select")
 
+---@alias org-roam.ui.NodeSelectItem {id:org-roam.core.database.Id, label:string, value:any, annotation?:string}
+
 ---@class (exact) org-roam.ui.SelectNodeOpts
 ---@field allow_select_missing? boolean
 ---@field auto_select? boolean
@@ -13,18 +15,20 @@ local Select = require("org-roam.core.ui.select")
 ---@field include? string[]
 ---@field init_input? string
 ---@field node_to_items? fun(node:org-roam.core.file.Node):org-roam.config.ui.SelectNodeItems
+---@field annotation? fun(node:org-roam.core.file.Node):string
 
 ---@param roam OrgRoam
 ---@param opts org-roam.ui.SelectNodeOpts
 ---@return org-roam.core.ui.Select
 local function roam_select_node(roam, opts)
     local node_to_items = opts.node_to_items or roam.config.ui.select.node_to_items
+    local annotation_func = opts.annotation or roam.config.ui.select.annotation
 
     -- TODO: Make this more optimal. Probably involves supporting
     --       an async function to return items instead of an
     --       item list so we can query the database by name
     --       and by aliases to get candidate ids.
-    ---@type {id:org-roam.core.database.Id, label:string, value:any}[]
+    ---@type org-roam.ui.NodeSelectItem[]
     local items = {}
     for _, id in ipairs(opts.include or roam.database:ids()) do
         local skip = false
@@ -39,18 +43,21 @@ local function roam_select_node(roam, opts)
             local node = roam.database:get_sync(id)
             if node then
                 local node_items = node_to_items(node)
+                local annotation = annotation_func and annotation_func(node)
                 for _, item in ipairs(node_items) do
                     if type(item) == "string" then
                         table.insert(items, {
                             id = id,
                             label = item,
                             value = item,
+                            annotation = annotation,
                         })
                     elseif type(item) == "table" then
                         table.insert(items, {
                             id = id,
                             label = item.label,
                             value = item.value,
+                            annotation = annotation,
                         })
                     end
                 end
@@ -69,9 +76,12 @@ local function roam_select_node(roam, opts)
     local select_opts = vim.tbl_extend("keep", {
         items = items,
         prompt = prompt,
-        ---@param item {id:org-roam.core.database.Id, label:string, value:any}
+        ---@param item org-roam.ui.NodeSelectItem
         format = function(item)
             return item.label
+        end,
+        annotate = function(item)
+            return item.annotation
         end,
         cancel_on_no_init_matches = true,
     }, opts or {})

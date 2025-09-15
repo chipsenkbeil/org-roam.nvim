@@ -39,6 +39,10 @@ local HIGHLIGHTS = {
     NORMAL = "Normal",
     ---Highlight group for selected text
     SELECTED = "PmenuSel",
+    ---Highlight group for unselected annotation text
+    ANNOTATION = "PmenuExtra",
+    ---Highlight group for selected annotation text
+    SELECTED_ANNOTATION = "PmenuExtraSel",
     ---Highlight group whose foreground color is used for matches
     MATCHED_FG = "WarningMsg",
     ---Highlight group for unselected, matched text
@@ -138,6 +142,7 @@ M.__index = M
 ---@field cancel_on_no_init_matches? boolean
 ---@field bindings? {down?:string|string[], up?:string|string[], select?:string|string[], select_missing?:string|string[]}
 ---@field format? fun(item:any):string
+---@field annotate? fun(item:any):string?
 ---@field match? fun(item:any, input:string):{[1]:integer, [2]:integer}[]
 ---@field rank? fun(item:any, text:string):number
 
@@ -185,9 +190,23 @@ function M:new(opts)
     local format = opts.format or function(item)
         return tostring(item)
     end
+    local annotate = opts.annotate or function()
+        return nil
+    end
+    ---@param item any
+    ---@return string label, integer? idx_annotation
+    local function full_format(item)
+        local label = format(item)
+        local annotation = annotate(item)
+        if annotation then
+            return ("%s %s"):format(label, annotation), #label + 2
+        else
+            return label
+        end
+    end
     local match = opts.match
         or function(item, input)
-            local text = string.lower(format(item))
+            local text = string.lower(full_format(item))
             input = string.lower(input)
 
             -- Get inclusive start/end (one-indexed)
@@ -206,7 +225,7 @@ function M:new(opts)
         refocus_window = opts.skip_window_refocus ~= true,
         cancel_on_no_init_matches = cancel_on_no_init_matches,
         bindings = vim.tbl_deep_extend("keep", bindings, default_bindings),
-        format = format,
+        format = full_format,
         match = match,
         rank = opts.rank,
     }
@@ -828,6 +847,7 @@ function M:__render_component()
         local text = self.__params.format(item[2])
         local highlight = HIGHLIGHTS.NORMAL
         local matched_highlight = HIGHLIGHTS.MATCHED
+        local annotation_highlight = HIGHLIGHTS.ANNOTATION
 
         -- Pad our text to fill the length of the window such that
         -- highlighting smoothly covers the entire line
@@ -840,9 +860,11 @@ function M:__render_component()
         if selected then
             highlight = HIGHLIGHTS.SELECTED
             matched_highlight = HIGHLIGHTS.SELECTED_MATCHED
+            annotation_highlight = HIGHLIGHTS.SELECTED_ANNOTATION
         end
 
         local raw_item = self.__params.items[item[1]]
+        local _, idx_annotation = self.__params.format(raw_item)
         local matches = self.__params.match(raw_item, input)
         table.sort(matches, function(a, b)
             return a[1] < b[1]
@@ -858,16 +880,29 @@ function M:__render_component()
             -- If there is a gap between the last segment and our match,
             -- we need to add in a segment first leading up to our match
             if last_segment[2] + 1 < mstart then
-                table.insert(segments, { last_segment[2] + 1, mstart - 1, highlight })
+                if idx_annotation and last_segment[2] + 1 < idx_annotation and idx_annotation < mstart then
+                    table.insert(segments, { last_segment[2] + 1, idx_annotation - 1, highlight })
+                    table.insert(segments, { idx_annotation, mstart - 1, annotation_highlight })
+                else
+                    table.insert(segments, { last_segment[2] + 1, mstart - 1, highlight })
+                end
             end
 
             table.insert(segments, { mstart, mend, matched_highlight })
+            if idx_annotation and idx_annotation < mend + 1 then
+                highlight = annotation_highlight
+            end
         end
 
         -- Last segment is anything remaining
         local last_segment = segments[#segments] or { 0, 0, "" }
         if last_segment[2] < string.len(text) then
-            table.insert(segments, { last_segment[2] + 1, string.len(text), highlight })
+            if idx_annotation and last_segment[2] + 1 < idx_annotation and idx_annotation < string.len(text) then
+                table.insert(segments, { last_segment[2] + 1, idx_annotation - 1, highlight })
+                table.insert(segments, { idx_annotation, string.len(text), annotation_highlight })
+            else
+                table.insert(segments, { last_segment[2] + 1, string.len(text), highlight })
+            end
         end
 
         -- Build our line as a single segment with highlight

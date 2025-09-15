@@ -232,6 +232,15 @@ local DEFAULT_CONFIG = {
                 end
                 return items
             end,
+            ---Adds an annotation to each display item in the select dialog.
+            ---The function returns either nil (meaning no annotation) or
+            ---a string that will be shown behind the `label` of the item. The
+            ---annotation is displayed with the highlight groups `hl-PmenuExtra`
+            ---and `hl-PmenuExtraSel`. This lets you distinguish it from the node
+            ---title or alias in question.
+            ---
+            ---@type (fun(node:org-roam.core.file.Node):string?)?
+            annotation = nil,
         },
         ---Node view buffer configuration settings.
         ---@class org-roam.config.ui.NodeView
