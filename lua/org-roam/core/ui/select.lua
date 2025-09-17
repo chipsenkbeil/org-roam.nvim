@@ -857,8 +857,8 @@ function M:__render_component()
 
             -- If there is a gap between the last segment and our match,
             -- we need to add in a segment first leading up to our match
-            if last_segment[1] + 1 < mstart then
-                table.insert(segments, { last_segment[1] + 1, mstart - 1, highlight })
+            if last_segment[2] + 1 < mstart then
+                table.insert(segments, { last_segment[2] + 1, mstart - 1, highlight })
             end
 
             table.insert(segments, { mstart, mend, matched_highlight })
