@@ -327,7 +327,7 @@ function M:load_file(opts)
         -- This both loads the file and adds it to our file path if not there already
         return Promise.new(function(resolve, reject)
             files
-                :add_to_paths(opts.path)
+                :load_file(opts.path, { persist = true })
                 :next(function(file)
                     -- If false, means failed to add the file
                     if not file then
@@ -356,7 +356,7 @@ function M:load_file(opts)
                         -- this is currently not the case.
                         -- So the next line is a workaround to achieve this goal. Some rework at orgmodes
                         -- file-loading is to be expected and when it's done, this line can be removed.
-                        require("orgmode").files:add_to_paths(file.filename)
+                        require("orgmode").files:load_file(file.filename, { persist = true })
                     end
 
                     resolve({
