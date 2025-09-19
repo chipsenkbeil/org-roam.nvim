@@ -116,16 +116,12 @@ function M:load_from_disk(path)
         -- Try to decode the data into Lua and set it as the nodes,
         -- using each potential decoder in turn
         ---@type boolean, table|nil
-        local success, __data = pcall(vim.mpack.decode, data)
-
-        success, __data = pcall(vim.json.decode, data, {
+        local success, __data = pcall(vim.json.decode, data, {
             luanil = { array = true, object = true },
         })
 
         if not success then
-            success, __data = pcall(vim.mpack.decode, data, {
-                luanil = { array = true, object = true },
-            })
+            success, __data = pcall(vim.mpack.decode, data)
         end
 
         if not success or not __data then

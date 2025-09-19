@@ -17,6 +17,7 @@ local schema = require("org-roam.database.schema")
 ---@field path {database:string, files:string[]}
 ---@field __db org-roam.core.Database #cache of loaded database
 ---@field __files OrgFiles #cache of loaded org files
+---@field __load_state nil|OrgPromise<org-roam.core.Database>|true
 local M = {}
 M.__index = M
 
@@ -326,7 +327,7 @@ function M:load_file(opts)
         -- This both loads the file and adds it to our file path if not there already
         return Promise.new(function(resolve, reject)
             files
-                :add_to_paths(opts.path)
+                :load_file(opts.path, { persist = true })
                 :next(function(file)
                     -- If false, means failed to add the file
                     if not file then
@@ -355,7 +356,7 @@ function M:load_file(opts)
                         -- this is currently not the case.
                         -- So the next line is a workaround to achieve this goal. Some rework at orgmodes
                         -- file-loading is to be expected and when it's done, this line can be removed.
-                        require("orgmode").files:add_to_paths(file.filename)
+                        require("orgmode").files:load_file(file.filename, { persist = true })
                     end
 
                     resolve({
@@ -373,46 +374,47 @@ end
 ---Loads database (or retrieves from cache) asynchronously.
 ---@return OrgPromise<org-roam.core.Database>
 function M:database()
-    return self.__db and Promise.resolve(self.__db)
-        or Promise.new(function(resolve)
-            -- Load our database from disk if it is available
-            io.stat(self.path.database)
-                :next(function()
-                    return Database:load_from_disk(self.path.database)
-                        :next(function(db)
-                            schema:update(db)
-                            self.__db = db
-
-                            resolve(db)
-                            return db
-                        end)
-                        :catch(function(err)
-                            log.fmt_error("Failed to load database: %s", err)
-
-                            -- Set up database with a clean slate instead
-                            local db = Database:new()
-                            schema:update(db)
-                            self.__db = db
-
-                            resolve(db)
-                        end)
-                end)
-                :catch(function()
-                    local db = Database:new()
-                    schema:update(db)
-                    self.__db = db
-
-                    return resolve(db)
-                end)
+    local state = self.__load_state
+    if state == nil then
+        local promise = io.stat(self.path.database)
+            :next(function()
+                return Database:load_from_disk(self.path.database)
+                    :next(function(db)
+                        schema:update(db)
+                        self.__db = db
+                        self.__load_state = true
+                        return nil
+                    end)
+                    :catch(function(err)
+                        log.fmt_error("Failed to load database: %s", err)
+                        -- Punt error to the outer `catch` so it can create the database.
+                        error(err)
+                    end)
+            end)
+            :catch(function()
+                local db = Database:new()
+                schema:update(db)
+                self.__db = db
+                self.__load_state = true
+            end)
+        -- Awkward assignment dance to keep the lua_ls type checker happy.
+        state = promise:next(function()
+            return self.__db
         end)
+        self.__load_state = state
+        return state
+    elseif state == true then
+        return Promise.resolve(self.__db)
+    else
+        return state
+    end
 end
 
 ---Loads database (or retrieves from cache) synchronously.
 ---@param opts? {timeout?:integer}
 ---@return org-roam.core.Database
 function M:database_sync(opts)
-    opts = opts or {}
-    return self:database():wait(opts.timeout)
+    return self:database():wait(opts and opts.timeout)
 end
 
 ---Loads org files (or retrieves from cache) asynchronously.
