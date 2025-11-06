@@ -151,7 +151,7 @@ local function load_lines_at_cursor(roam, path, cursor)
 
             -- Calculate a digest and see if its different
             ---@cast file -nil
-            local sha256 = vim.fn.sha256(file.content)
+            local sha256 = vim.fn.sha256(table.concat(file.lines, "\n"))
             local is_new = not CACHE[key] or CACHE[key].sha256 ~= sha256
 
             -- Update our cache

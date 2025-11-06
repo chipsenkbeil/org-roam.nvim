@@ -108,7 +108,7 @@ function M:from_org_file(file)
     end
 
     -- Check if we have a cached value for this file specifically
-    local key = vim.fn.sha256(file.content)
+    local key = vim.fn.sha256(table.concat(file.lines, "\n"))
     if CACHE.files[key] and CACHE.hashes[file.filename] == key then
         return CACHE.files[key]
     end
