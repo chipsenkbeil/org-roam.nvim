@@ -845,6 +845,33 @@
      })
      #+end_src
 
+**** annotation
+
+     Adds an annotation to each display item in the select dialog.
+     The function returns either =nil= (meaning no annotation) or
+     a string that will be shown behind the =label= of the item. The
+     annotation is displayed with the highlight groups =hl-PmenuExtra= and
+     =hl-PmenuExtraSel=. This lets you distinguish it from the node title or
+     alias in question.
+
+     By default, no annotation whatsoever is added.
+
+     #+begin_src lua
+     vim.api.nvim_set_hl(0, 'PmenuExtra', { link = 'Comment' })
+     require("org-roam").setup({
+       ui = {
+         select = {
+           ---@type fun(node:org-roam.core.file.Node):string?
+           annotation = function(node)
+             if next(node.tags) then
+               return '#' .. table.concat(node.tags, ' #')
+             end
+           end,
+         },
+       },
+     })
+     #+end_src
+
 *** node view
 
     Bindings tied specifically to the roam buffer.
