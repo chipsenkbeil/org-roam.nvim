@@ -16,6 +16,7 @@ local Promise = require("orgmode.utils.promise")
 -- Other can read.
 ---@diagnostic disable-next-line:param-type-mismatch
 local DEFAULT_FILE_PERMISSIONS = tonumber(644, 8)
+---@cast DEFAULT_FILE_PERMISSIONS -nil
 
 ---@class org-roam.core.utils.IO
 local M = {}
@@ -181,7 +182,7 @@ end
 ---execute permission of the named file is not required, but all directories
 ---listed in the path name leading to the file must be searchable.
 ---@param path string
----@return OrgPromise<uv.aliases.fs_stat_table>
+---@return OrgPromise<uv.fs_stat.result>
 function M.stat(path)
     return Promise.new(function(resolve, reject)
         uv.fs_stat(path, function(err, stat)

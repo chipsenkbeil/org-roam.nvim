@@ -277,11 +277,11 @@ function M:new(data)
     local instance = vim.deepcopy(DEFAULT_CONFIG)
     setmetatable(instance, M)
 
+    ---@cast instance org-roam.Config
     if data then
         instance:replace(data)
     end
 
-    ---@cast instance org-roam.Config
     return instance
 end
 

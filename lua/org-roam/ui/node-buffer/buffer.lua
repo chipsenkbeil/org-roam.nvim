@@ -102,6 +102,7 @@ local function load_lines_at_cursor(roam, path, cursor)
     ---@param file OrgFile
     ---@return string[]
     local function file_to_lines(file)
+        ---@type TSNode?
         local node = file:get_node_at_cursor(cursor)
         local container_types = {
             "directive",
@@ -121,7 +122,7 @@ local function load_lines_at_cursor(roam, path, cursor)
             local pty = node and node:parent() and node:parent():type() or ""
 
             -- Check if we're actually in a list item and advance up out of paragraph
-            if ty == "paragraph" and pty == "listitem" then
+            if node and ty == "paragraph" and pty == "listitem" then
                 node = node:parent()
             end
         end

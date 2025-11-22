@@ -77,7 +77,7 @@ local function make_buffer(opts)
 
     -- Apply all remaining options passed
     for k, v in pairs(opts) do
-        vim.api.nvim_buf_set_option(bufnr, k, v)
+        vim.api.nvim_set_option_value(k, v, { buf = bufnr })
     end
 
     return bufnr
@@ -228,7 +228,7 @@ end
 
 ---@return boolean
 function M:is_modifiable()
-    return vim.api.nvim_buf_get_option(self.__bufnr, "modifiable") == true
+    return vim.api.nvim_get_option_value("modifiable", { buf = self.__bufnr }) == true
 end
 
 ---Set buffer to paused rendering state, canceling any scheduled render.
@@ -342,7 +342,7 @@ function M:__apply_lines(ui_lines, force)
 
     local modifiable = self:is_modifiable()
     if force then
-        vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+        vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
     end
 
     -- Check if the buffer is empty
@@ -457,7 +457,10 @@ function M:__apply_lines(ui_lines, force)
 
     -- Apply all highlights
     for _, hl in ipairs(highlights) do
-        vim.api.nvim_buf_add_highlight(self.__bufnr, self.__namespace, hl.group, hl.line, hl.cstart, hl.cend)
+        vim.api.nvim_buf_set_extmark(self.__bufnr, self.__namespace, hl.line, hl.cstart, {
+            hl_group = hl.group,
+            end_col = hl.cend,
+        })
     end
 
     -- Extract out global lazy functions so we don't call them
@@ -552,7 +555,7 @@ function M:__apply_lines(ui_lines, force)
     end
 
     if force then
-        vim.api.nvim_buf_set_option(bufnr, "modifiable", modifiable)
+        vim.api.nvim_set_option_value("modifiable", modifiable, { buf = bufnr })
     end
 end
 
@@ -566,7 +569,7 @@ function M:__clear(opts)
 
     local modifiable = self:is_modifiable()
     if force then
-        vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", true)
+        vim.api.nvim_set_option_value("modifiable", true, { buf = self.__bufnr })
     end
 
     -- Clear highlights and contents of the buffer
@@ -579,7 +582,7 @@ function M:__clear(opts)
     --       I tried to add a check earlier to see if the buffer was loaded,
     --       but it didn't do anything to help. So for now we're ignoring
     --       this as this seems to happen in the test only and does not stop
-    --       the test from completing successfull.
+    --       the test from completing successfully.
     vim.api.nvim_buf_clear_namespace(self.__bufnr, self.__namespace, self.__offset, -1)
 
     -- NOTE: This fails with "E315: ml_get: invalid lnum: 2" in our CI (sometimes); so,
@@ -589,7 +592,7 @@ function M:__clear(opts)
     local ok = pcall(vim.api.nvim_buf_set_lines, self.__bufnr, self.__offset, -1, true, {})
 
     if force then
-        vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", modifiable)
+        vim.api.nvim_set_option_value("modifiable", modifiable, { buf = self.__bufnr })
     end
 
     return ok

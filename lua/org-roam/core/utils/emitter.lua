@@ -30,7 +30,7 @@ local function call_handler(event, handler, ...)
     if not ok then
         vim.schedule(function()
             log.fmt_warn("org-roam.core.utils.Emitter handler failed for event %s with error %s", event, err)
-            vim.api.nvim_err_writeln(err)
+            vim.api.nvim_echo({ { err } }, true, { err = true })
         end)
     end
 end

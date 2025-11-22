@@ -147,7 +147,7 @@ function M:open()
 
     -- Configure the window with our options
     for k, v in pairs(self.__winopts) do
-        vim.api.nvim_win_set_option(self.__win, k, v)
+        vim.api.nvim_set_option_value(k, v, { win = self.__win })
     end
 
     -- Configure an autocommand to trigger when the window closes

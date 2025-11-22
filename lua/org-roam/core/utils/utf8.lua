@@ -357,6 +357,12 @@ local shift_12 = 2 ^ 12
 local shift_18 = 2 ^ 18
 
 local utf8unicode
+
+---@param str string
+---@param i number|nil
+---@param j number|nil
+---@param byte_pos number|nil
+---@return number|nil, number|nil
 utf8unicode = function(str, i, j, byte_pos)
     i = i or 1
     j = j or i

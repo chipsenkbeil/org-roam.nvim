@@ -114,7 +114,7 @@ local function make_daily_buffer(roam, date, title)
     vim.api.nvim_buf_set_name(buf, vim.fs.joinpath(roam_dailies_dir(roam), date_string(date) .. ".org"))
 
     -- Set filetype to org
-    vim.api.nvim_buf_set_option(buf, "filetype", "org")
+    vim.api.nvim_set_option_value("filetype", "org", { buf = buf })
 
     -- Populate the buffer
     vim.api.nvim_buf_set_lines(buf, 0, -1, true, {
@@ -188,14 +188,10 @@ local function make_render_on_day(roam)
     ---@param opts OrgCalendarOnRenderDayOpts
     return function(day, opts)
         if dates[key(day)] then
-            vim.api.nvim_buf_add_highlight(
-                opts.buf,
-                opts.namespace,
-                roam.config.extensions.dailies.ui.calendar.hl_date_exists,
-                opts.line - 1,
-                opts.from - 1,
-                opts.to
-            )
+            vim.api.nvim_buf_set_extmark(opts.buf, opts.namespace, opts.line - 1, opts.from - 1, {
+                hl_group = roam.config.extensions.dailies.ui.calendar.hl_date_exists,
+                end_col = opts.to, -- zero-based exclusive
+            })
         end
     end
 end
