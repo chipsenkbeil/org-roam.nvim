@@ -5,7 +5,6 @@ local Promise = require("orgmode.utils.promise")
 
 local io = require("org-roam.core.utils.io")
 local Node = require("org-roam.core.file.node")
-local path = require("org-roam.core.utils.path")
 local tbl_utils = require("org-roam.core.utils.table")
 local Range = require("org-roam.core.file.range")
 local Select = require("org-roam.core.ui.select")
@@ -13,7 +12,7 @@ local uuid_v4 = require("org-roam.core.utils.random").uuid_v4
 
 local ORG_FILES_DIR = (function()
     local str = debug.getinfo(2, "S").source:sub(2)
-    return path.join(vim.fs.dirname(str:match("(.*/)")), "files")
+    return vim.fs.joinpath(vim.fs.dirname(str:match("(.*/)")), "files")
 end)()
 
 local AUGROUP_NAME = "org-roam.nvim"
@@ -183,7 +182,7 @@ function M.make_temp_org_files_directory()
             assert(not err, err)
 
             ---@cast data -nil
-            err = io.write_file_sync(path.join(root_dir, entry.name), data)
+            err = io.write_file_sync(vim.fs.joinpath(root_dir, entry.name), data)
             assert(not err, err)
         end
     end
@@ -205,7 +204,7 @@ function M.make_temp_filename(opts)
     opts = opts or {}
     local filename = uuid_v4()
     if opts.dir then
-        filename = M.join_path(opts.dir, filename)
+        filename = vim.fs.joinpath(opts.dir, filename)
     end
     if opts.ext then
         filename = filename .. "." .. opts.ext
@@ -218,16 +217,10 @@ function M.random_id()
     return uuid_v4()
 end
 
----@param ... string
----@return string
-function M.join_path(...)
-    return path.join(...)
-end
-
 ---@param path string
 ---@param ... string|string[]
 function M.write_to(path, ...)
-    local lines = tbl_utils.flatten({ ... })
+    local lines = vim.iter({ ... }):flatten():totable()
     local content = table.concat(lines, "\n")
 
     local err = io.write_file_sync(path, content)
@@ -237,7 +230,7 @@ end
 ---@param path string
 ---@param ... string|string[]
 function M.append_to(path, ...)
-    local lines = tbl_utils.flatten({ ... })
+    local lines = vim.iter({ ... }):flatten():totable()
     local content = table.concat(lines, "\n")
 
     local err, data = io.read_file_sync(path)
@@ -406,7 +399,7 @@ function M.init_plugin(opts)
         local config = {
             directory = test_dir,
             database = {
-                path = M.join_path(test_dir, "db"),
+                path = vim.fs.joinpath(test_dir, "db"),
             },
         }
         if type(opts.setup) == "table" then

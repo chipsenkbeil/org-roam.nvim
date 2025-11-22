@@ -5,9 +5,6 @@
 -- Taken from nvim-window-picker (https://github.com/s1n7ax/nvim-window-picker).
 -------------------------------------------------------------------------------
 
-local font = require("org-roam.core.ui.window-picker.font")
-local utf8 = require("org-roam.core.utils.utf8")
-
 local BORDER = {
     { "╭", "FloatBorder" },
     { "─", "FloatBorder" },
@@ -66,6 +63,7 @@ function M.__add_big_char_margin(lines)
     ---@type string[]
     local centered_lines = {}
 
+    local utf8 = require("org-roam.core.utils.utf8")
     for _, line in ipairs(lines) do
         local len = utf8.len(line)
         if max_text_width < len then
@@ -95,8 +93,8 @@ end
 ---@return integer
 function M:__show_letter_in_window(window, char)
     local point = self:__get_float_win_pos(window)
-
     local lines = self.__add_big_char_margin(vim.split(char, "\n"))
+    local utf8 = require("org-roam.core.utils.utf8")
 
     local width = 0
     for _, line in ipairs(lines) do
@@ -144,6 +142,7 @@ function M:draw(windows)
         }, " ")
     )
 
+    local font = require("org-roam.core.ui.window-picker.font")
     for i, window in ipairs(valid_windows) do
         local char = string.sub(self.config.chars, i, i)
         local big_char = assert(font[char:lower()], "font missing for " .. char:lower())

@@ -13,7 +13,7 @@ describe("org-roam.extensions.dailies", function()
             date = os.date("%Y-%m-%d", date.timestamp)
         end
 
-        local path = utils.join_path(roam.config.directory, roam.config.extensions.dailies.directory, date .. ".org")
+        local path = vim.fs.joinpath(roam.config.directory, roam.config.extensions.dailies.directory, date .. ".org")
 
         utils.write_to(path, ...)
 

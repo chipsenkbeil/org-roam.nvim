@@ -7,8 +7,6 @@
 local io = require("org-roam.core.utils.io")
 local log = require("org-roam.core.log")
 local notify = require("org-roam.core.ui.notify")
-local path_utils = require("org-roam.core.utils.path")
-local tbl_utils = require("org-roam.core.utils.table")
 local Promise = require("orgmode.utils.promise")
 local random = require("org-roam.core.utils.random")
 local utils = require("org-roam.utils")
@@ -22,7 +20,7 @@ local function make_expansions(roam)
             return roam.config.directory
         end,
         ["%R"] = function()
-            return roam.utils.normalize(vim.fn.resolve(roam.config.directory))
+            return vim.fs.normalize(vim.fn.resolve(roam.config.directory))
         end,
     }
 end
@@ -51,7 +49,7 @@ end
 ---@param ... string|string[]
 local function string_contains_one_of(s, ...)
     ---@type string[]
-    local candidates = tbl_utils.flatten({ ... })
+    local candidates = vim.iter({ ... }):flatten():totable()
     for _, c in ipairs(candidates) do
         if string.match(s, vim.pesc(c)) then
             return true
@@ -99,10 +97,16 @@ local function make_target_expander(roam, file, opts)
         return title
     end
 
+    ---@return string
+    local function get_separator()
+        local ISWIN = vim.uv.os_uname().sysname == "Windows_NT"
+        return ISWIN and "\\" or "/"
+    end
+
     local expansions = {
         [TARGET_EXPANSION_KEYS.TITLE] = get_title,
         [TARGET_EXPANSION_KEYS.SEP] = function()
-            sep = sep or path_utils.separator()
+            sep = sep or get_separator()
             return sep
         end,
         [TARGET_EXPANSION_KEYS.SLUG] = function()
@@ -114,7 +118,7 @@ local function make_target_expander(roam, file, opts)
     return function(target)
         -- Resolve target-specific expansions and ensure that
         -- the target is relative to our roam directory
-        return path_utils.join(roam.config.directory, fill_expansions(roam, target, expansions))
+        return vim.fs.joinpath(roam.config.directory, fill_expansions(roam, target, expansions))
     end
 end
 
@@ -131,7 +135,7 @@ local function build_template(roam, template_opts, opts)
     -- Resolve our general expansions in the target
     -- and update the target to be relative to our roam directory
     if template.target then
-        template.target = path_utils.join(roam.config.directory, fill_expansions(roam, template.target))
+        template.target = vim.fs.joinpath(roam.config.directory, fill_expansions(roam, template.target))
     end
 
     -- Always include the entire capture contents, not just

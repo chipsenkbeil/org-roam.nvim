@@ -47,7 +47,7 @@ describe("org-roam.setup.commands", function()
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -57,7 +57,7 @@ describe("org-roam.setup.commands", function()
 
         -- Create a new file not loaded by the plugin yet
         utils.write_to(
-            utils.join_path(directory, "one.org"),
+            vim.fs.joinpath(directory, "one.org"),
             utils.indent([=[
         :PROPERTIES:
         :ID: roam-update-node
@@ -80,7 +80,7 @@ describe("org-roam.setup.commands", function()
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -90,7 +90,7 @@ describe("org-roam.setup.commands", function()
 
         -- Create a new file not loaded by the plugin yet
         utils.write_to(
-            utils.join_path(directory, "test.org"),
+            vim.fs.joinpath(directory, "test.org"),
             utils.indent([=[
         :PROPERTIES:
         :ID: roam-update-node
@@ -113,7 +113,7 @@ describe("org-roam.setup.commands", function()
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -123,7 +123,7 @@ describe("org-roam.setup.commands", function()
 
         -- Create a new file not loaded by the plugin yet
         utils.write_to(
-            utils.join_path(directory, "test.org"),
+            vim.fs.joinpath(directory, "test.org"),
             utils.indent([=[
         :PROPERTIES:
         :ID: roam-update-node
@@ -153,12 +153,12 @@ describe("org-roam.setup.commands", function()
 
     it("RoamAddAlias should support adding an alias to the node", function()
         local directory = utils.make_temp_org_files_directory()
-        local test_path = utils.join_path(directory, "one.org")
+        local test_path = vim.fs.joinpath(directory, "one.org")
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -196,12 +196,12 @@ describe("org-roam.setup.commands", function()
 
     it("RoamRemoveAlias should support removing an alias from the node", function()
         local directory = utils.make_temp_org_files_directory()
-        local test_path = utils.join_path(directory, "one.org")
+        local test_path = vim.fs.joinpath(directory, "one.org")
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -238,12 +238,12 @@ describe("org-roam.setup.commands", function()
 
     it("RoamAddOrigin should support setting the origin for the node", function()
         local directory = utils.make_temp_org_files_directory()
-        local test_path = utils.join_path(directory, "one.org")
+        local test_path = vim.fs.joinpath(directory, "one.org")
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -282,12 +282,12 @@ describe("org-roam.setup.commands", function()
 
     it("RoamRemoveOrigin should support removing the origin for the node", function()
         local directory = utils.make_temp_org_files_directory()
-        local test_path = utils.join_path(directory, "two.org")
+        local test_path = vim.fs.joinpath(directory, "two.org")
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })

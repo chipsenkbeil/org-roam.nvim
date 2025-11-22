@@ -7,7 +7,6 @@
 
 local C = require("org-roam.core.ui.component")
 local Emitter = require("org-roam.core.utils.emitter")
-local tbl_utils = require("org-roam.core.utils.table")
 local Window = require("org-roam.core.ui.window")
 
 ---Collection of events that can be fired.
@@ -553,7 +552,8 @@ function M:__select_move_down()
     self.__view.start = start
 
     -- Notify of a selection change
-    local item = self.__params.items[tbl_utils.get(self.__view.filtered_items, idx, 1)]
+    local items_idx = self.__view.filtered_items[idx] ~= nil and self.__view.filtered_items[idx][1]
+    local item = self.__params.items[items_idx]
     self.__state.emitter:emit(EVENTS.SELECT_CHANGE, item, idx)
 
     -- Schedule an update of the view
@@ -590,7 +590,8 @@ function M:__select_move_up()
     self.__view.start = start
 
     -- Notify of a selection change
-    local item = self.__params.items[tbl_utils.get(self.__view.filtered_items, idx, 1)]
+    local items_idx = self.__view.filtered_items[idx] ~= nil and self.__view.filtered_items[idx][1]
+    local item = self.__params.items[items_idx]
     self.__state.emitter:emit(EVENTS.SELECT_CHANGE, item, idx)
 
     -- Schedule an update of the view

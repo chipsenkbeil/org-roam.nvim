@@ -15,8 +15,8 @@ describe("org-roam.ui.node-buffer", function()
                 directory = utils.make_temp_org_files_directory(),
             },
         })
-        test_path_one = utils.join_path(roam.config.directory, "one.org")
-        test_path_two = utils.join_path(roam.config.directory, "two.org")
+        test_path_one = vim.fs.joinpath(roam.config.directory, "one.org")
+        test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
     end)
 
     after_each(function()

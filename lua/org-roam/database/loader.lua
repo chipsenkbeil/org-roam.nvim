@@ -7,7 +7,6 @@
 local Database = require("org-roam.core.database")
 local File = require("org-roam.core.file")
 local io = require("org-roam.core.utils.io")
-local join_path = require("org-roam.core.utils.path").join
 local log = require("org-roam.core.log")
 local OrgFiles = require("orgmode.files")
 local Promise = require("orgmode.utils.promise")
@@ -40,7 +39,7 @@ function M:new(opts)
         local ext = vim.fn.fnamemodify(file, ":e")
         local is_org = ext == "org" or ext == "org_archive"
         if not is_org then
-            instance.path.files[i] = join_path(file, "**", "*")
+            instance.path.files[i] = vim.fs.joinpath(file, "**", "*")
         end
     end
 

@@ -14,7 +14,7 @@ describe("org-roam.api.node", function()
             },
         })
 
-        one_path = utils.join_path(roam.config.directory, "one.org")
+        one_path = vim.fs.joinpath(roam.config.directory, "one.org")
     end)
 
     after_each(function()
@@ -248,7 +248,7 @@ describe("org-roam.api.node", function()
 
     it("should insert link to existing node using alias if alias selected", function()
         -- Create a node with a distinct alias
-        local test_path = utils.join_path(roam.config.directory, "test-file.org")
+        local test_path = vim.fs.joinpath(roam.config.directory, "test-file.org")
         utils.write_to(test_path, {
             ":PROPERTIES:",
             ":ID: test-node-id",

@@ -11,12 +11,12 @@ describe("org-roam.database", function()
 
     before_each(function()
         local test_dir = utils.make_temp_org_files_directory()
-        one_path = utils.join_path(test_dir, "one.org")
-        two_path = utils.join_path(test_dir, "two.org")
-        three_path = utils.join_path(test_dir, "three.org")
+        one_path = vim.fs.joinpath(test_dir, "one.org")
+        two_path = vim.fs.joinpath(test_dir, "two.org")
+        three_path = vim.fs.joinpath(test_dir, "three.org")
 
         db = Database:new({
-            db_path = utils.join_path(test_dir, "db"),
+            db_path = vim.fs.joinpath(test_dir, "db"),
             directory = test_dir,
             org_files = {},
         })

@@ -18,7 +18,7 @@ describe("org-roam.api.origin", function()
             dir = roam.config.directory,
             ext = "org",
         })
-        one_path = utils.join_path(roam.config.directory, "one.org")
+        one_path = vim.fs.joinpath(roam.config.directory, "one.org")
     end)
 
     after_each(function()

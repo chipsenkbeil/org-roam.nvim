@@ -4,11 +4,9 @@
 -- Contains global config logic used by the plugin.
 -------------------------------------------------------------------------------
 
-local path = require("org-roam.core.utils.path")
-
 ---Base path for our plugin.
 ---@type string
-local BASE_PATH = path.join(vim.fn.stdpath("data"), "org-roam.nvim")
+local BASE_PATH = vim.fs.joinpath(vim.fn.stdpath("data"), "org-roam.nvim")
 
 ---@class org-roam.config.Data
 local DEFAULT_CONFIG = {
@@ -82,7 +80,7 @@ local DEFAULT_CONFIG = {
         ---Path where the database will be stored & loaded when
         ---persisting to disk.
         ---@type string
-        path = path.join(BASE_PATH, "db"),
+        path = vim.fs.joinpath(BASE_PATH, "db"),
 
         ---If true, the database will be written to disk to save on
         ---future loading times; otherwise, whenever neovim boots the

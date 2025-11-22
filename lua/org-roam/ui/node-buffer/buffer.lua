@@ -9,7 +9,6 @@ local C = require("org-roam.core.ui.component")
 local Emitter = require("org-roam.core.utils.emitter")
 local highlighter = require("org-roam.core.ui.highlighter")
 local notify = require("org-roam.core.ui.notify")
-local tbl_utils = require("org-roam.core.utils.table")
 local WindowPicker = require("org-roam.core.ui.window-picker")
 
 local EVENTS = {
@@ -294,7 +293,11 @@ local function render(roam, this, node, details)
 
                         -- Get the expanded state of the first link to use for everything
                         if is_expanded == nil then
-                            is_expanded = tbl_utils.get(state.expanded, backlink_node.id, row, col) or false
+                            is_expanded = (
+                                state.expanded[backlink_node.id]
+                                and state.expanded[backlink_node.id][row]
+                                and state.expanded[backlink_node.id][row][col]
+                            ) or false
                         end
 
                         if not state.expanded[backlink_node.id] then
@@ -334,7 +337,11 @@ local function render(roam, this, node, details)
                     backlink_links_cnt = backlink_links_cnt + 1
 
                     ---@type boolean
-                    local is_expanded = tbl_utils.get(state.expanded, backlink_node.id, row - 1, col - 1) or false
+                    local is_expanded = (
+                        state.expanded[backlink_node.id]
+                        and state.expanded[backlink_node.id][row - 1]
+                        and state.expanded[backlink_node.id][row - 1][col - 1]
+                    ) or false
 
                     local function do_expand()
                         if not state.expanded then

@@ -12,7 +12,7 @@ describe("org-roam.setup.autocmds", function()
 
     it("should enable updating the database on write if configured", function()
         local directory = utils.make_temp_org_files_directory()
-        local test_path = utils.join_path(directory, "one.org")
+        local test_path = vim.fs.joinpath(directory, "one.org")
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
@@ -47,7 +47,7 @@ describe("org-roam.setup.autocmds", function()
 
     it("should not enable updating the database on write if configured", function()
         local directory = utils.make_temp_org_files_directory()
-        local test_path = utils.join_path(directory, "one.org")
+        local test_path = vim.fs.joinpath(directory, "one.org")
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({

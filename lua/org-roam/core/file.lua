@@ -9,7 +9,6 @@ local Link = require("org-roam.core.file.link")
 local Node = require("org-roam.core.file.node")
 local Range = require("org-roam.core.file.range")
 local utils = require("org-roam.core.file.utils")
-local flatten = require("org-roam.core.utils.table").flatten
 
 -- Cannot serialie `math.huge`. Potentially could use `vim.v.numbermax`, but
 -- this is a safer and more reliable guarantee of maximum size.
@@ -57,7 +56,7 @@ end
 ---@param ... string|string[]
 ---@return org-roam.core.file.Node[]
 function M:get_nodes(...)
-    local ids = flatten({ ... })
+    local ids = vim.iter({ ... }):flatten():totable()
     local nodes = {}
 
     for _, id in ipairs(ids) do

@@ -7,7 +7,6 @@
 local Emitter = require("org-roam.core.utils.emitter")
 local notify = require("org-roam.core.ui.notify")
 local random = require("org-roam.core.utils.random")
-local tbl_utils = require("org-roam.core.utils.table")
 local ui_utils = require("org-roam.core.utils.ui")
 local Component = require("org-roam.core.ui.component")
 
@@ -534,12 +533,14 @@ function M:__apply_lines(ui_lines, force)
                 local lhs = kb.lhs
 
                 -- Trigger all callbacks for the line
-                for _, cb in ipairs(tbl_utils.get(self.__keybindings.callbacks, line, lhs) or {}) do
+                local line_cbs = (self.__keybindings.callbacks[line] and self.__keybindings.callbacks[line][lhs]) or {}
+                for _, cb in ipairs(line_cbs) do
                     vim.schedule(cb)
                 end
 
                 -- Trigger all global callbacks (line == -1)
-                for _, cb in ipairs(tbl_utils.get(self.__keybindings.callbacks, -1, lhs) or {}) do
+                local global_cbs = (self.__keybindings.callbacks[-1] and self.__keybindings.callbacks[-1][lhs]) or {}
+                for _, cb in ipairs(global_cbs) do
                     vim.schedule(cb)
                 end
             end, {

@@ -335,7 +335,4 @@ function M.get_visual_selection(opts)
     return lines, ranges
 end
 
-M.join = require("org-roam.core.utils.path").join
-M.normalize = require("org-roam.core.utils.path").normalize
-
 return M

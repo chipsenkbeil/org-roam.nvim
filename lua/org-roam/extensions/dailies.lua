@@ -7,7 +7,6 @@
 -------------------------------------------------------------------------------
 
 local io = require("org-roam.core.utils.io")
-local join_path = require("org-roam.core.utils.path").join
 local notify = require("org-roam.core.ui.notify")
 local random = require("org-roam.core.utils.random")
 
@@ -19,7 +18,7 @@ local Promise = require("orgmode.utils.promise")
 ---@param roam OrgRoam
 ---@return string
 local function roam_dailies_dir(roam)
-    return vim.fs.normalize(join_path(roam.config.directory, roam.config.extensions.dailies.directory))
+    return vim.fs.normalize(vim.fs.joinpath(roam.config.directory, roam.config.extensions.dailies.directory))
 end
 
 ---Converts date to YYYY-MM-DD format.
@@ -37,7 +36,7 @@ end
 local function date_to_path(roam, date)
     -- Should produce YYYY-MM-DD.org
     local filename = date_string(date) .. ".org"
-    return join_path(roam_dailies_dir(roam), filename)
+    return vim.fs.joinpath(roam_dailies_dir(roam), filename)
 end
 
 ---Converts a path into a date.
@@ -112,7 +111,7 @@ local function make_daily_buffer(roam, date, title)
     assert(buf ~= 0, "failed to create daily buffer")
 
     -- Update the filename of the buffer to be `path/to/{DATE}.org`
-    vim.api.nvim_buf_set_name(buf, join_path(roam_dailies_dir(roam), date_string(date) .. ".org"))
+    vim.api.nvim_buf_set_name(buf, vim.fs.joinpath(roam_dailies_dir(roam), date_string(date) .. ".org"))
 
     -- Set filetype to org
     vim.api.nvim_buf_set_option(buf, "filetype", "org")
@@ -156,7 +155,7 @@ local function make_dailies_templates(roam, date)
         -- and be populated with the specified date
         local target = tmpl.target
         if target then
-            tmpl.target = join_path(roam.config.extensions.dailies.directory, format_date(target))
+            tmpl.target = vim.fs.joinpath(roam.config.extensions.dailies.directory, format_date(target))
         end
 
         local template = tmpl.template

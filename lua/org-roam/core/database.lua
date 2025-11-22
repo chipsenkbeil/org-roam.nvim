@@ -4,12 +4,10 @@
 -- Core database to keep track of org-roam nodes.
 -------------------------------------------------------------------------------
 
-local async = require("org-roam.core.utils.async")
 local Iterator = require("org-roam.core.utils.iterator")
 local io = require("org-roam.core.utils.io")
 local Queue = require("org-roam.core.utils.queue")
 local random = require("org-roam.core.utils.random")
-local tbl_utils = require("org-roam.core.utils.table")
 
 local Promise = require("orgmode.utils.promise")
 
@@ -317,7 +315,7 @@ function M:get_many(...)
     local nodes = {}
 
     ---@type string[]
-    local ids = tbl_utils.flatten({ ... })
+    local ids = vim.iter({ ... }):flatten():totable()
 
     for _, id in ipairs(ids) do
         nodes[id] = self:get(id)
@@ -558,7 +556,7 @@ function M:link(id, ...)
     local outbound = self.__outbound[id] or {}
 
     ---@type org-roam.core.database.Id[]
-    local ids = tbl_utils.flatten({ ... })
+    local ids = vim.iter({ ... }):flatten():totable()
 
     -- Ensure the new nodes are cached as an outbound edges
     for _, node in ipairs(ids) do
@@ -587,7 +585,7 @@ function M:unlink(id, ...)
 
     -- Build the list of nodes we will be removing from the edges list
     ---@type org-roam.core.database.Id[]
-    local nodes = tbl_utils.flatten({ ... })
+    local nodes = vim.iter({ ... }):flatten():totable()
     if #nodes == 0 then
         nodes = vim.tbl_keys(outbound)
     end
@@ -650,6 +648,8 @@ function M:iter_nodes(opts)
     local count = 0
 
     return Iterator:new(function()
+        local tbl_utils = require("org-roam.core.utils.table")
+
         -- NOTE: While we have a loop, this should only run until
         --       we get a node id and distance to return as the
         --       next iterator value, or the queue becomes empty.

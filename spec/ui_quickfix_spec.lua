@@ -13,7 +13,7 @@ describe("org-roam.ui.quickfix", function()
                 directory = utils.make_temp_org_files_directory(),
             },
         })
-        test_path_two = utils.join_path(roam.config.directory, "two.org")
+        test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
     end)
 
     after_each(function()

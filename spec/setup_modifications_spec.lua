@@ -15,7 +15,7 @@ describe("org-roam.setup.modifications", function()
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })

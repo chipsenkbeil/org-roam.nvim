@@ -7,7 +7,6 @@
 local uv = vim.uv or vim.loop
 
 local Iterator = require("org-roam.core.utils.iterator")
-local path_utils = require("org-roam.core.utils.path")
 
 local Promise = require("orgmode.utils.promise")
 
@@ -160,11 +159,11 @@ end
 ---listed in the path name leading to the file must be searchable.
 ---@param path string
 ---@param opts? {timeout?:integer}
----@return string|nil err, uv.aliases.fs_stat_table|nil stat
+---@return string|nil err, uv.fs_stat.result|nil stat
 function M.stat_sync(path, opts)
     opts = opts or {}
 
-    ---@type boolean, string|uv.aliases.fs_stat_table
+    ---@type boolean, string|uv.fs_stat.result
     local ok, data = pcall(function()
         return M.stat(path):wait(opts.timeout)
     end)
@@ -275,13 +274,13 @@ function M.walk(path, opts)
     ---@return org-roam.core.utils.io.WalkEntry?
     local function map_entry(name, type)
         if name and type then
-            local entry_path = path_utils.join(path, name)
+            local entry_path = vim.fs.joinpath(path, name)
 
             if opts.resolve then
                 entry_path = vim.fn.resolve(entry_path)
             end
 
-            entry_path = path_utils.normalize(entry_path, { expand_env = true })
+            entry_path = vim.fs.normalize(entry_path, { expand_env = true })
 
             return {
                 name = name,
