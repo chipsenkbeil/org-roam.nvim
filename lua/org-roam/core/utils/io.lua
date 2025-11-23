@@ -21,23 +21,6 @@ local DEFAULT_FILE_PERMISSIONS = tonumber(644, 8)
 ---@class org-roam.core.utils.IO
 local M = {}
 
----Write some data synchronously to disk, creating the file or overwriting
----if it exists.
----@param path string
----@param data string|string[]
----@param opts? {timeout?:integer}
----@return string|nil err
-function M.write_file_sync(path, data, opts)
-    opts = opts or {}
-
-    ---@type boolean, string|nil
-    local _, err = pcall(function()
-        M.write_file(path, data):wait(opts.timeout)
-    end)
-
-    return err
-end
-
 ---Write some data asynchronously to disk, creating the file or overwriting
 ---if it exists.
 ---@param path string
@@ -95,21 +78,6 @@ function M.write_file(path, data)
     end)
 end
 
----Reads data synchronously to disk.
----@param path string
----@param opts? {timeout?:integer}
----@return string|nil err, string|nil data
-function M.read_file_sync(path, opts)
-    opts = opts or {}
-
-    ---@type boolean, string
-    local ok, data = pcall(function()
-        return M.read_file(path):wait(opts.timeout)
-    end)
-
-    return not ok and data or nil, ok and data or nil
-end
-
 ---Read some data asynchronously from disk.
 ---@param path string
 ---@return OrgPromise<string>
@@ -159,29 +127,6 @@ end
 ---execute permission of the named file is not required, but all directories
 ---listed in the path name leading to the file must be searchable.
 ---@param path string
----@param opts? {timeout?:integer}
----@return string|nil err, uv.fs_stat.result|nil stat
-function M.stat_sync(path, opts)
-    opts = opts or {}
-
-    ---@type boolean, string|uv.fs_stat.result
-    local ok, data = pcall(function()
-        return M.stat(path):wait(opts.timeout)
-    end)
-
-    if ok then
-        ---@cast data -string
-        return nil, data
-    else
-        ---@cast data string
-        return data, nil
-    end
-end
-
----Obtains information about the file pointed to by `path`. Read, write, or
----execute permission of the named file is not required, but all directories
----listed in the path name leading to the file must be searchable.
----@param path string
 ---@return OrgPromise<uv.fs_stat.result>
 function M.stat(path)
     return Promise.new(function(resolve, reject)
@@ -197,27 +142,6 @@ function M.stat(path)
             end)
         end)
     end)
-end
-
----Removes the file specified by `path`.
----@param path string
----@param opts? {timeout?:integer}
----@return string|nil err, boolean|nil success
-function M.unlink_sync(path, opts)
-    opts = opts or {}
-
-    ---@type boolean, string|boolean
-    local ok, data = pcall(function()
-        return M.unlink(path):wait(opts.timeout)
-    end)
-
-    if ok then
-        ---@cast data -string
-        return nil, data
-    else
-        ---@cast data string
-        return data, nil
-    end
 end
 
 ---Removes the file specified by `path`.

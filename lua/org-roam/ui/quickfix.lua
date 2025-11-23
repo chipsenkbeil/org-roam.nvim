@@ -55,8 +55,10 @@ local function roam_get_backlinks_as_quickfix_items(roam, id, opts)
             -- file tied to the node exactly once
             local lines = {}
             if opts.show_preview then
-                local _, data = io.read_file_sync(node.file)
-                if data then
+                ---@type boolean, string|nil
+                local ok, data = io.read_file(node.file):wait()
+
+                if ok and data then
                     lines = vim.split(data, "\n", { plain = true })
                 end
             end
