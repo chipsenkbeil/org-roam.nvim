@@ -126,10 +126,9 @@ function M.org_file(content, opts)
         M.write_to(filename, content)
     end
 
-    ---@type OrgFile
     local file = OrgFile:new({
         filename = filename,
-        buf = -1,
+        buf = nil, ---@diagnostic disable-line:assign-type-mismatch
     })
     file.lines = lines
     file:parse()
