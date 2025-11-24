@@ -50,22 +50,6 @@ describe("org-roam.core.utils.io", function()
         return path
     end
 
-    describe("read_file_sync", function()
-        it("should fail if file does not exist", function()
-            local path = vim.fn.tempname()
-            local err, data = utils_io.read_file_sync(path)
-            assert.is_not_nil(err)
-            assert.is_nil(data)
-        end)
-
-        it("should read full file's data", function()
-            local path = create_temp_file("hello world")
-            local err, data = utils_io.read_file_sync(path)
-            assert.is_nil(err)
-            assert.are.equal("hello world", data)
-        end)
-    end)
-
     describe("write_file", function()
         it("should fail if file does not exist", function()
             local error, data
@@ -120,28 +104,6 @@ describe("org-roam.core.utils.io", function()
         end)
     end)
 
-    describe("write_file_sync", function()
-        it("should create a file if none exists", function()
-            local path = vim.fn.tempname()
-
-            local err = utils_io.write_file_sync(path, "hello world")
-            assert.is_nil(err)
-
-            local data = read_temp_file(path)
-            assert.are.equal("hello world", data)
-        end)
-
-        it("should overwrite a file if it exists", function()
-            local path = create_temp_file("test")
-
-            local err = utils_io.write_file_sync(path, "hello world")
-            assert.is_nil(err)
-
-            local data = read_temp_file(path)
-            assert.are.equal("hello world", data)
-        end)
-    end)
-
     describe("write_file", function()
         it("should create a file if none exists", function()
             local error
@@ -190,27 +152,6 @@ describe("org-roam.core.utils.io", function()
 
             assert.is_nil(error)
             assert.are.equal("hello world", data)
-        end)
-    end)
-
-    describe("stat_sync", function()
-        it("should fail if path does not exist", function()
-            local path = vim.fn.tempname()
-            local err, stat = utils_io.stat_sync(path)
-            assert.is_not_nil(err)
-            assert.is_nil(stat)
-        end)
-
-        it("should retrieve information about the file at path", function()
-            local path = create_temp_file("test")
-            local err, stat = utils_io.stat_sync(path)
-            assert.is_nil(err)
-            assert.is_not_nil(stat) ---@cast stat -nil
-
-            -- Check something we can verify indicates it works as expected,
-            -- which in this case is validating the modification time
-            local expected = vim.fn.getftime(path)
-            assert.are.equal(expected, stat.mtime.sec)
         end)
     end)
 

@@ -129,8 +129,9 @@ function M.org_file(content, opts)
     ---@type OrgFile
     local file = OrgFile:new({
         filename = filename,
-        lines = lines,
+        buf = -1,
     })
+    file.lines = lines
     file:parse()
 
     return file
@@ -178,12 +179,8 @@ function M.make_temp_org_files_directory()
     for entry in io.walk(ORG_FILES_DIR, { depth = math.huge }) do
         ---@cast entry org-roam.core.utils.io.WalkEntry
         if entry.type == "file" then
-            local err, data = io.read_file_sync(entry.path)
-            assert(not err, err)
-
-            ---@cast data -nil
-            err = io.write_file_sync(vim.fs.joinpath(root_dir, entry.name), data)
-            assert(not err, err)
+            local data = io.read_file(entry.path):wait()
+            io.write_file(vim.fs.joinpath(root_dir, entry.name), data):wait()
         end
     end
 
@@ -223,8 +220,7 @@ function M.write_to(path, ...)
     local lines = vim.iter({ ... }):flatten():totable()
     local content = table.concat(lines, "\n")
 
-    local err = io.write_file_sync(path, content)
-    assert(not err, err)
+    io.write_file(path, content):wait()
 end
 
 ---@param path string
@@ -233,21 +229,14 @@ function M.append_to(path, ...)
     local lines = vim.iter({ ... }):flatten():totable()
     local content = table.concat(lines, "\n")
 
-    local err, data = io.read_file_sync(path)
-    assert(not err, err)
-
-    ---@cast data -nil
-    err = io.write_file_sync(path, data .. content)
-    assert(not err, err)
+    local data = io.read_file(path):wait()
+    io.write_file(path, data .. content):wait()
 end
 
 ---@param path string
 ---@return string[]
 function M.read_from(path)
-    local err, data = io.read_file_sync(path)
-    assert(not err, err)
-
-    ---@cast data -nil
+    local data = io.read_file(path):wait()
     return vim.split(data, "\n", { plain = true })
 end
 
