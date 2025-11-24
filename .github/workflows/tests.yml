@@ -20,7 +20,6 @@ env:
   CI: true
   ROAM_DEBUG: true
   ROAM_TEST_REPORT: true
-  ROAM_TEST_ORGMODE_BRANCH: 0.7.1
   ROAM_WAIT_TIME: 500
 
 jobs:
