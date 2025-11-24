@@ -4,12 +4,6 @@
 -- High-level utility functions leveraged by org-roam.
 -------------------------------------------------------------------------------
 
-local File = require("org-roam.core.file")
-local IntervalTree = require("org-roam.core.utils.tree")
-local OrgFile = require("orgmode.files.file")
-local parse_property_value = require("org-roam.core.file.utils").parse_property_value
-local unpack = require("org-roam.core.utils.table").unpack
-
 ---@class (exact) org-roam.utils.BufferCache
 ---@field file org-roam.core.File
 ---@field link_tree org-roam.core.utils.IntervalTree|nil
@@ -51,21 +45,21 @@ local function get_buffer_cache(bufnr)
         --       file represented by the buffer to build this
         --       up versus re-parsing the buffer?
         ---@type OrgFile
-        local orgfile = OrgFile:new({
+        local orgfile = require("orgmode.files.file"):new({
             filename = vim.api.nvim_buf_get_name(bufnr),
-            lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false),
+            buf = bufnr,
         })
 
         -- Trigger parsing of content, which should use string treesitter parser
         orgfile:parse()
 
         -- Convert file into roam version
-        local file = File:from_org_file(orgfile)
+        local file = require("org-roam.core.file"):from_org_file(orgfile)
 
         ---@type org-roam.core.utils.IntervalTree|nil
         local node_tree
         if not vim.tbl_isempty(file.nodes) then
-            node_tree = IntervalTree:from_list(
+            node_tree = require("org-roam.core.utils.tree"):from_list(
                 ---@param node org-roam.core.file.Node
                 vim.tbl_map(function(node)
                     return {
@@ -80,7 +74,7 @@ local function get_buffer_cache(bufnr)
         ---@type org-roam.core.utils.IntervalTree|nil
         local link_tree
         if #file.links > 0 then
-            link_tree = IntervalTree:from_list(
+            link_tree = require("org-roam.core.utils.tree"):from_list(
                 ---@param link org-roam.core.file.Link
                 vim.tbl_map(function(link)
                     return {
@@ -191,7 +185,15 @@ function M.title_to_slug(title)
     return title
 end
 
-M.parse_prop_value = parse_property_value
+---Parses the value of a property, properly handling double-quoted content,
+---
+---Supports escaping quotes using \" as this appears to be what org-roam does.
+---returning a list of entries.
+---@param value string
+---@return string[]
+function M.parse_prop_value(value)
+    return require("org-roam.core.file.utils").parse_property_value(value)
+end
 
 ---Wraps a value meant to be part of a proprty such that it can be quoted.
 ---This escapes " and \ characters.
@@ -285,6 +287,7 @@ function M.get_visual_selection(opts)
     vim.api.nvim_feedkeys("gv", "nx", false)
     vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
 
+    local unpack = require("org-roam.core.utils.table").unpack
     local start_row, start_col = unpack(vim.api.nvim_buf_get_mark(bufnr, "<"))
     local end_row, end_col = unpack(vim.api.nvim_buf_get_mark(bufnr, ">"))
     local lines = vim.api.nvim_buf_get_lines(bufnr, start_row - 1, end_row, false)

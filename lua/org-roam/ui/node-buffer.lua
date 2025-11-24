@@ -4,11 +4,6 @@
 -- API to view of a node's backlinks, citations, and unlinked references.
 -------------------------------------------------------------------------------
 
-local Buffer = require("org-roam.ui.node-buffer.buffer")
-local Promise = require("orgmode.utils.promise")
-local utils = require("org-roam.utils")
-local Window = require("org-roam.core.ui.window")
-
 local STATE = {
     ---@type org-roam.ui.NodeBuffer|nil
     cursor_node_buffer = nil,
@@ -44,7 +39,7 @@ local function roam_toggle_buffer(roam, opts)
 
     -- If we don't have the buffer or it no longer exists, create it
     if not STATE.cursor_node_buffer or not STATE.cursor_node_buffer:is_valid() then
-        STATE.cursor_node_buffer = Buffer:new(roam)
+        STATE.cursor_node_buffer = require("org-roam.ui.node-buffer.buffer"):new(roam)
     end
 
     -- Grab the buffer and see how many windows are showing it
@@ -56,13 +51,15 @@ local function roam_toggle_buffer(roam, opts)
     if #windows == 0 then
         -- Manually trigger a capture of the node under cursor to start
         -- as the event above won't do anything at first
-        return Promise.new(function(resolve)
-            utils.node_under_cursor(function(node)
+        return require("orgmode.utils.promise").new(function(resolve)
+            require("org-roam.utils").node_under_cursor(function(node)
                 buffer:set_id(node and node.id)
-                local win = Window:new({
-                    buffer = buffer:to_internal_buffer(),
-                    open = roam.config.ui.node_buffer.open,
-                }):open()
+                local win = require("org-roam.core.ui.window")
+                    :new({
+                        buffer = buffer:to_internal_buffer(),
+                        open = roam.config.ui.node_buffer.open,
+                    })
+                    :open()
 
                 if opts.focus then
                     vim.api.nvim_set_current_win(win)
@@ -76,7 +73,7 @@ local function roam_toggle_buffer(roam, opts)
             vim.api.nvim_win_close(win, true)
         end
 
-        return Promise.resolve(nil)
+        return require("orgmode.utils.promise").resolve(nil)
     end
 end
 
@@ -91,7 +88,7 @@ end
 ---@return OrgPromise<integer|nil>
 local function roam_toggle_fixed_buffer(roam, opts)
     opts = opts or {}
-    return Promise.new(function(resolve)
+    return require("orgmode.utils.promise").new(function(resolve)
         ---@param id org-roam.core.database.Id
         ---@diagnostic disable-next-line:redefined-local
         local function toggle_node_buffer(id)
@@ -100,7 +97,7 @@ local function roam_toggle_fixed_buffer(roam, opts)
 
             -- Create the buffer if it does not exist or is deleted
             if not buffer or not buffer:is_valid() then
-                buffer = Buffer:new(roam, {
+                buffer = require("org-roam.ui.node-buffer.buffer"):new(roam, {
                     id = id,
                 })
 
@@ -112,10 +109,12 @@ local function roam_toggle_fixed_buffer(roam, opts)
             -- If we have no window containing the buffer, create one; otherwise,
             -- close all of the windows containing the buffer
             if #windows == 0 then
-                local win = Window:new({
-                    buffer = buffer:to_internal_buffer(),
-                    open = roam.config.ui.node_buffer.open,
-                }):open()
+                local win = require("org-roam.core.ui.window")
+                    :new({
+                        buffer = buffer:to_internal_buffer(),
+                        open = roam.config.ui.node_buffer.open,
+                    })
+                    :open()
 
                 if opts.focus then
                     vim.api.nvim_set_current_win(win)

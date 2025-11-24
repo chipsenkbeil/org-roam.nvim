@@ -4,12 +4,6 @@
 -- Buffer interface for org-roam.
 -------------------------------------------------------------------------------
 
-local Emitter = require("org-roam.core.utils.emitter")
-local notify = require("org-roam.core.ui.notify")
-local random = require("org-roam.core.utils.random")
-local ui_utils = require("org-roam.core.utils.ui")
-local Component = require("org-roam.core.ui.component")
-
 local EVENTS = {
     ---When rendering is about to start.
     PRE_RENDER = "pre_render",
@@ -68,7 +62,7 @@ local function make_buffer(opts)
     assert(bufnr ~= 0, "failed to create buffer")
 
     -- Set name to something random (unless specified)
-    vim.api.nvim_buf_set_name(bufnr, opts.name or ("org-roam-" .. random.uuid_v4()))
+    vim.api.nvim_buf_set_name(bufnr, opts.name or ("org-roam-" .. require("org-roam.core.utils.random").uuid_v4()))
 
     -- Clear out all options that we've used explicitly
     opts.name = nil
@@ -98,7 +92,7 @@ function M:new(opts)
     instance.__bufnr = make_buffer(opts)
     instance.__offset = offset
     instance.__namespace = vim.api.nvim_create_namespace(vim.api.nvim_buf_get_name(instance.__bufnr))
-    instance.__emitter = Emitter:new()
+    instance.__emitter = require("org-roam.core.utils.emitter"):new()
     instance.__state = STATE.IDLE
     instance.__keybindings = { registered = {}, callbacks = {} }
     instance.__components = {}
@@ -112,7 +106,7 @@ end
 function M:add_component(component)
     -- If given a raw function, convert it into a component
     if type(component) == "function" then
-        component = Component:new(component)
+        component = require("org-roam.core.ui.component"):new(component)
     end
 
     table.insert(self.__components, component)
@@ -290,7 +284,7 @@ function M:render(opts)
         ---@type {win:integer, pos:{[1]:integer, [2]:integer}}[]
         local cursors = vim.tbl_map(function(winnr)
             return { win = winnr, pos = vim.api.nvim_win_get_cursor(winnr) }
-        end, ui_utils.get_windows_for_buffer(self.__bufnr))
+        end, require("org-roam.core.utils.ui").get_windows_for_buffer(self.__bufnr))
 
         -- Clear the buffer of its content
         -- NOTE: If clear fails, something has gone wrong in neovim, which
@@ -303,7 +297,7 @@ function M:render(opts)
                 if ret.ok then
                     self:__apply_lines(ret.lines, true)
                 else
-                    notify.error("component failed: " .. ret.error)
+                    require("org-roam.core.ui.notify").error("component failed: " .. ret.error)
                 end
             end
         end

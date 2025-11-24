@@ -4,8 +4,6 @@
 -- Setup logic for roam plugin modifications.
 -------------------------------------------------------------------------------
 
-local log = require("org-roam.core.log")
-
 ---@param roam OrgRoam
 return function(roam)
     -- Provide a wrapper around `open_at_point` from orgmode mappings so we can
@@ -23,7 +21,7 @@ return function(roam)
 
         -- If we found a node, open the file at the start of the node
         if node then
-            log.fmt_debug("Detected node %s under at (%d,%d)", node.id, row, col)
+            require("org-roam.core.log").fmt_debug("Detected node %s under at (%d,%d)", node.id, row, col)
             local winnr = vim.api.nvim_get_current_win()
             vim.cmd.edit(node.file)
 

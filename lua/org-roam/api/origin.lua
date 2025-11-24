@@ -4,9 +4,6 @@
 -- Contains functionality tied to the roam origin api.
 -------------------------------------------------------------------------------
 
-local Promise = require("orgmode.utils.promise")
-local utils = require("org-roam.utils")
-
 local ORIGIN_PROP_NAME = "ROAM_ORIGIN"
 
 ---@param roam OrgRoam
@@ -14,7 +11,9 @@ local ORIGIN_PROP_NAME = "ROAM_ORIGIN"
 ---@return OrgPromise<boolean>
 local function roam_add_origin(roam, opts)
     opts = opts or {}
-    return Promise.new(function(resolve)
+    return require("orgmode.utils.promise").new(function(resolve)
+        local utils = require("org-roam.utils")
+
         utils.node_under_cursor(function(node)
             if not node then
                 return resolve(false)
@@ -65,7 +64,9 @@ local function roam_goto_prev_node(roam, opts)
     opts = opts or {}
     local winnr = opts.win or vim.api.nvim_get_current_win()
 
-    return Promise.new(function(resolve)
+    return require("orgmode.utils.promise").new(function(resolve)
+        local utils = require("org-roam.utils")
+
         ---@param node org-roam.core.file.Node|nil
         local function goto_node(node)
             if not node then
@@ -93,7 +94,9 @@ local function roam_goto_next_node(roam, opts)
     opts = opts or {}
     local winnr = opts.win or vim.api.nvim_get_current_win()
 
-    return Promise.new(function(resolve)
+    return require("orgmode.utils.promise").new(function(resolve)
+        local utils = require("org-roam.utils")
+
         ---@param node org-roam.core.file.Node|nil
         local function goto_node(node)
             if not node then
@@ -142,7 +145,9 @@ end
 ---@param roam OrgRoam
 ---@return OrgPromise<boolean>
 local function roam_remove_origin(roam)
-    return Promise.new(function(resolve)
+    return require("orgmode.utils.promise").new(function(resolve)
+        local utils = require("org-roam.utils")
+
         utils.node_under_cursor(function(node)
             if not node then
                 return resolve(false)

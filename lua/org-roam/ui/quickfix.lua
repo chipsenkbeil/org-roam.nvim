@@ -4,10 +4,6 @@
 -- Opens a quickfix list for org-roam.
 -------------------------------------------------------------------------------
 
-local io = require("org-roam.core.utils.io")
-local Promise = require("orgmode.utils.promise")
-local utils = require("org-roam.utils")
-
 ---@class org-roam.ui.quickfix.Item
 ---@field filename string
 ---@field module string
@@ -56,7 +52,7 @@ local function roam_get_backlinks_as_quickfix_items(roam, id, opts)
             local lines = {}
             if opts.show_preview then
                 ---@type boolean, string|nil
-                local ok, data = io.read_file(node.file):wait()
+                local ok, data = require("org-roam.core.utils.io").read_file(node.file):wait()
 
                 if ok and data then
                     lines = vim.split(data, "\n", { plain = true })
@@ -175,12 +171,12 @@ return function(roam)
     function M.open_qflist(opts)
         opts = opts or {}
 
-        return Promise.new(function(resolve)
+        return require("orgmode.utils.promise").new(function(resolve)
             if opts.id then
                 roam_open(roam, opts.id, opts)
                 resolve(true)
             else
-                utils.node_under_cursor(function(node)
+                require("org-roam.utils").node_under_cursor(function(node)
                     if node then
                         roam_open(roam, node.id, opts)
                         resolve(true)

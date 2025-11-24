@@ -4,11 +4,6 @@
 -- Contains functionality tied to the roam alias api.
 -------------------------------------------------------------------------------
 
-local notify = require("org-roam.core.ui.notify")
-local Select = require("org-roam.core.ui.select")
-local Promise = require("orgmode.utils.promise")
-local utils = require("org-roam.utils")
-
 local ALIASES_PROP_NAME = "ROAM_ALIASES"
 
 ---@param roam OrgRoam
@@ -16,8 +11,8 @@ local ALIASES_PROP_NAME = "ROAM_ALIASES"
 ---@return OrgPromise<boolean>
 local function roam_add_alias(roam, opts)
     opts = opts or {}
-
-    return Promise.new(function(resolve, reject)
+    return require("orgmode.utils.promise").new(function(resolve, reject)
+        local utils = require("org-roam.utils")
         utils.node_under_cursor(function(node)
             -- Mark unsuccessful and exit
             if not node then
@@ -43,7 +38,7 @@ local function roam_add_alias(roam, opts)
 
                         -- Skip if not given a non-empty alias
                         if alias == "" then
-                            notify.echo_info("canceled adding alias")
+                            require("org-roam.core.ui.notify").echo_info("canceled adding alias")
 
                             -- Mark unsuccessful
                             resolve(false)
@@ -80,7 +75,8 @@ end
 ---@return OrgPromise<boolean>
 local function roam_remove_alias(roam, opts)
     opts = opts or {}
-    return Promise.new(function(resolve, reject)
+    return require("orgmode.utils.promise").new(function(resolve, reject)
+        local utils = require("org-roam.utils")
         utils.node_under_cursor(function(node)
             -- Mark unsuccessful and exit
             if not node then
@@ -111,7 +107,7 @@ local function roam_remove_alias(roam, opts)
                         end
 
                         local function on_cancel()
-                            notify.echo_info("canceled removing alias")
+                            require("org-roam.core.ui.notify").echo_info("canceled removing alias")
 
                             -- Mark unsuccessful
                             resolve(false)
@@ -151,12 +147,13 @@ local function roam_remove_alias(roam, opts)
                         end
 
                         -- Open a selection dialog for the alias to remove
-                        Select:new({
-                            auto_select = true,
-                            init_input = opts.alias,
-                            items = utils.parse_prop_value(aliases),
-                            prompt = prompt,
-                        })
+                        require("org-roam.core.ui.select")
+                            :new({
+                                auto_select = true,
+                                init_input = opts.alias,
+                                items = utils.parse_prop_value(aliases),
+                                prompt = prompt,
+                            })
                             :on_cancel(on_cancel)
                             :on_choice(on_choice)
                             :open()

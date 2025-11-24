@@ -4,15 +4,13 @@
 -- Contains a global emitter used to send and receive events.
 -------------------------------------------------------------------------------
 
-local Emitter = require("org-roam.core.utils.emitter")
-
 ---@param roam OrgRoam
 ---@return org-roam.Events
 return function(roam)
     ---@class org-roam.Events
     local M = {}
 
-    local EMITTER = Emitter:new()
+    local EMITTER = require("org-roam.core.utils.emitter"):new()
 
     ---@enum org-roam.events.EventKind
     M.KIND = {

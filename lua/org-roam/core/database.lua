@@ -4,13 +4,6 @@
 -- Core database to keep track of org-roam nodes.
 -------------------------------------------------------------------------------
 
-local Iterator = require("org-roam.core.utils.iterator")
-local io = require("org-roam.core.utils.io")
-local Queue = require("org-roam.core.utils.queue")
-local random = require("org-roam.core.utils.random")
-
-local Promise = require("orgmode.utils.promise")
-
 local DEFAULT_MAX_NODES = 2 ^ 31
 local DEFAULT_MAX_DISTANCE = 2 ^ 31
 
@@ -110,7 +103,7 @@ end
 ---@param path string where to find the database
 ---@return OrgPromise<org-roam.core.Database>
 function M:load_from_disk(path)
-    return io.read_file(path):next(function(data)
+    return require("org-roam.core.utils.io").read_file(path):next(function(data)
         -- Try to decode the data into Lua and set it as the nodes,
         -- using each potential decoder in turn
         ---@type boolean, table|nil
@@ -127,7 +120,8 @@ function M:load_from_disk(path)
             if __data then
                 errmsg = errmsg .. ": " .. vim.inspect(__data)
             end
-            return Promise.reject(errmsg)
+
+            return require("orgmode.utils.promise").reject(errmsg)
         end
 
         local db = M:new()
@@ -173,7 +167,7 @@ function M:write_to_disk(path)
     end
 
     if not encode then
-        return Promise.reject("invalid cache type: " .. vim.inspect(self.__cache_type))
+        return require("orgmode.utils.promise").reject("invalid cache type: " .. vim.inspect(self.__cache_type))
     end
 
     local db_contents = {
@@ -191,10 +185,10 @@ function M:write_to_disk(path)
         if data then
             errmsg = errmsg .. ": " .. vim.inspect(data)
         end
-        return Promise.reject(errmsg)
+        return require("orgmode.utils.promise").reject(errmsg)
     end
 
-    return io.write_file(path, data)
+    return require("org-roam.core.utils.io").write_file(path, data)
 end
 
 ---Inserts non-false data into the database as a node with no edges.
@@ -218,7 +212,7 @@ function M:insert(data, opts)
 
     -- If we aren't given an id with the node, create one
     if type(id) ~= "string" then
-        id = random.uuid_v4()
+        id = require("org-roam.core.utils.random").uuid_v4()
     end
 
     -- If overwriting, ensure the node is removed first
@@ -336,7 +330,7 @@ end
 ---Returns an iterator of all ids of nodes within the database.
 ---@return org-roam.core.utils.Iterator
 function M:iter_ids()
-    return Iterator:from_tbl_keys(self.__nodes)
+    return require("org-roam.core.utils.iterator"):from_tbl_keys(self.__nodes)
 end
 
 ---Creates a new index with the given name using the provided indexer.
@@ -368,7 +362,7 @@ end
 ---@return org-roam.core.utils.Iterator
 function M:iter_index_keys(name)
     local index = self.__indexes[name] or {}
-    return Iterator:from_tbl_keys(index)
+    return require("org-roam.core.utils.iterator"):from_tbl_keys(index)
 end
 
 ---Retrieves ids of nodes from the database by some index.
@@ -644,10 +638,10 @@ function M:iter_nodes(opts)
 
     ---@type table<org-roam.core.database.Id, boolean>
     local visited = {}
-    local queue = Queue:new({ { opts.start_node_id, 0 } })
+    local queue = require("org-roam.core.utils.queue"):new({ { opts.start_node_id, 0 } })
     local count = 0
 
-    return Iterator:new(function()
+    return require("org-roam.core.utils.iterator"):new(function()
         local tbl_utils = require("org-roam.core.utils.table")
 
         -- NOTE: While we have a loop, this should only run until
@@ -691,9 +685,9 @@ function M:iter_paths(start_node_id, end_node_id, opts)
     -- Format of queue items is a map of id -> position and "last" -> id
     -- to keep track of the last id in the path thus far. We do this so
     -- we can lookup cycles by key before they occur.
-    local queue = Queue:new({ { [start_node_id] = 1, last = start_node_id } })
+    local queue = require("org-roam.core.utils.queue"):new({ { [start_node_id] = 1, last = start_node_id } })
 
-    return Iterator:new(function()
+    return require("org-roam.core.utils.iterator"):new(function()
         -- NOTE: While we have a loop, this should only run until we get a
         --       path to return as the next iterator value, or the queue becomes
         --       empty.

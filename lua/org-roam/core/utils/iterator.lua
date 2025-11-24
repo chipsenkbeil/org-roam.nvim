@@ -4,9 +4,6 @@
 -- Abstraction for an iterator of values.
 -------------------------------------------------------------------------------
 
-local pack = require("org-roam.core.utils.table").pack
-local unpack = require("org-roam.core.utils.table").unpack
-
 ---@class org-roam.core.utils.Iterator
 ---@field private __allow_nil boolean
 ---@field private __last {n:integer, [integer]:any}|nil
@@ -81,6 +78,8 @@ end
 ---and if so that value is cached to be supplied as the future next value.
 ---@return boolean
 function M:has_next()
+    local pack = require("org-roam.core.utils.table").pack
+
     -- If we have not checked yet for the most recent, do so now
     if not self.__last then
         self.__last = pack(self.__next())
@@ -109,6 +108,8 @@ end
 ---Returns the next value from the iterator, advancing its position.
 ---@return ...
 function M:next()
+    local unpack = require("org-roam.core.utils.table").unpack
+
     -- Invoke has_next so we populate the cache of the last value,
     -- which also ensures that the cache represents something, meaning
     -- we can clear the cache
@@ -141,6 +142,9 @@ end
 ---@return org-roam.core.utils.Iterator
 function M:filter(f)
     return M:new(function()
+        local pack = require("org-roam.core.utils.table").pack
+        local unpack = require("org-roam.core.utils.table").unpack
+
         while self:has_next() do
             local tbl = pack(self:next())
             if f(unpack(tbl, 1, tbl.n)) then
@@ -159,6 +163,7 @@ end
 ---
 ---@return (any|{n:integer, [integer]:any})[]
 function M:collect()
+    local pack = require("org-roam.core.utils.table").pack
     local results = {}
 
     while self:has_next() do

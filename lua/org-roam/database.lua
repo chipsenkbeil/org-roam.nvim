@@ -4,13 +4,6 @@
 -- Contains global database logic used by the plugin.
 -------------------------------------------------------------------------------
 
-local io = require("org-roam.core.utils.io")
-local Loader = require("org-roam.database.loader")
-local log = require("org-roam.core.log")
-local Profiler = require("org-roam.core.utils.profiler")
-local Promise = require("orgmode.utils.promise")
-local schema = require("org-roam.database.schema")
-
 ---@class org-roam.Database: org-roam.core.Database
 ---@field private __last_save integer
 ---@field private __loader org-roam.database.Loader
@@ -77,7 +70,7 @@ function M:__get_loader()
     if not loader then
         local files = self.__org_files
         table.insert(files, self.__directory)
-        loader = Loader:new({
+        loader = require("org-roam.database.loader"):new({
             database = self.__database_path,
             files = files,
         })
@@ -130,9 +123,9 @@ end
 ---@return OrgPromise<{database:org-roam.core.Database, files:OrgFiles}>
 function M:load(opts)
     opts = opts or {}
-    log.fmt_debug("loading all files into database (force=%s)", opts.force or false)
+    require("org-roam.core.log").fmt_debug("loading all files into database (force=%s)", opts.force or false)
 
-    local profiler = Profiler:new({ label = "org-roam-load" })
+    local profiler = require("org-roam.core.utils.profiler"):new({ label = "org-roam-load" })
     local rec_id = profiler:start()
 
     return self:__get_loader()
@@ -141,7 +134,7 @@ function M:load(opts)
         })
         :next(function(...)
             profiler:stop(rec_id)
-            log.fmt_debug(
+            require("org-roam.core.log").fmt_debug(
                 "loading all files into database took %s",
                 profiler:time_taken_as_string({ recording = rec_id })
             )
@@ -153,9 +146,9 @@ end
 ---@param opts {path:string, force?:boolean}
 ---@return OrgPromise<{file:OrgFile, nodes:org-roam.core.file.Node[]}>
 function M:load_file(opts)
-    log.fmt_debug("loading %s into database (force=%s)", opts.path, opts.force or false)
+    require("org-roam.core.log").fmt_debug("loading %s into database (force=%s)", opts.path, opts.force or false)
 
-    local profiler = Profiler:new({ label = "org-roam-load-file" })
+    local profiler = require("org-roam.core.utils.profiler"):new({ label = "org-roam-load-file" })
     local rec_id = profiler:start()
 
     return self:__get_loader()
@@ -165,7 +158,7 @@ function M:load_file(opts)
         })
         :next(function(...)
             profiler:stop(rec_id)
-            log.fmt_debug(
+            require("org-roam.core.log").fmt_debug(
                 "loading %s into database took %s",
                 opts.path,
                 profiler:time_taken_as_string({ recording = rec_id })
@@ -183,27 +176,30 @@ end
 ---@return OrgPromise<boolean>
 function M:save(opts)
     opts = opts or {}
-    log.fmt_debug("saving database (force=%s)", opts.force or false)
+    require("org-roam.core.log").fmt_debug("saving database (force=%s)", opts.force or false)
 
-    local profiler = Profiler:new({ label = "org-roam-save-database" })
+    local profiler = require("org-roam.core.utils.profiler"):new({ label = "org-roam-save-database" })
     local rec_id = profiler:start()
 
     return self:__get_loader():database():next(function(db)
         -- If our last save was recent enough, do not actually save
         if not opts.force and self.__last_save >= db:changed_tick() then
             profiler:stop(rec_id)
-            log.fmt_debug(
+            require("org-roam.core.log").fmt_debug(
                 "saving database took %s (nothing to save)",
                 profiler:time_taken_as_string({ recording = rec_id })
             )
-            return Promise.resolve(false)
+            return require("orgmode.utils.promise").resolve(false)
         end
 
         -- Refresh our data (no rescan or force) to make sure it is fresh
         return self:load():next(function()
             return db:write_to_disk(self.__database_path):next(function()
                 profiler:stop(rec_id)
-                log.fmt_debug("saving database took %s", profiler:time_taken_as_string({ recording = rec_id }))
+                require("org-roam.core.log").fmt_debug(
+                    "saving database took %s",
+                    profiler:time_taken_as_string({ recording = rec_id })
+                )
 
                 self.__last_save = db:changed_tick()
                 return true
@@ -215,10 +211,12 @@ end
 ---Deletes the database cache from disk.
 ---@return OrgPromise<boolean>
 function M:delete_disk_cache()
-    return Promise.new(function(resolve, reject)
-        io.stat(self.__database_path)
+    return require("orgmode.utils.promise").new(function(resolve, reject)
+        require("org-roam.core.utils.io")
+            .stat(self.__database_path)
             :next(function()
-                return io.unlink(self.__database_path)
+                return require("org-roam.core.utils.io")
+                    .unlink(self.__database_path)
                     :next(function(success)
                         resolve(success)
                         return success
@@ -299,7 +297,7 @@ end
 function M:find_nodes_by_alias(alias)
     ---@diagnostic disable-next-line:missing-return-value
     return self:__get_loader():database():next(function(db)
-        local ids = db:find_by_index(schema.ALIAS, alias)
+        local ids = db:find_by_index(require("org-roam.database.schema").ALIAS, alias)
         return vim.tbl_values(db:get_many(ids))
     end)
 end
@@ -324,7 +322,7 @@ function M:find_nodes_by_file(file)
 
     ---@diagnostic disable-next-line:missing-return-value
     return self:__get_loader():database():next(function(db)
-        local ids = db:find_by_index(schema.FILE, path)
+        local ids = db:find_by_index(require("org-roam.database.schema").FILE, path)
         return vim.tbl_values(db:get_many(ids))
     end)
 end
@@ -344,7 +342,7 @@ end
 function M:find_nodes_by_origin(origin)
     ---@diagnostic disable-next-line:missing-return-value
     return self:__get_loader():database():next(function(db)
-        local ids = db:find_by_index(schema.ORIGIN, origin)
+        local ids = db:find_by_index(require("org-roam.database.schema").ORIGIN, origin)
         return vim.tbl_values(db:get_many(ids))
     end)
 end
@@ -364,7 +362,7 @@ end
 function M:find_nodes_by_tag(tag)
     ---@diagnostic disable-next-line:missing-return-value
     return self:__get_loader():database():next(function(db)
-        local ids = db:find_by_index(schema.TAG, tag)
+        local ids = db:find_by_index(require("org-roam.database.schema").TAG, tag)
         return vim.tbl_values(db:get_many(ids))
     end)
 end
@@ -384,7 +382,7 @@ end
 function M:find_nodes_by_title(title)
     ---@diagnostic disable-next-line:missing-return-value
     return self:__get_loader():database():next(function(db)
-        local ids = db:find_by_index(schema.TITLE, title)
+        local ids = db:find_by_index(require("org-roam.database.schema").TITLE, title)
         return vim.tbl_values(db:get_many(ids))
     end)
 end
@@ -407,28 +405,30 @@ end
 ---@param opts? {max_depth?:integer}
 ---@return OrgPromise<table<string, integer>>
 function M:get_file_links(file, opts)
-    return Promise.all({
-        self:__get_loader():database(),
-        self:find_nodes_by_file(file),
-    }):next(function(results)
-        ---@type org-roam.core.Database, org-roam.core.file.Node[]
-        local db, nodes = results[1], results[2]
-        local all_links = {}
+    return require("orgmode.utils.promise")
+        .all({
+            self:__get_loader():database(),
+            self:find_nodes_by_file(file),
+        })
+        :next(function(results)
+            ---@type org-roam.core.Database, org-roam.core.file.Node[]
+            local db, nodes = results[1], results[2]
+            local all_links = {}
 
-        -- For each node, retrieve its links, and check for each link
-        -- if we do not have it collected or if we do, but the distance
-        -- is further away than this link's distance
-        for _, node in ipairs(nodes) do
-            local links = db:get_links(node.id, opts)
-            for id, distance in pairs(links) do
-                if not all_links[id] or all_links[id] > distance then
-                    all_links[id] = distance
+            -- For each node, retrieve its links, and check for each link
+            -- if we do not have it collected or if we do, but the distance
+            -- is further away than this link's distance
+            for _, node in ipairs(nodes) do
+                local links = db:get_links(node.id, opts)
+                for id, distance in pairs(links) do
+                    if not all_links[id] or all_links[id] > distance then
+                        all_links[id] = distance
+                    end
                 end
             end
-        end
 
-        return all_links
-    end)
+            return all_links
+        end)
 end
 
 ---Retrieves ids of nodes linked from a file.
@@ -454,28 +454,30 @@ end
 ---@param opts? {max_depth?:integer}
 ---@return OrgPromise<table<string, integer>>
 function M:get_file_backlinks(file, opts)
-    return Promise.all({
-        self:__get_loader():database(),
-        self:find_nodes_by_file(file),
-    }):next(function(results)
-        ---@type org-roam.core.Database, org-roam.core.file.Node[]
-        local db, nodes = results[1], results[2]
-        local all_links = {}
+    return require("orgmode.utils.promise")
+        .all({
+            self:__get_loader():database(),
+            self:find_nodes_by_file(file),
+        })
+        :next(function(results)
+            ---@type org-roam.core.Database, org-roam.core.file.Node[]
+            local db, nodes = results[1], results[2]
+            local all_links = {}
 
-        -- For each node, retrieve its backlinks, and check for each link
-        -- if we do not have it collected or if we do, but the distance
-        -- is further away than this link's distance
-        for _, node in ipairs(nodes) do
-            local links = db:get_backlinks(node.id, opts)
-            for id, distance in pairs(links) do
-                if not all_links[id] or all_links[id] > distance then
-                    all_links[id] = distance
+            -- For each node, retrieve its backlinks, and check for each link
+            -- if we do not have it collected or if we do, but the distance
+            -- is further away than this link's distance
+            for _, node in ipairs(nodes) do
+                local links = db:get_backlinks(node.id, opts)
+                for id, distance in pairs(links) do
+                    if not all_links[id] or all_links[id] > distance then
+                        all_links[id] = distance
+                    end
                 end
             end
-        end
 
-        return all_links
-    end)
+            return all_links
+        end)
 end
 
 ---Retrieves ids of nodes linking to a file.

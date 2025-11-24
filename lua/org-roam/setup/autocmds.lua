@@ -6,8 +6,6 @@
 
 local AUGROUP = vim.api.nvim_create_augroup("org-roam.nvim", {})
 
-local log = require("org-roam.core.log")
-
 ---@param roam OrgRoam
 return function(roam)
     -- Watch as cursor moves around so we can support node changes
@@ -21,7 +19,7 @@ return function(roam)
                 -- we want to emit the event
                 if last_node ~= node then
                     if node then
-                        log.fmt_debug("New node under cursor: %s", node.id)
+                        require("org-roam.core.log").fmt_debug("New node under cursor: %s", node.id)
                     end
 
                     roam.events.emit(roam.events.KIND.CURSOR_NODE_CHANGED, node)
@@ -46,8 +44,8 @@ return function(roam)
                 local is_roam_file = vim.startswith(path, roam.config.directory)
 
                 if is_roam_file then
-                    log.fmt_debug("Updating on save: %s", path)
-                    roam.database:load_file({ path = path }):catch(log.error)
+                    require("org-roam.core.log").fmt_debug("Updating on save: %s", path)
+                    roam.database:load_file({ path = path }):catch(require("org-roam.core.log").error)
                 end
             end,
         })
@@ -62,8 +60,8 @@ return function(roam)
             callback = function()
                 -- Block, don't be async, as neovim could exit during async
                 -- and cause issues with corrupt databases
-                log.fmt_debug("Persisting database to disk: %s", roam.database:path())
-                roam.database:save():catch(log.error):wait()
+                require("org-roam.core.log").fmt_debug("Persisting database to disk: %s", roam.database:path())
+                roam.database:save():catch(require("org-roam.core.log").error):wait()
             end,
         })
     end

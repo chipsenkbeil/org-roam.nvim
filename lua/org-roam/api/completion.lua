@@ -4,9 +4,6 @@
 -- Contains functionality tied to roam completion api.
 -------------------------------------------------------------------------------
 
-local Promise = require("orgmode.utils.promise")
-local utils = require("org-roam.utils")
-
 ---@param roam OrgRoam
 ---@param opts? {win?:integer}
 ---@return OrgPromise<boolean>
@@ -23,7 +20,7 @@ local function roam_complete_node_under_cursor(roam, opts)
     ---@type string|nil
     local input
 
-    local link = utils.link_under_cursor({ win = winnr })
+    local link = require("org-roam.utils").link_under_cursor({ win = winnr })
     if link then
         local cursor = vim.api.nvim_win_get_cursor(winnr)
         local row = cursor[1] - 1 -- make zero-indexed
@@ -38,11 +35,11 @@ local function roam_complete_node_under_cursor(roam, opts)
             input = string.sub(input, 4)
         end
     else
-        selection = utils.expr_under_cursor({ win = winnr })
+        selection = require("org-roam.utils").expr_under_cursor({ win = winnr })
         input = selection
     end
 
-    return Promise.new(function(resolve)
+    return require("orgmode.utils.promise").new(function(resolve)
         roam.ui
             .select_node({ auto_select = true, init_input = input })
             :on_choice(function(choice)

@@ -4,12 +4,6 @@
 -- Utilities to do input/output operations.
 -------------------------------------------------------------------------------
 
-local uv = vim.uv or vim.loop
-
-local Iterator = require("org-roam.core.utils.iterator")
-
-local Promise = require("orgmode.utils.promise")
-
 -- 0o644 (rw-r--r--)
 -- Owner can read and write.
 -- Group can read.
@@ -35,8 +29,9 @@ function M.write_file(path, data)
         vim.fn.mkdir(dir, "p")
     end
 
+    local Promise = require("orgmode.utils.promise")
     return Promise.new(function(resolve, reject)
-        uv.fs_open(path, "w", DEFAULT_FILE_PERMISSIONS, function(err, fd)
+        vim.uv.fs_open(path, "w", DEFAULT_FILE_PERMISSIONS, function(err, fd)
             if err then
                 return vim.schedule(function()
                     reject(err)
@@ -44,7 +39,7 @@ function M.write_file(path, data)
             end
 
             ---@cast fd -nil
-            uv.fs_write(fd, data, -1, function(err)
+            vim.uv.fs_write(fd, data, -1, function(err)
                 if err then
                     return vim.schedule(function()
                         reject(err)
@@ -54,14 +49,14 @@ function M.write_file(path, data)
                 -- Force writing of data to avoid situations where
                 -- we write and then immediately try to read and get
                 -- the old file contents
-                uv.fs_fsync(fd, function(err)
+                vim.uv.fs_fsync(fd, function(err)
                     if err then
                         return vim.schedule(function()
                             reject(err)
                         end)
                     end
 
-                    uv.fs_close(fd, function(err)
+                    vim.uv.fs_close(fd, function(err)
                         if err then
                             return vim.schedule(function()
                                 reject(err)
@@ -82,8 +77,9 @@ end
 ---@param path string
 ---@return OrgPromise<string>
 function M.read_file(path)
+    local Promise = require("orgmode.utils.promise")
     return Promise.new(function(resolve, reject)
-        uv.fs_open(path, "r", 0, function(err, fd)
+        vim.uv.fs_open(path, "r", 0, function(err, fd)
             if err then
                 return vim.schedule(function()
                     reject(err)
@@ -91,7 +87,7 @@ function M.read_file(path)
             end
 
             ---@cast fd -nil
-            uv.fs_fstat(fd, function(err, stat)
+            vim.uv.fs_fstat(fd, function(err, stat)
                 if err then
                     return vim.schedule(function()
                         reject(err)
@@ -99,14 +95,14 @@ function M.read_file(path)
                 end
 
                 ---@cast stat -nil
-                uv.fs_read(fd, stat.size, 0, function(err, data)
+                vim.uv.fs_read(fd, stat.size, 0, function(err, data)
                     if err then
                         return vim.schedule(function()
                             reject(err)
                         end)
                     end
 
-                    uv.fs_close(fd, function(err)
+                    vim.uv.fs_close(fd, function(err)
                         if err then
                             return vim.schedule(function()
                                 reject(err)
@@ -129,8 +125,9 @@ end
 ---@param path string
 ---@return OrgPromise<uv.fs_stat.result>
 function M.stat(path)
+    local Promise = require("orgmode.utils.promise")
     return Promise.new(function(resolve, reject)
-        uv.fs_stat(path, function(err, stat)
+        vim.uv.fs_stat(path, function(err, stat)
             if err then
                 return vim.schedule(function()
                     reject(err)
@@ -148,8 +145,9 @@ end
 ---@param path string
 ---@return OrgPromise<boolean>
 function M.unlink(path)
+    local Promise = require("orgmode.utils.promise")
     return Promise.new(function(resolve, reject)
-        uv.fs_unlink(path, function(err, success)
+        vim.uv.fs_unlink(path, function(err, success)
             if err then
                 return vim.schedule(function()
                     reject(err)
@@ -216,6 +214,7 @@ function M.walk(path, opts)
         end
     end
 
+    local Iterator = require("org-roam.core.utils.iterator")
     return Iterator:new(vim.fs.dir(path, {
         depth = opts.depth,
         skip = opts.skip,

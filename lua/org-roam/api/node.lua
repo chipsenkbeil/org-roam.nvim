@@ -4,13 +4,6 @@
 -- Contains functionality tied to the roam node api.
 -------------------------------------------------------------------------------
 
-local io = require("org-roam.core.utils.io")
-local log = require("org-roam.core.log")
-local notify = require("org-roam.core.ui.notify")
-local Promise = require("orgmode.utils.promise")
-local random = require("org-roam.core.utils.random")
-local utils = require("org-roam.utils")
-
 ---General-purpose expansions tied to org roam.
 ---@param roam OrgRoam
 ---@return table<string, fun()>
@@ -64,8 +57,8 @@ end
 local function node_id_under_cursor(opts)
     opts = opts or {}
 
-    return Promise.new(function(resolve)
-        utils.node_under_cursor(function(node)
+    return require("orgmode.utils.promise").new(function(resolve)
+        require("org-roam.utils").node_under_cursor(function(node)
             resolve(node and node.id)
         end, { win = opts.win })
     end)
@@ -94,7 +87,12 @@ local function make_target_expander(roam, file, opts)
             or opts.title
             or (file and vim.fn.fnamemodify(file.filename, ":t:r"))
             or vim.fn.input("Enter title for node: ")
-        return title
+
+        if type(title) == "table" then
+            return table.concat(title)
+        else
+            return title
+        end
     end
 
     ---@return string
@@ -110,7 +108,7 @@ local function make_target_expander(roam, file, opts)
             return sep
         end,
         [TARGET_EXPANSION_KEYS.SLUG] = function()
-            slug = slug or utils.title_to_slug(get_title())
+            slug = slug or require("org-roam.utils").title_to_slug(get_title())
             return slug
         end,
     }
@@ -168,7 +166,7 @@ local function build_template(roam, template_opts, opts)
         if not exists then
             local prefix = {
                 ":PROPERTIES:",
-                ":ID: " .. random.id(),
+                ":ID: " .. require("org-roam.core.utils.random").id(),
             }
 
             if opts.origin then
@@ -290,12 +288,12 @@ local function roam_capture_immediate(roam, opts)
         template = roam.config.immediate.template,
     }, opts)
 
-    ---@param content string[]|nil
     return template
         :compile()
+        ---@param content string[]|nil
         :next(function(content)
             if not content then
-                return notify.echo_info("canceled")
+                return require("org-roam.core.ui.notify").echo_info("canceled")
             end
 
             local content_str = table.concat(content, "\n")
@@ -304,7 +302,7 @@ local function roam_capture_immediate(roam, opts)
             local expander = make_target_expander(roam, nil, opts)
             local path = expander(template.target)
 
-            return io.write_file(path, content_str):next(function()
+            return require("org-roam.core.utils.io").write_file(path, content_str):next(function()
                 return path
             end)
         end)
@@ -337,8 +335,8 @@ local function roam_capture_immediate(roam, opts)
             return id
         end)
         :catch(function(err)
-            notify.error(err)
-            log.error(err)
+            require("org-roam.core.ui.notify").error(err)
+            require("org-roam.core.log").error(err)
         end)
 end
 
@@ -363,7 +361,7 @@ local function roam_capture(roam, opts)
         --       have no way of fully resolving the promise. To support
         --       this properly, we would need to update nvim-orgmode's
         --       capture to accept an additional callback on cancelation.
-        return Promise.new(function(resolve)
+        return require("orgmode.utils.promise").new(function(resolve)
             local templates = build_templates(roam, {
                 origin = opts.origin,
                 title = opts.title,
@@ -404,7 +402,7 @@ local function roam_insert(roam, opts)
     local function insert_link(id, label)
         local node = roam.database:get_sync(id)
         if not node then
-            log.fmt_warn("node %s does not exist, so not inserting link", id)
+            require("org-roam.core.log").fmt_warn("node %s does not exist, so not inserting link", id)
             return
         end
 
@@ -412,8 +410,8 @@ local function roam_insert(roam, opts)
         -- inject in the wrong place, so instead report an error and exit
         if vim.api.nvim_buf_get_changedtick(bufnr) ~= changedtick then
             local msg = "buffer " .. bufnr .. " has changed, so canceling link insertion"
-            log.warn(msg)
-            notify.echo_warning(msg)
+            require("org-roam.core.log").warn(msg)
+            require("org-roam.core.ui.notify").echo_warning(msg)
             return
         end
 
@@ -465,7 +463,7 @@ local function roam_insert(roam, opts)
         pcall(vim.api.nvim_win_set_cursor, winnr, { start_row + 1, start_col + string.len(link_text) })
     end
 
-    return Promise.new(function(resolve)
+    return require("orgmode.utils.promise").new(function(resolve)
         roam.ui
             .select_node({
                 allow_select_missing = true,
@@ -511,7 +509,7 @@ local function roam_find(roam, opts)
     local function visit_node(id)
         local node = roam.database:get_sync(id)
         if not node then
-            log.fmt_warn("node %s does not exist, so not visiting", id)
+            require("org-roam.core.log").fmt_warn("node %s does not exist, so not visiting", id)
             return
         end
 
@@ -538,7 +536,7 @@ local function roam_find(roam, opts)
         end)
     end
 
-    return Promise.new(function(resolve)
+    return require("orgmode.utils.promise").new(function(resolve)
         roam.ui
             .select_node({
                 allow_select_missing = true,
