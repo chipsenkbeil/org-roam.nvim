@@ -59,7 +59,7 @@ describe("org-roam.events", function()
         -- Wait a moment for async events to process
         utils.wait()
 
-        assert.are.same({ "1", "2", "", "3", "1" }, nodes)
+        assert.are.same({ "1", "2", "3", "1" }, nodes)
     end)
 
     it("moving around buffer with multiple nodes should report changes", function()
