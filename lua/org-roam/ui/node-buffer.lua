@@ -29,12 +29,17 @@ local function roam_toggle_buffer(roam, opts)
     -- Create our handler for node changes if we haven't done so before
     if not STATE.cursor_update_initialized then
         STATE.cursor_update_initialized = true
-        roam.events.on_cursor_node_changed(function(node)
-            local buffer = STATE.cursor_node_buffer
-            if node and buffer then
-                buffer:set_id(node.id)
-            end
-        end)
+        vim.api.nvim_create_autocmd("User", {
+            group = roam.__augroup,
+            pattern = "OrgRoamNodeEnter",
+            callback = function(args)
+                local buffer = STATE.cursor_node_buffer
+                local id = args.data.id
+                if buffer and id then
+                    buffer:set_id(id)
+                end
+            end,
+        })
     end
 
     -- If we don't have the buffer or it no longer exists, create it

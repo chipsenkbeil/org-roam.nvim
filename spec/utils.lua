@@ -47,6 +47,24 @@ function M.debug_print(...)
     end
 end
 
+---Preps to listen for being initialized.
+---@return fun() wait_until_ready
+function M.prep_ready()
+    local ready = false
+    vim.api.nvim_create_autocmd("User", {
+        pattern = "OrgRoamInitialized",
+        once = true,
+        callback = function()
+            ready = true
+        end,
+    })
+    return function()
+        vim.wait(1000, function()
+            return ready
+        end, 200)
+    end
+end
+
 ---Waits a standard amount of time for a test.
 ---This can be adjusted for CI usage.
 ---@param time? integer
@@ -383,6 +401,7 @@ function M.init_plugin(opts)
     -- so extra features like cursor node tracking works
     local roam = require("org-roam"):new()
     if opts.setup then
+        local wait_until_ready = M.prep_ready()
         local test_dir = M.make_temp_directory()
         local config = {
             directory = test_dir,
@@ -393,7 +412,9 @@ function M.init_plugin(opts)
         if type(opts.setup) == "table" then
             config = vim.tbl_deep_extend("force", config, opts.setup)
         end
-        roam.setup(config):wait()
+
+        roam.setup(config)
+        wait_until_ready()
     end
     return roam
 end

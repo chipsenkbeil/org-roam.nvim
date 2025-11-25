@@ -4,25 +4,35 @@
 -- Setup logic for roam autocmds.
 -------------------------------------------------------------------------------
 
-local AUGROUP = vim.api.nvim_create_augroup("org-roam.nvim", {})
-
 ---@param roam OrgRoam
 return function(roam)
+    local group = roam.__augroup
+
     -- Watch as cursor moves around so we can support node changes
     local last_node = nil
     vim.api.nvim_create_autocmd({ "BufEnter", "CursorMoved" }, {
-        group = AUGROUP,
+        group = group,
         pattern = "*.org",
         callback = function()
             roam.utils.node_under_cursor(function(node)
-                -- If the node has changed (event getting cleared),
-                -- we want to emit the event
+                -- Only report when the node has changed
                 if last_node ~= node then
                     if node then
                         require("org-roam.core.log").fmt_debug("New node under cursor: %s", node.id)
+                        vim.api.nvim_exec_autocmds("User", {
+                            pattern = "OrgRoamNodeEnter",
+                            modeline = false,
+                            data = node,
+                        })
                     end
 
-                    roam.events.emit(roam.events.KIND.CURSOR_NODE_CHANGED, node)
+                    if last_node then
+                        vim.api.nvim_exec_autocmds("User", {
+                            pattern = "OrgRoamNodeLeave",
+                            modeline = false,
+                            data = last_node,
+                        })
+                    end
                 end
 
                 last_node = node
@@ -34,7 +44,7 @@ return function(roam)
     -- and trigger reload if an org-roam buffer
     if roam.config.database.update_on_save then
         vim.api.nvim_create_autocmd({ "BufWritePost", "FileWritePost" }, {
-            group = AUGROUP,
+            group = group,
             pattern = "*.org",
             callback = function()
                 -- TODO: If the directory format changes to blob in the
@@ -55,7 +65,7 @@ return function(roam)
     -- and save an updated version of the database
     if roam.config.database.persist then
         vim.api.nvim_create_autocmd("VimLeavePre", {
-            group = AUGROUP,
+            group = group,
             pattern = "*",
             callback = function()
                 -- Block, don't be async, as neovim could exit during async

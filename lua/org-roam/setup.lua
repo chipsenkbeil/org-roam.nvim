@@ -99,6 +99,10 @@ return function(roam)
         if not M.__initialize_database_done then
             M.__initialize_database_done = true
             return require("org-roam.setup.database")(roam):next(function()
+                vim.api.nvim_exec_autocmds("User", {
+                    pattern = "OrgRoamInitialized",
+                    modeline = false,
+                })
                 return nil
             end)
         else
