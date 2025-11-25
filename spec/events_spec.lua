@@ -36,9 +36,14 @@ describe("org-roam.events", function()
         local nodes = {}
 
         -- Register such that each change gets stored in the table above
-        roam.events.on_cursor_node_changed(function(node)
-            table.insert(nodes, node and node.id or "")
-        end)
+        vim.api.nvim_create_autocmd("User", {
+            group = "org-roam.nvim",
+            pattern = "OrgRoamNodeEnter",
+            callback = function(args)
+                local node = args.data
+                table.insert(nodes, node and node.id or "")
+            end,
+        })
 
         -- Load up a couple of files and create new windows to verify node changes
         -- NOTE: Only buffers with *.org will trigger, so empty new windows won't!
@@ -86,9 +91,14 @@ describe("org-roam.events", function()
         local nodes = {}
 
         -- Register such that each change gets stored in the table above
-        roam.events.on_cursor_node_changed(function(node)
-            table.insert(nodes, node and node.id or "")
-        end)
+        vim.api.nvim_create_autocmd("User", {
+            group = "org-roam.nvim",
+            pattern = "OrgRoamNodeEnter",
+            callback = function(args)
+                local node = args.data
+                table.insert(nodes, node and node.id or "")
+            end,
+        })
 
         -- Load the test file we just created
         vim.cmd.edit(test_path)
