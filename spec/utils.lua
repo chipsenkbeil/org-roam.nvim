@@ -414,6 +414,12 @@ function M.init_plugin(opts)
         end
 
         roam.setup(config)
+
+        -- Trigger org filetype so we also override the open_at_point impl
+        local ft = vim.bo.filetype
+        vim.bo.filetype = "org"
+        vim.bo.filetype = ft
+
         wait_until_ready()
     end
     return roam
