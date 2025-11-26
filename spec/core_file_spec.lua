@@ -5,6 +5,17 @@ describe("org-roam.core.file", function()
     -- Drop-in replacement for `math.huge` that we use for file node end range.
     local MAX_NUMBER = 2 ^ 31
 
+    before_each(function()
+        -- NOTE: We need to run this in this core test because org_file calls
+        --       are triggering the ftplugin/org.lua, which is trying to use
+        --       vim.cmd.something(...) and is failing because of a plenary issue
+        utils.init_before_test()
+    end)
+
+    after_each(function()
+        utils.cleanup_after_test()
+    end)
+
     it("parse blank orgfile", function()
         local orgfile = utils.org_file("")
 
@@ -135,6 +146,7 @@ describe("org-roam.core.file", function()
                 },
             },
         }, file.links)
+
         assert.are.same({
             ["1234"] = {
                 aliases = { "one alias", "two", "three", '"four"' },

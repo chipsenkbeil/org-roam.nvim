@@ -138,17 +138,20 @@ function M.org_file(content, opts)
         filename = filename .. ".org"
     end
 
-    -- Write to the file to ensure that it matches the content
-    -- to avoid testing race conditions somehow
     if not opts.skip_write then
         M.write_to(filename, content)
     end
 
+    -- NOTE: We MUST create a buffer with the lines, otherwise
+    --       there are issues when attempting to access the
+    --       range of the org file
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
+
     local file = OrgFile:new({
         filename = filename,
-        buf = nil, ---@diagnostic disable-line:assign-type-mismatch
+        buf = buf,
     })
-    file.lines = lines
     file:parse()
 
     return file

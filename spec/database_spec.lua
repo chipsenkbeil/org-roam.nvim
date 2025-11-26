@@ -10,6 +10,11 @@ describe("org-roam.database", function()
     local one_path, two_path, three_path
 
     before_each(function()
+        -- NOTE: We need to run this in this core test because org_file calls
+        --       are triggering the ftplugin/org.lua, which is trying to use
+        --       vim.cmd.something(...) and is failing because of a plenary issue
+        utils.init_before_test()
+
         local test_dir = utils.make_temp_org_files_directory()
         one_path = vim.fs.joinpath(test_dir, "one.org")
         two_path = vim.fs.joinpath(test_dir, "two.org")
@@ -20,6 +25,10 @@ describe("org-roam.database", function()
             directory = test_dir,
             org_files = {},
         })
+    end)
+
+    after_each(function()
+        utils.cleanup_after_test()
     end)
 
     it("should support loading new files from a directory", function()
