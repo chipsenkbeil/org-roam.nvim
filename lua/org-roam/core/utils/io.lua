@@ -179,6 +179,7 @@ end
 
 ---@class org-roam.core.utils.io.WalkOpts
 ---@field depth integer|nil #how deep the traverse (default 1)
+---@field follow boolean|nil #if true, follows symlinks
 ---@field resolve boolean|nil #if true, resolves paths
 ---@field skip (fun(dir_name: string): boolean)|nil #predicate
 
@@ -217,6 +218,7 @@ function M.walk(path, opts)
     local Iterator = require("org-roam.core.utils.iterator")
     return Iterator:new(vim.fs.dir(path, {
         depth = opts.depth,
+        follow = opts.follow,
         skip = opts.skip,
     })):map(map_entry)
 end

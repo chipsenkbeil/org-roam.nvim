@@ -44,8 +44,14 @@ describe("org-roam.core.utils.io", function()
         local root = vim.fs.dirname(tempname)
         local filename = "temp-" .. vim.fs.basename(tempname)
 
-        local name = vim.fs.joinpath(...)
-        local path = vim.fs.joinpath(root, name ~= "" and name or filename)
+        local path = vim.fs.joinpath(...)
+
+        -- If we were given a path, use it instead of our temporary one,
+        -- otherwise construct a temporary path
+        if path == "" then
+            path = vim.fs.joinpath(root, filename)
+        end
+
         assert(vim.fn.mkdir(path, "p"), "Failed to create " .. path)
         return path
     end
