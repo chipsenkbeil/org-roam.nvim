@@ -50,10 +50,18 @@ return function(roam)
                 -- TODO: If the directory format changes to blob in the
                 --       future, this will break. Is there a better way
                 --       to check if a file is an org-roam file?
-                local path = vim.fn.expand("<afile>:p")
-                local is_roam_file = vim.startswith(path, roam.config.directory)
+                --
+                -- Evaluate both our buffer's filepath and our roam directory
+                -- to ensure that they are accurate when working with symlinks
+                -- such as on MacOS where /var -> /private/var
+                local path = vim.uv.fs_realpath(vim.fn.expand("<afile>:p"))
+                local dir = vim.uv.fs_realpath(roam.config.directory)
+                if not path or not dir then
+                    return
+                end
 
-                if is_roam_file then
+                local relpath = vim.fs.relpath(dir, path)
+                if relpath then
                     require("org-roam.core.log").fmt_debug("Updating on save: %s", path)
                     roam.database:load_file({ path = path }):catch(require("org-roam.core.log").error)
                 end
