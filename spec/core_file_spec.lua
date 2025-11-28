@@ -139,9 +139,9 @@ describe("org-roam.core.file", function()
                 mtime = orgfile.metadata.mtime,
                 range = {
                     end_ = {
-                        column = 0,
-                        offset = 382,
-                        row = 14,
+                        column = 28,
+                        offset = 381,
+                        row = 13,
                     },
                     start = {
                         column = 0,
@@ -318,9 +318,9 @@ describe("org-roam.core.file", function()
                 mtime = orgfile.metadata.mtime,
                 range = {
                     end_ = {
-                        column = 0,
-                        offset = 890,
-                        row = 35,
+                        column = 28,
+                        offset = 889,
+                        row = 34,
                     },
                     start = {
                         column = 0,
