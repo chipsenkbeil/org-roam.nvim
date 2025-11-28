@@ -15,7 +15,11 @@ describe("org-roam.database", function()
         --       vim.cmd.something(...) and is failing because of a plenary issue
         utils.init_before_test()
 
-        local test_dir = utils.make_temp_org_files_directory()
+        local test_dir = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
         one_path = vim.fs.joinpath(test_dir, "one.org")
         two_path = vim.fs.joinpath(test_dir, "two.org")
         three_path = vim.fs.joinpath(test_dir, "three.org")

@@ -1,0 +1,35 @@
+:PROPERTIES:
+:ID: 1234
+:END:
+
+#+FILETAGS: :tag1:tag2:tag3:
+#+TITLE: test title
+
+Text outside of the headline won't be included in nodes.
+This includes [[id:1111][id links]].
+
+* Some headline :HEADLINE_TAG:
+:PROPERTIES:
+:ID: 5678
+:ROAM_ALIASES: "one alias" two three "\"four\""
+:END:
+
+This is a section node with [[https://example.com][web links]],
+and [[id:2222][id links]], only of which the id link will
+be captured within our node.
+
+* Another headline :HEADLINE_TAG_2:
+
+This is an regular section with [[https://example.com][web links]],
+and [[id:3333][id links]], only of which the id link will
+be captured as part of the file node.
+
+** Nested headline :HEADLINE_TAG_3:
+:PROPERTIES:
+:ID: abcd-1234
+:ROAM_ALIASES: five six
+:END:
+
+This is another section node with [[https://example.com][web links]],
+and [[id:4444][id links]], only of which the id link will
+be captured within our node.

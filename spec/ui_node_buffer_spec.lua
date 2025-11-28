@@ -12,7 +12,11 @@ describe("org-roam.ui.node-buffer", function()
         -- so extra features like cursor node tracking works
         roam = utils.init_plugin({
             setup = {
-                directory = utils.make_temp_org_files_directory(),
+                directory = utils.make_temp_org_files_directory({
+                    filter = function(entry)
+                        return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+                    end,
+                }),
             },
         })
         test_path_one = vim.fs.joinpath(roam.config.directory, "one.org")

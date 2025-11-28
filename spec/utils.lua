@@ -126,13 +126,24 @@ function M.indent(s)
     )
 end
 
+---Loads an orgfile from disk.
+---@param path string
+---@return OrgFile|false
+function M.load_org_file(path)
+    return OrgFile.load(path):wait()
+end
+
 ---Creates a new orgfile, stripping common indentation.
 ---@param content string
----@param opts? {path?:string, skip_write?:boolean}
+---@param opts? {path?:string, trim_empty?:boolean, skip_write?:boolean}
 ---@return OrgFile
 function M.org_file(content, opts)
     opts = opts or {}
-    local lines = vim.split(M.indent(content), "\n")
+
+    -- Remove leading spaces
+    content = M.indent(content)
+
+    local lines = vim.split(content, "\n", { trimempty = opts.trim_empty })
     local filename = opts.path or vim.fn.tempname()
     if not vim.endswith(filename, ".org") then
         filename = filename .. ".org"
@@ -191,14 +202,17 @@ end
 
 ---Creates a new temporary directory, copies the org files
 ---from `files/` into it, and returns the path.
+---@param opts? {filter?:fun(entry:org-roam.core.utils.io.WalkEntry):(boolean|nil)}
 ---@return string
-function M.make_temp_org_files_directory()
+function M.make_temp_org_files_directory(opts)
+    opts = opts or {}
+
     local root_dir = vim.fn.tempname() .. "_test_org_dir"
     assert(vim.fn.mkdir(root_dir, "p") == 1, "failed to create org directory")
 
     for entry in io.walk(ORG_FILES_DIR, { depth = math.huge }) do
         ---@cast entry org-roam.core.utils.io.WalkEntry
-        if entry.type == "file" then
+        if entry.type == "file" and (not opts.filter or opts.filter(entry)) then
             local data = io.read_file(entry.path):wait()
             io.write_file(vim.fs.joinpath(root_dir, entry.name), data):wait()
         end

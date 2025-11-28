@@ -10,7 +10,11 @@ describe("org-roam.api.origin", function()
 
         roam = utils.init_plugin({
             setup = {
-                directory = utils.make_temp_org_files_directory(),
+                directory = utils.make_temp_org_files_directory({
+                    filter = function(entry)
+                        return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+                    end,
+                }),
             },
         })
         test_dir = roam.config.directory
