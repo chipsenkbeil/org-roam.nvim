@@ -1,13 +1,11 @@
 describe("org-roam.ui.node-buffer", function()
-    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
-    before_each(function()
-        utils.init_before_test()
-
+    ---@return OrgRoam
+    local function setup_roam()
         -- Initialize an entirely new plugin and set it up
         -- so extra features like cursor node tracking works
-        roam = utils.init_plugin({
+        return utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory({
                     filter = function(entry)
@@ -16,6 +14,10 @@ describe("org-roam.ui.node-buffer", function()
                 }),
             },
         })
+    end
+
+    before_each(function()
+        utils.init_before_test()
     end)
 
     after_each(function()
@@ -23,6 +25,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should display node buffer that follows cursor if no node specified", function()
+        local roam = setup_roam()
         roam.database:load():wait()
 
         local test_path_one = vim.fs.joinpath(roam.config.directory, "one.org")
@@ -70,6 +73,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should include origin of node in the displayed node buffer if it has one", function()
+        local roam = setup_roam()
         roam.database:load():wait()
 
         local test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
@@ -98,6 +102,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should be able to navigate to the origin from the node buffer", function()
+        local roam = setup_roam()
         roam.database:load():wait()
 
         local test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
@@ -140,6 +145,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should be able to navigate to the link from the node buffer", function()
+        local roam = setup_roam()
         roam.database:load():wait()
 
         local test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
@@ -182,6 +188,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should be able to expand a link to display a preview within the node buffer", function()
+        local roam = setup_roam()
         roam.database:load():wait()
 
         local test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
@@ -224,6 +231,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should be able to expand all links to display previews within the node buffer", function()
+        local roam = setup_roam()
         roam.database:load():wait()
 
         local test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
@@ -260,6 +268,7 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should display node buffer for a fixed node specified", function()
+        local roam = setup_roam()
         roam.database:load():wait()
 
         local test_path_one = vim.fs.joinpath(roam.config.directory, "one.org")

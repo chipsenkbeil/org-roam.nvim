@@ -1,9 +1,5 @@
 describe("org-roam.events", function()
-    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
-
-    ---@type string, string, string
-    local test_path_one, test_path_two, test_path_three
 
     ---Moves cursor and forces a trigger of "CursorMoved".
     ---@param line integer
@@ -14,10 +10,9 @@ describe("org-roam.events", function()
         })
     end
 
-    before_each(function()
-        utils.init_before_test()
-
-        roam = utils.init_plugin({
+    ---@return OrgRoam roam, string one_path, string two_path, string three_path
+    local function setup_roam()
+        local roam = utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory({
                     filter = function(entry)
@@ -26,9 +21,15 @@ describe("org-roam.events", function()
                 }),
             },
         })
-        test_path_one = vim.fs.joinpath(roam.config.directory, "one.org")
-        test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
-        test_path_three = vim.fs.joinpath(roam.config.directory, "three.org")
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
+        local two_path = vim.fs.joinpath(roam.config.directory, "two.org")
+        local three_path = vim.fs.joinpath(roam.config.directory, "three.org")
+
+        return roam, one_path, two_path, three_path
+    end
+
+    before_each(function()
+        utils.init_before_test()
     end)
 
     after_each(function()
@@ -36,6 +37,8 @@ describe("org-roam.events", function()
     end)
 
     it("jumping between buffers should report node changes", function()
+        local _, test_path_one, test_path_two, test_path_three = setup_roam()
+
         ---@type string[]
         local nodes = {}
 
@@ -67,6 +70,8 @@ describe("org-roam.events", function()
     end)
 
     it("moving around buffer with multiple nodes should report changes", function()
+        local roam = setup_roam()
+
         -- Save the file without our test directory
         local test_path = vim.fs.joinpath(roam.config.directory, "new.org")
         utils.write_to(

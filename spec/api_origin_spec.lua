@@ -1,14 +1,9 @@
 describe("org-roam.api.origin", function()
-    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
-    ---@type string, string, string
-    local test_dir, test_org_file_path, one_path
-
-    before_each(function()
-        utils.init_before_test()
-
-        roam = utils.init_plugin({
+    ---@return OrgRoam
+    local function setup_roam()
+        return utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory({
                     filter = function(entry)
@@ -17,12 +12,10 @@ describe("org-roam.api.origin", function()
                 }),
             },
         })
-        test_dir = roam.config.directory
-        test_org_file_path = utils.make_temp_filename({
-            dir = roam.config.directory,
-            ext = "org",
-        })
-        one_path = vim.fs.joinpath(roam.config.directory, "one.org")
+    end
+
+    before_each(function()
+        utils.init_before_test()
     end)
 
     after_each(function()
@@ -30,7 +23,13 @@ describe("org-roam.api.origin", function()
     end)
 
     it("should be able to set the origin for the node under cursor", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file
         utils.write_to(test_org_file_path, {
@@ -61,7 +60,13 @@ describe("org-roam.api.origin", function()
     end)
 
     it("should be able to overwrite the origin for the node under cursor", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file
         utils.write_to(test_org_file_path, {
@@ -93,7 +98,13 @@ describe("org-roam.api.origin", function()
     end)
 
     it("should not error if removing the origin from the node under cursor with no origin", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file
         utils.write_to(test_org_file_path, {
@@ -123,7 +134,13 @@ describe("org-roam.api.origin", function()
     end)
 
     it("should be able to remove the origin from the node under cursor", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file
         utils.write_to(test_org_file_path, {
@@ -154,7 +171,13 @@ describe("org-roam.api.origin", function()
     end)
 
     it("should be able to go to the previous node if current node has an origin", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file with an origin
         utils.write_to(test_org_file_path, {
@@ -188,7 +211,13 @@ describe("org-roam.api.origin", function()
     end)
 
     it("should do nothing if visiting previous node if current node has no origin", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file with no origin
         utils.write_to(test_org_file_path, {
@@ -218,8 +247,11 @@ describe("org-roam.api.origin", function()
     end)
 
     it("should be able to go to the next node automatically if current node is used as origin in one place", function()
+        local roam = setup_roam()
         -- Load files into the database
         roam.database:load():wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Load a file used as an origin into the buffer
         vim.cmd.edit(one_path)
@@ -242,13 +274,14 @@ describe("org-roam.api.origin", function()
     end)
 
     it("should display a selection for next node if current node is used as origin in multiple places", function()
+        local roam = setup_roam()
         local id_1 = utils.random_id()
         local id_2 = utils.random_id()
         local id_3 = utils.random_id()
 
-        local path_1 = utils.make_temp_filename({ dir = test_dir, ext = "org" })
-        local path_2 = utils.make_temp_filename({ dir = test_dir, ext = "org" })
-        local path_3 = utils.make_temp_filename({ dir = test_dir, ext = "org" })
+        local path_1 = utils.make_temp_filename({ dir = roam.config.directory, ext = "org" })
+        local path_2 = utils.make_temp_filename({ dir = roam.config.directory, ext = "org" })
+        local path_3 = utils.make_temp_filename({ dir = roam.config.directory, ext = "org" })
 
         -- Create multiple test files with same origin
         utils.write_to(path_1, {
@@ -302,7 +335,13 @@ describe("org-roam.api.origin", function()
     end)
 
     it("should do nothing if visiting next node if current node is not used as origin anywhere", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file where no one has it as an origin
         utils.write_to(test_org_file_path, {

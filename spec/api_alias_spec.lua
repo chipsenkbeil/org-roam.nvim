@@ -1,18 +1,13 @@
 describe("org-roam.api.alias", function()
-    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
-    ---@type string
-    local test_org_file_path
+    ---@return OrgRoam
+    local function setup_roam()
+        return utils.init_plugin({ setup = true })
+    end
 
     before_each(function()
         utils.init_before_test()
-
-        roam = utils.init_plugin({ setup = true })
-        test_org_file_path = utils.make_temp_filename({
-            dir = roam.config.directory,
-            ext = "org",
-        })
     end)
 
     after_each(function()
@@ -20,7 +15,13 @@ describe("org-roam.api.alias", function()
     end)
 
     it("should be able to add the first alias to the node under cursor", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file
         utils.write_to(test_org_file_path, {
@@ -51,7 +52,13 @@ describe("org-roam.api.alias", function()
     end)
 
     it("should be able to add a second alias to the node under cursor", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file
         utils.write_to(test_org_file_path, {
@@ -83,7 +90,13 @@ describe("org-roam.api.alias", function()
     end)
 
     it("should not error if removing an alias from the node under cursor with no aliases", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file
         utils.write_to(test_org_file_path, {
@@ -113,7 +126,13 @@ describe("org-roam.api.alias", function()
     end)
 
     it("should not error if removing an invalid alias from the node under cursor", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file
         utils.write_to(test_org_file_path, {
@@ -152,7 +171,13 @@ describe("org-roam.api.alias", function()
     end)
 
     it("should be able to remove an alias from the node under cursor", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file
         utils.write_to(test_org_file_path, {
@@ -184,7 +209,13 @@ describe("org-roam.api.alias", function()
     end)
 
     it("should be able to remove all aliases from the node under cursor", function()
+        local roam = setup_roam()
         local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
 
         -- Create our test file
         utils.write_to(test_org_file_path, {

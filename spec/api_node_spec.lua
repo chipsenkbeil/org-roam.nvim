@@ -1,14 +1,9 @@
 describe("org-roam.api.node", function()
-    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
-    ---@type string
-    local one_path
-
-    before_each(function()
-        utils.init_before_test()
-
-        roam = utils.init_plugin({
+    ---@return OrgRoam
+    local function setup_roam()
+        return utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory({
                     filter = function(entry)
@@ -17,8 +12,10 @@ describe("org-roam.api.node", function()
                 }),
             },
         })
+    end
 
-        one_path = vim.fs.joinpath(roam.config.directory, "one.org")
+    before_each(function()
+        utils.init_before_test()
     end)
 
     after_each(function()
@@ -26,8 +23,12 @@ describe("org-roam.api.node", function()
     end)
 
     it("should capture by using the selected roam template", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -74,8 +75,12 @@ describe("org-roam.api.node", function()
     end)
 
     it("should capture using an optional set of custom templates if provided", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -131,8 +136,12 @@ describe("org-roam.api.node", function()
     end)
 
     it("should capture without prompting if immediate mode enabled", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -164,8 +173,12 @@ describe("org-roam.api.node", function()
     end)
 
     it("should insert link to existing node if selected", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -206,8 +219,12 @@ describe("org-roam.api.node", function()
     end)
 
     it("should insert link to existing node if selected using selected item's value", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -251,6 +268,8 @@ describe("org-roam.api.node", function()
     end)
 
     it("should insert link to existing node using alias if alias selected", function()
+        local roam = setup_roam()
+
         -- Create a node with a distinct alias
         local test_path = vim.fs.joinpath(roam.config.directory, "test-file.org")
         utils.write_to(test_path, {
@@ -262,6 +281,8 @@ describe("org-roam.api.node", function()
 
         -- Load files into the database (scan to pick up new file)
         roam.database:load({ force = "scan" }):wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -295,8 +316,12 @@ describe("org-roam.api.node", function()
     end)
 
     it("should create a new node and insert it if selected non-existing node", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -347,8 +372,12 @@ describe("org-roam.api.node", function()
     end)
 
     it("should create a new node using custom templates and insert it if selected non-existing node", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -407,8 +436,12 @@ describe("org-roam.api.node", function()
     end)
 
     it("should create a new node and insert it using immediate mode if specified", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -443,8 +476,12 @@ describe("org-roam.api.node", function()
     end)
 
     it("should find and open existing node if selected", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -478,8 +515,12 @@ describe("org-roam.api.node", function()
     end)
 
     it("should create a new node and navigate to it if find with non-existing node", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)
@@ -525,8 +566,12 @@ describe("org-roam.api.node", function()
     end)
 
     it("should create a new node using custom templates and navigate to it if find with non-existing node", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
+
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
 
         -- Open a file buffer so we avoid capture closing neovim
         vim.cmd.edit(one_path)

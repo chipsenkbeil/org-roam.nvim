@@ -1,14 +1,9 @@
 describe("org-roam.ui.quickfix", function()
-    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
-    ---@type string
-    local test_path_two
-
-    before_each(function()
-        utils.init_before_test()
-
-        roam = utils.init_plugin({
+    ---@return OrgRoam roam, string two_path
+    local function setup_roam()
+        local roam = utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory({
                     filter = function(entry)
@@ -17,7 +12,12 @@ describe("org-roam.ui.quickfix", function()
                 }),
             },
         })
-        test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
+        local two_path = vim.fs.joinpath(roam.config.directory, "two.org")
+        return roam, two_path
+    end
+
+    before_each(function()
+        utils.init_before_test()
     end)
 
     after_each(function()
@@ -25,6 +25,7 @@ describe("org-roam.ui.quickfix", function()
     end)
 
     it("should be able to display backlinks for the node under cursor", function()
+        local roam, test_path_two = setup_roam()
         roam.database:load():wait()
 
         -- Load up a test file
@@ -58,6 +59,7 @@ describe("org-roam.ui.quickfix", function()
     end)
 
     it("should be able to display links for the node under cursor", function()
+        local roam, test_path_two = setup_roam()
         roam.database:load():wait()
 
         -- Load up a test file
@@ -92,6 +94,7 @@ describe("org-roam.ui.quickfix", function()
     end)
 
     it("should distinguish multiple items of different types", function()
+        local roam, test_path_two = setup_roam()
         roam.database:load():wait()
 
         -- Load up a test file
@@ -112,6 +115,7 @@ describe("org-roam.ui.quickfix", function()
     end)
 
     it("should support including a preview for quickfix items", function()
+        local roam, test_path_two = setup_roam()
         roam.database:load():wait()
 
         -- Load up a test file

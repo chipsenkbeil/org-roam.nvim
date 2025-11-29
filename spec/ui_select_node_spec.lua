@@ -1,5 +1,4 @@
 describe("org-roam.ui.select-node", function()
-    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
     ---@param buf? integer
@@ -38,10 +37,9 @@ describe("org-roam.ui.select-node", function()
         end
     end
 
-    before_each(function()
-        utils.init_before_test()
-
-        roam = utils.init_plugin({
+    ---@return OrgRoam
+    local function setup_roam()
+        return utils.init_plugin({
             setup = {
                 directory = utils.make_temp_org_files_directory({
                     filter = function(entry)
@@ -50,6 +48,10 @@ describe("org-roam.ui.select-node", function()
                 }),
             },
         })
+    end
+
+    before_each(function()
+        utils.init_before_test()
     end)
 
     after_each(function()
@@ -57,6 +59,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should display titles and aliases of all nodes by default", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -78,6 +81,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support custom translations of nodes to items for selection using strings", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -107,6 +111,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support custom translations of nodes to items for selection using tables", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -136,6 +141,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support custom translations of nodes into multiple items", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -169,6 +175,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support displaying an item differently than its value", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -197,6 +204,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should use the node_to_items ui config by default", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -218,6 +226,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support limiting to only included node ids", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -238,6 +247,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support limiting to exclude specific node ids", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -258,6 +268,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support being provided initial input to filter by title/alias", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -287,6 +298,7 @@ describe("org-roam.ui.select-node", function()
             }
         end
 
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -317,6 +329,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support selecting automatically if filter matches one node", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -343,6 +356,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should not select automatically if filter does not select one node", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -373,6 +387,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should cancel and close itself if provided initial input with no matches", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -400,6 +415,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should support returning typed text as a label if missing true", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 
@@ -443,6 +459,7 @@ describe("org-roam.ui.select-node", function()
     end)
 
     it("should not support returning typed text as a label if missing false/unspecified", function()
+        local roam = setup_roam()
         roam.database:load():wait()
         local win = vim.api.nvim_get_current_win()
 

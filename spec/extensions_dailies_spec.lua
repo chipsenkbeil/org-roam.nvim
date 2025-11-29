@@ -1,28 +1,34 @@
 describe("org-roam.extensions.dailies", function()
-    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
     local Date = require("orgmode.objects.date")
 
-    ---@param date string|OrgDate
-    ---@param ... string|string[]
-    ---@return string path
-    local function write_date_file(date, ...)
-        if type(date) == "table" then
-            ---@diagnostic disable-next-line:cast-local-type
-            date = os.date("%Y-%m-%d", date.timestamp)
+    ---@return OrgRoam roam, fun(date:string|OrgDate, ...:string|string[]):string write_date_file
+    local function setup_roam()
+        local roam = utils.init_plugin({ setup = true })
+
+        ---@param date string|OrgDate
+        ---@param ... string|string[]
+        ---@return string path
+        local function write_date_file(date, ...)
+            if type(date) == "table" then
+                ---@diagnostic disable-next-line:cast-local-type
+                date = os.date("%Y-%m-%d", date.timestamp)
+            end
+
+            local path =
+                vim.fs.joinpath(roam.config.directory, roam.config.extensions.dailies.directory, date .. ".org")
+
+            utils.write_to(path, ...)
+
+            return path
         end
 
-        local path = vim.fs.joinpath(roam.config.directory, roam.config.extensions.dailies.directory, date .. ".org")
-
-        utils.write_to(path, ...)
-
-        return path
+        return roam, write_date_file
     end
 
     before_each(function()
         utils.init_before_test()
-        roam = utils.init_plugin({ setup = true })
     end)
 
     after_each(function()
@@ -30,6 +36,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support opening a calendar to capture by a specific date", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -77,6 +85,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support being provided a specific date for capture, not opening calendar", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -123,6 +133,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support capturing using today's date", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -169,6 +181,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support capturing using tomorrow's date", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -215,6 +229,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support capturing using yesterday's date", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -261,6 +277,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support navigating to a date whose note exists", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -286,6 +304,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support create an unsaved buffer when navigating to a date whose note is missing", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -310,6 +330,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support navigating to today's date whose note exists", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -331,6 +353,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support create an unsaved buffer when navigating to today's date whose note is missing", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -351,6 +375,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support navigating to tomorrow's date whose note exists", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -372,6 +398,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support create an unsaved buffer when navigating to tomorrow's date whose note is missing", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -392,6 +420,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support navigating to yesterday's date whose note exists", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -413,6 +443,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should support create an unsaved buffer when navigating to yesterday's date whose note is missing", function()
+        local roam = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -433,6 +465,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should not navigate to the next date if not at buffer that is a date", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -451,6 +485,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should not navigate to the next date (n=+1) if at most recent", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -468,6 +504,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should not navigate to the next date (n=-1) if at earliest", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -485,6 +523,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should navigate to the next date (n=+1) regardless of consecutive", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -502,6 +542,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should navigate to the next date (n=-1) regardless of consecutive", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -519,6 +561,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should not navigate to the next date if n results in out of range", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -536,6 +580,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should navigate to the next date if n results in range", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -553,6 +599,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should not navigate to the previous date if not at buffer that is a date", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -571,6 +619,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should not navigate to the previous date (n=+1) if at earliest", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -588,6 +638,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should not navigate to the previous date (n=-1) if at most recent", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -605,6 +657,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should navigate to the previous date (n=+1) regardless of consecutive", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -622,6 +676,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should navigate to the previous date (n=-1) regardless of consecutive", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -639,6 +695,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should not navigate to the previous date if n results in out of range", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
@@ -656,6 +714,8 @@ describe("org-roam.extensions.dailies", function()
     end)
 
     it("should navigate to the previous date if n results in range", function()
+        local roam, write_date_file = setup_roam()
+
         -- Load files into the database
         roam.database:load():wait()
 
