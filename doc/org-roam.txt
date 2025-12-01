@@ -1,4 +1,4 @@
-*org-roam.txt*          For NVIM v0.9.2         Last change: 2025 September 13
+*org-roam.txt*          For NVIM v0.9.2          Last change: 2025 December 01
 
 ==============================================================================
 Table of Contents                                 *org-roam-table-of-contents*
@@ -26,10 +26,14 @@ Table of Contents                                 *org-roam-table-of-contents*
   - RoamReset                                    |org-roam-commands-roamreset|
   - RoamSave                                      |org-roam-commands-roamsave|
   - RoamUpdate                                  |org-roam-commands-roamupdate|
-5. User Interface                                    |org-roam-user-interface|
+5. Autocommands                                        |org-roam-autocommands|
+  - OrgRoamInitialized              |org-roam-autocommands-orgroaminitialized|
+  - OrgRoamNodeEnter                  |org-roam-autocommands-orgroamnodeenter|
+  - OrgRoamNodeLeave                  |org-roam-autocommands-orgroamnodeleave|
+6. User Interface                                    |org-roam-user-interface|
   - Org Roam Buffer                  |org-roam-user-interface-org-roam-buffer|
   - Select Buffer                      |org-roam-user-interface-select-buffer|
-6. API                                                          |org-roam-api|
+7. API                                                          |org-roam-api|
   - Add Alias                                         |org-roam-api-add-alias|
   - Add Origin                                       |org-roam-api-add-origin|
   - Capture Node                                   |org-roam-api-capture-node|
@@ -43,7 +47,7 @@ Table of Contents                                 *org-roam-table-of-contents*
   - Toggle Node Buffer                       |org-roam-api-toggle-node-buffer|
   - Remove Alias                                   |org-roam-api-remove-alias|
   - Remove Origin                                 |org-roam-api-remove-origin|
-7. Database                                                |org-roam-database|
+8. Database                                                |org-roam-database|
   - Files                                            |org-roam-database-files|
   - Files Path                                  |org-roam-database-files-path|
   - Files Sync                                  |org-roam-database-files-sync|
@@ -65,8 +69,6 @@ Table of Contents                                 *org-roam-table-of-contents*
   - Load File                                    |org-roam-database-load-file|
   - Path                                              |org-roam-database-path|
   - Save                                              |org-roam-database-save|
-8. Events                                                    |org-roam-events|
-  - On Cursor Node Changed            |org-roam-events-on-cursor-node-changed|
 9. Promise                                                  |org-roam-promise|
   - Resolve and Reject                   |org-roam-promise-resolve-and-reject|
   - Promise:next                               |org-roam-promise-promise:next|
@@ -1324,7 +1326,64 @@ If `sync` argument is provided, will perform the update synchronously.
 
 
 ==============================================================================
-5. User Interface                                    *org-roam-user-interface*
+5. Autocommands                                        *org-roam-autocommands*
+
+
+ORGROAMINITIALIZED                  *org-roam-autocommands-orgroaminitialized*
+
+Triggered when the plugin is fully initialized, including the database.
+
+Example:
+
+>lua
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "OrgRoamInitialized",
+      callback = function()
+        vim.print("org roam initialized") -- Print initialized
+      end,
+    })
+<
+
+
+ORGROAMNODEENTER                      *org-roam-autocommands-orgroamnodeenter*
+
+Triggered when entering a buffer or moving a cursor to an org roam node.
+
+The `data` argument of the autocmd's callback will be set to the node.
+
+Example:
+
+>lua
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "OrgRoamNodeEnter",
+      callback = function(args)
+        vim.print(args.data) -- Print node entered
+      end,
+    })
+<
+
+
+ORGROAMNODELEAVE                      *org-roam-autocommands-orgroamnodeleave*
+
+Triggered when leaving a buffer or moving a cursor away from an org roam node.
+Note that this is only triggered when leaving one node for another.
+
+The `data` argument of the autocmd's callback will be set to the node.
+
+Example:
+
+>lua
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "OrgRoamNodeLeave",
+      callback = function(args)
+        vim.print(args.data) -- Print node left
+      end,
+    })
+<
+
+
+==============================================================================
+6. User Interface                                    *org-roam-user-interface*
 
 
 ORG ROAM BUFFER                      *org-roam-user-interface-org-roam-buffer*
@@ -1390,7 +1449,7 @@ buffers, you can also specifically identify the _select buffer_ by it's name
 
 
 ==============================================================================
-6. API                                                          *org-roam-api*
+7. API                                                          *org-roam-api*
 
 
 ADD ALIAS                                             *org-roam-api-add-alias*
@@ -1897,7 +1956,7 @@ Example:
 
 
 ==============================================================================
-7. Database                                                *org-roam-database*
+8. Database                                                *org-roam-database*
 
 
 FILES                                                *org-roam-database-files*
@@ -2557,37 +2616,6 @@ Example:
     local roam = require("org-roam")
     roam.database:save():next(function()
       print("Done!")
-    end)
-<
-
-
-==============================================================================
-8. Events                                                    *org-roam-events*
-
-
-ON CURSOR NODE CHANGED                *org-roam-events-on-cursor-node-changed*
-
-roam.events.on_cursornodechanged({cb})
-
-Description:
-
-Register a callback when a cursor move results in the node under the cursor
-changing. This will also be triggered when the cursor moves to a position where
-there is no node.
-
-Parameters:
-
-- {cb} triggered when the cursor moves to a different node or no node.
-    Takes the node as an argument, or nil if no node.
-
-Example:
-
->lua
-    local roam = require("org-roam")
-    roam.events.on_cursor_node_changed(function(node)
-      if node then
-        print("Node under cursor is " .. node.id)
-      end
     end)
 <
 
