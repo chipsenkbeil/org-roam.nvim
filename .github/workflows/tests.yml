@@ -45,7 +45,7 @@ jobs:
         os: [ubuntu-latest]
         include:
           - os: windows-latest
-            version: v0.11.4
+            version: v0.11.5
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
