@@ -21,7 +21,7 @@ env:
   ROAM_DEBUG: true
   ROAM_TEST_REPORT: true
   ROAM_WAIT_TIME: 500
-  ROAM_TEST_ORGMODE_BRANCH: revert-string-parser
+  ROAM_TEST_ORGMODE_BRANCH: master
 
 jobs:
   lint:
