@@ -1,22 +1,23 @@
 describe("org-roam.ui.node-buffer", function()
-    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
-    ---@type string, string
-    local test_path_one, test_path_two
+    ---@return OrgRoam
+    local function setup_roam()
+        -- Initialize an entirely new plugin and set it up
+        -- so extra features like cursor node tracking works
+        return utils.init_plugin({
+            setup = {
+                directory = utils.make_temp_org_files_directory({
+                    filter = function(entry)
+                        return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+                    end,
+                }),
+            },
+        })
+    end
 
     before_each(function()
         utils.init_before_test()
-
-        -- Initialize an entirely new plugin and set it up
-        -- so extra features like cursor node tracking works
-        roam = utils.init_plugin({
-            setup = {
-                directory = utils.make_temp_org_files_directory(),
-            },
-        })
-        test_path_one = utils.join_path(roam.config.directory, "one.org")
-        test_path_two = utils.join_path(roam.config.directory, "two.org")
     end)
 
     after_each(function()
@@ -24,7 +25,11 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should display node buffer that follows cursor if no node specified", function()
+        local roam = setup_roam()
         roam.database:load():wait()
+
+        local test_path_one = vim.fs.joinpath(roam.config.directory, "one.org")
+        local test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
 
         -- Load up multiple different files
         local one_win, two_win = utils.edit_files(test_path_one, test_path_two)
@@ -68,7 +73,10 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should include origin of node in the displayed node buffer if it has one", function()
+        local roam = setup_roam()
         roam.database:load():wait()
+
+        local test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
 
         vim.cmd.edit(test_path_two)
 
@@ -94,7 +102,10 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should be able to navigate to the origin from the node buffer", function()
+        local roam = setup_roam()
         roam.database:load():wait()
+
+        local test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
 
         -- Load up a test file so we have a node under cursor
         vim.cmd.edit(test_path_two)
@@ -134,7 +145,10 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should be able to navigate to the link from the node buffer", function()
+        local roam = setup_roam()
         roam.database:load():wait()
+
+        local test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
 
         -- Load up a test file so we have a node under cursor
         vim.cmd.edit(test_path_two)
@@ -174,7 +188,10 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should be able to expand a link to display a preview within the node buffer", function()
+        local roam = setup_roam()
         roam.database:load():wait()
+
+        local test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
 
         -- Load up a test file so we have a node under cursor
         vim.cmd.edit(test_path_two)
@@ -214,7 +231,10 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should be able to expand all links to display previews within the node buffer", function()
+        local roam = setup_roam()
         roam.database:load():wait()
+
+        local test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
 
         -- Load up a test file so we have a node under cursor
         vim.cmd.edit(test_path_two)
@@ -248,7 +268,11 @@ describe("org-roam.ui.node-buffer", function()
     end)
 
     it("should display node buffer for a fixed node specified", function()
+        local roam = setup_roam()
         roam.database:load():wait()
+
+        local test_path_one = vim.fs.joinpath(roam.config.directory, "one.org")
+        local test_path_two = vim.fs.joinpath(roam.config.directory, "two.org")
 
         -- Load up multiple different files
         local one_win, two_win = utils.edit_files(test_path_one, test_path_two)

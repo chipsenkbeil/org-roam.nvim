@@ -20,8 +20,8 @@ env:
   CI: true
   ROAM_DEBUG: true
   ROAM_TEST_REPORT: true
-  ROAM_TEST_ORGMODE_BRANCH: 0.7.1
   ROAM_WAIT_TIME: 500
+  ROAM_TEST_ORGMODE_BRANCH: master
 
 jobs:
   lint:
@@ -37,13 +37,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # NOTE: Nightly disabled until neovim/neovim#30792 is fixed!
+        # NOTE: Nightly disabled until neovim/neovim/issues/36306 and 
+        #       nvim-orgmode/orgmode/issues/1049 are fixed!
+        #
         #       Once it is fixed, add "nightly" back to version list.
-        version: [v0.11.0, v0.11.1, v0.11.2, v0.11.3, v0.11.4, nightly]
+        version: [v0.11.0, v0.11.1, v0.11.2, v0.11.3, v0.11.4, v0.11.5]
         os: [ubuntu-latest]
         include:
           - os: windows-latest
-            version: v0.11.4
+            version: v0.11.5
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -10,12 +10,16 @@ describe("org-roam.setup.modifications", function()
     end)
 
     it("should override orgmode's open_at_point to use roam's database first", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })

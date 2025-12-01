@@ -1,19 +1,21 @@
 describe("org-roam.api.completion", function()
-    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
 
-    ---@type string
-    local test_dir
+    ---@return OrgRoam
+    local function setup_roam()
+        return utils.init_plugin({
+            setup = {
+                directory = utils.make_temp_org_files_directory({
+                    filter = function(entry)
+                        return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+                    end,
+                }),
+            },
+        })
+    end
 
     before_each(function()
         utils.init_before_test()
-
-        roam = utils.init_plugin({
-            setup = {
-                directory = utils.make_temp_org_files_directory(),
-            },
-        })
-        test_dir = roam.config.directory
     end)
 
     after_each(function()
@@ -21,9 +23,10 @@ describe("org-roam.api.completion", function()
     end)
 
     it("should do nothing if the expression under cursor has no matching nodes", function()
+        local roam = setup_roam()
         local id = utils.random_id()
         local test_path = utils.make_temp_filename({
-            dir = test_dir,
+            dir = roam.config.directory,
             ext = "org",
         })
 
@@ -60,9 +63,10 @@ describe("org-roam.api.completion", function()
     end)
 
     it("should replace the expression under cursor with a link to the single matching node", function()
+        local roam = setup_roam()
         local id = utils.random_id()
         local test_path = utils.make_temp_filename({
-            dir = test_dir,
+            dir = roam.config.directory,
             ext = "org",
         })
 
@@ -99,9 +103,10 @@ describe("org-roam.api.completion", function()
     end)
 
     it("should provide a selection dialog if the expression under cursor has multiple matching nodes", function()
+        local roam = setup_roam()
         local id = utils.random_id()
         local test_path = utils.make_temp_filename({
-            dir = test_dir,
+            dir = roam.config.directory,
             ext = "org",
         })
 
@@ -147,9 +152,10 @@ describe("org-roam.api.completion", function()
     end)
 
     it("should populate the link's description with the selection dialog's item's value", function()
+        local roam = setup_roam()
         local id = utils.random_id()
         local test_path = utils.make_temp_filename({
-            dir = test_dir,
+            dir = roam.config.directory,
             ext = "org",
         })
 

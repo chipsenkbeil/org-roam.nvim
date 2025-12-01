@@ -4,8 +4,6 @@
 -- Setup logic for roam database.
 -------------------------------------------------------------------------------
 
-local notify = require("org-roam.core.ui.notify")
-
 ---@param roam OrgRoam
 ---@return OrgPromise<{database:org-roam.core.Database, files:OrgFiles}>
 return function(roam)
@@ -30,5 +28,5 @@ return function(roam)
                 return Promise.resolve(nil)
             end
         end)
-        :catch(notify.error)
+        :catch(require("org-roam.core.ui.notify").error)
 end

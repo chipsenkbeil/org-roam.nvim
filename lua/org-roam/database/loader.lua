@@ -4,15 +4,6 @@
 -- Core logic to load all components of the database.
 -------------------------------------------------------------------------------
 
-local Database = require("org-roam.core.database")
-local File = require("org-roam.core.file")
-local io = require("org-roam.core.utils.io")
-local join_path = require("org-roam.core.utils.path").join
-local log = require("org-roam.core.log")
-local OrgFiles = require("orgmode.files")
-local Promise = require("orgmode.utils.promise")
-local schema = require("org-roam.database.schema")
-
 ---@class org-roam.database.Loader
 ---@field path {database:string, files:string[]}
 ---@field __db org-roam.core.Database #cache of loaded database
@@ -40,7 +31,7 @@ function M:new(opts)
         local ext = vim.fn.fnamemodify(file, ":e")
         local is_org = ext == "org" or ext == "org_archive"
         if not is_org then
-            instance.path.files[i] = join_path(file, "**", "*")
+            instance.path.files[i] = vim.fs.joinpath(file, "**", "*")
         end
     end
 
@@ -91,7 +82,8 @@ end
 ---@return integer removed_node_cnt
 local function remove_file_from_database(db, filename)
     local cnt = 0
-    for _, id in ipairs(db:find_by_index(schema.FILE, filename)) do
+
+    for _, id in ipairs(db:find_by_index(require("org-roam.database.schema").FILE, filename)) do
         db:remove(id)
         cnt = cnt + 1
     end
@@ -105,9 +97,9 @@ end
 local function modify_file_in_database(db, file, opts)
     opts = opts or {}
 
-    local ids = db:find_by_index(schema.FILE, file.filename)
+    local ids = db:find_by_index(require("org-roam.database.schema").FILE, file.filename)
     if #ids == 0 then
-        log.fmt_debug("modify file (%s) in database canceled (no node)", file.filename)
+        require("org-roam.core.log").fmt_debug("modify file (%s) in database canceled (no node)", file.filename)
         return 0
     end
 
@@ -117,12 +109,12 @@ local function modify_file_in_database(db, file, opts)
     -- Skip if not forcing and the file hasn't changed since
     -- the last time we inserted/modified nodes
     if not opts.force and file.metadata.mtime == mtime then
-        log.fmt_debug("modify file (%s) in database canceled (no change)", file.filename)
+        require("org-roam.core.log").fmt_debug("modify file (%s) in database canceled (no change)", file.filename)
         return 0
     end
 
     -- Construct information from org file
-    local roam_file = File:from_org_file(file)
+    local roam_file = require("org-roam.core.file"):from_org_file(file)
     local cnt = 0
 
     -- Clear out existing nodes as some might have moved file,
@@ -173,12 +165,12 @@ local function insert_new_file_into_database(db, file, opts)
     --
     --       I'm not sure if this is needed. We may never encounter
     --       this situation, but I'm leaving it in for now.
-    local has_file = not vim.tbl_isempty(db:find_by_index(schema.FILE, file.filename))
+    local has_file = not vim.tbl_isempty(db:find_by_index(require("org-roam.database.schema").FILE, file.filename))
     if has_file then
         return modify_file_in_database(db, file, opts)
     end
 
-    local roam_file = File:from_org_file(file)
+    local roam_file = require("org-roam.core.file"):from_org_file(file)
     local cnt = 0
     for id, node in pairs(roam_file.nodes) do
         db:insert(node, { id = id })
@@ -205,98 +197,102 @@ function M:load(opts)
     local force_scan = opts.force == "scan" or opts.force == true
 
     -- Reload all org-roam files
-    return Promise.all({
-        self:database(),
-        self:files({ force = force_scan }),
-    }):next(function(results)
-        ---@type org-roam.core.Database, OrgFiles
-        local db, files = results[1], results[2]
+    return require("orgmode.utils.promise")
+        .all({
+            self:database(),
+            self:files({ force = force_scan }),
+        })
+        :next(function(results)
+            ---@type org-roam.core.Database, OrgFiles
+            local db, files = results[1], results[2]
 
-        -- Figure out which files are new, deleted, or modified
-        -- Left-only means deleted
-        -- Right-only means new
-        -- Both means modified
-        local filenames = find_distinct(db:iter_index_keys(schema.FILE):collect(), files:filenames())
+            -- Figure out which files are new, deleted, or modified
+            -- Left-only means deleted
+            -- Right-only means new
+            -- Both means modified
+            local filenames =
+                find_distinct(db:iter_index_keys(require("org-roam.database.schema").FILE):collect(), files:filenames())
 
-        local promises = { remove = {}, insert = {}, modify = {} }
+            local promises = { remove = {}, insert = {}, modify = {} }
 
-        -- For each deleted file, remove from database
-        for _, filename in ipairs(filenames.left) do
-            table.insert(
-                promises.remove,
-                Promise.new(function(resolve)
-                    vim.schedule(function()
-                        log.fmt_debug("removing from database: %s", filename)
-                        resolve(remove_file_from_database(db, filename))
+            -- For each deleted file, remove from database
+            for _, filename in ipairs(filenames.left) do
+                table.insert(
+                    promises.remove,
+                    require("orgmode.utils.promise").new(function(resolve)
+                        vim.schedule(function()
+                            require("org-roam.core.log").fmt_debug("removing from database: %s", filename)
+                            resolve(remove_file_from_database(db, filename))
+                        end)
                     end)
+                )
+            end
+
+            -- For each new file, insert into database
+            for _, filename in ipairs(filenames.right) do
+                -- Retrieve the changedtick of the file since we do not store that
+                -- in our node, and check if the reloaded file has an updated tick
+                --
+                -- If it does, then that means it was refreshed from tick instead
+                -- of mtime, so we need to force a modification since mtime will
+                -- appear to have not changed
+                local maybe_file = files.all_files[filename]
+                local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
+
+                table.insert(
+                    promises.insert,
+                    files:load_file(filename):next(function(file)
+                        if file then
+                            require("org-roam.core.log").fmt_debug("inserting into database: %s", file.filename)
+                            return insert_new_file_into_database(db, file, {
+                                force = force_modify or file.metadata.changedtick ~= changedtick,
+                            })
+                        else
+                            return 0
+                        end
+                    end)
+                )
+            end
+
+            -- For each modified file, check the modified time (any node will do)
+            -- to see if we need to refresh nodes for a file
+            for _, filename in ipairs(filenames.both) do
+                -- Retrieve the changedtick of the file since we do not store that
+                -- in our node, and check if the reloaded file has an updated tick
+                --
+                -- If it does, then that means it was refreshed from tick instead
+                -- of mtime, so we need to force a modification since mtime will
+                -- appear to have not changed
+                local maybe_file = files.all_files[filename]
+                local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
+
+                table.insert(
+                    promises.modify,
+                    files:load_file(filename):next(function(file)
+                        if file then
+                            require("org-roam.core.log").fmt_debug("modifying in database: %s", file.filename)
+                            return modify_file_in_database(db, file, {
+                                force = force_modify or file.metadata.changedtick ~= changedtick,
+                            })
+                        else
+                            return 0
+                        end
+                    end)
+                )
+            end
+
+            return require("orgmode.utils.promise")
+                .all(promises.remove)
+                :next(function()
+                    return require("orgmode.utils.promise").all(promises.insert)
                 end)
-            )
-        end
-
-        -- For each new file, insert into database
-        for _, filename in ipairs(filenames.right) do
-            -- Retrieve the changedtick of the file since we do not store that
-            -- in our node, and check if the reloaded file has an updated tick
-            --
-            -- If it does, then that means it was refreshed from tick instead
-            -- of mtime, so we need to force a modification since mtime will
-            -- appear to have not changed
-            local maybe_file = files.all_files[filename]
-            local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
-
-            table.insert(
-                promises.insert,
-                files:load_file(filename):next(function(file)
-                    if file then
-                        log.fmt_debug("inserting into database: %s", file.filename)
-                        return insert_new_file_into_database(db, file, {
-                            force = force_modify or file.metadata.changedtick ~= changedtick,
-                        })
-                    else
-                        return 0
-                    end
+                :next(function()
+                    return require("orgmode.utils.promise").all(promises.modify)
                 end)
-            )
-        end
-
-        -- For each modified file, check the modified time (any node will do)
-        -- to see if we need to refresh nodes for a file
-        for _, filename in ipairs(filenames.both) do
-            -- Retrieve the changedtick of the file since we do not store that
-            -- in our node, and check if the reloaded file has an updated tick
-            --
-            -- If it does, then that means it was refreshed from tick instead
-            -- of mtime, so we need to force a modification since mtime will
-            -- appear to have not changed
-            local maybe_file = files.all_files[filename]
-            local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
-
-            table.insert(
-                promises.modify,
-                files:load_file(filename):next(function(file)
-                    if file then
-                        log.fmt_debug("modifying in database: %s", file.filename)
-                        return modify_file_in_database(db, file, {
-                            force = force_modify or file.metadata.changedtick ~= changedtick,
-                        })
-                    else
-                        return 0
-                    end
+                :next(function()
+                    return { database = db, files = files }
                 end)
-            )
-        end
-
-        return Promise.all(promises.remove)
-            :next(function()
-                return Promise.all(promises.insert)
-            end)
-            :next(function()
-                return Promise.all(promises.modify)
-            end)
-            :next(function()
-                return { database = db, files = files }
-            end)
-    end)
+        end)
 end
 
 ---Loads a file into the database.
@@ -308,67 +304,71 @@ end
 ---@param opts {path:string, force?:boolean}
 ---@return OrgPromise<{file:OrgFile, nodes:org-roam.core.file.Node[]}>
 function M:load_file(opts)
-    return Promise.all({
-        self:database(),
-        self:files({ skip = true }),
-    }):next(function(results)
-        ---@type org-roam.core.Database, OrgFiles
-        local db, files = results[1], results[2]
+    return require("orgmode.utils.promise")
+        .all({
+            self:database(),
+            self:files({ skip = true }),
+        })
+        :next(function(results)
+            ---@type org-roam.core.Database, OrgFiles
+            local db, files = results[1], results[2]
 
-        -- Retrieve the changedtick of the file since we do not store that
-        -- in our node, and check if the reloaded file has an updated tick
-        --
-        -- If it does, then that means it was refreshed from tick instead
-        -- of mtime, so we need to force a modification since mtime will
-        -- appear to have not changed
-        local maybe_file = files.all_files[opts.path]
-        local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
+            -- Retrieve the changedtick of the file since we do not store that
+            -- in our node, and check if the reloaded file has an updated tick
+            --
+            -- If it does, then that means it was refreshed from tick instead
+            -- of mtime, so we need to force a modification since mtime will
+            -- appear to have not changed
+            local maybe_file = files.all_files[opts.path]
+            local changedtick = maybe_file and maybe_file.metadata.changedtick or 0
 
-        -- This both loads the file and adds it to our file path if not there already
-        return Promise.new(function(resolve, reject)
-            files
-                :load_file(opts.path, { persist = true })
-                :next(function(file)
-                    -- If false, means failed to add the file
-                    if not file then
-                        reject("invalid path to org file: " .. opts.path)
+            -- This both loads the file and adds it to our file path if not there already
+            return require("orgmode.utils.promise").new(function(resolve, reject)
+                files
+                    :load_file(opts.path, { persist = true })
+                    :next(function(file)
+                        -- If false, means failed to add the file
+                        if not file then
+                            reject("invalid path to org file: " .. opts.path)
+                            return file
+                        end
+
+                        -- Determine if the file already exists through nodes in the db
+                        local ids = db:find_by_index(require("org-roam.database.schema").FILE, file.filename)
+                        local has_file = not vim.tbl_isempty(ids)
+
+                        if has_file then
+                            require("org-roam.core.log").fmt_debug("modifying in database: %s", file.filename)
+                            modify_file_in_database(db, file, {
+                                force = opts.force or file.metadata.changedtick ~= changedtick,
+                            })
+                        else
+                            require("org-roam.core.log").fmt_debug("inserting into database: %s", file.filename)
+                            insert_new_file_into_database(db, file, {
+                                force = opts.force or file.metadata.changedtick ~= changedtick,
+                            })
+
+                            -- To allow a newly created roam file to be accessible for refiling and other
+                            -- convenience features of orgmode, it must be add to the orgmode database.
+                            -- Although it might be expected, that files:add_to_paths already does that,
+                            -- this is currently not the case.
+                            -- So the next line is a workaround to achieve this goal. Some rework at orgmodes
+                            -- file-loading is to be expected and when it's done, this line can be removed.
+                            require("orgmode").files:load_file(file.filename, { persist = true })
+                        end
+
+                        resolve({
+                            file = file,
+                            nodes = vim.tbl_values(
+                                db:get_many(db:find_by_index(require("org-roam.database.schema").FILE, file.filename))
+                            ),
+                        })
+
                         return file
-                    end
-
-                    -- Determine if the file already exists through nodes in the db
-                    local ids = db:find_by_index(schema.FILE, file.filename)
-                    local has_file = not vim.tbl_isempty(ids)
-
-                    if has_file then
-                        log.fmt_debug("modifying in database: %s", file.filename)
-                        modify_file_in_database(db, file, {
-                            force = opts.force or file.metadata.changedtick ~= changedtick,
-                        })
-                    else
-                        log.fmt_debug("inserting into database: %s", file.filename)
-                        insert_new_file_into_database(db, file, {
-                            force = opts.force or file.metadata.changedtick ~= changedtick,
-                        })
-
-                        -- To allow a newly created roam file to be accessible for refiling and other
-                        -- convenience features of orgmode, it must be add to the orgmode database.
-                        -- Although it might be expected, that files:add_to_paths already does that,
-                        -- this is currently not the case.
-                        -- So the next line is a workaround to achieve this goal. Some rework at orgmodes
-                        -- file-loading is to be expected and when it's done, this line can be removed.
-                        require("orgmode").files:load_file(file.filename, { persist = true })
-                    end
-
-                    resolve({
-                        file = file,
-                        nodes = vim.tbl_values(db:get_many(db:find_by_index(schema.FILE, file.filename))),
-                    })
-
-                    return file
-                end)
-                :catch(reject)
+                    end)
+                    :catch(reject)
+            end)
         end)
-    end)
 end
 
 ---Loads database (or retrieves from cache) asynchronously.
@@ -376,24 +376,26 @@ end
 function M:database()
     local state = self.__load_state
     if state == nil then
-        local promise = io.stat(self.path.database)
+        local promise = require("org-roam.core.utils.io")
+            .stat(self.path.database)
             :next(function()
-                return Database:load_from_disk(self.path.database)
+                return require("org-roam.core.database")
+                    :load_from_disk(self.path.database)
                     :next(function(db)
-                        schema:update(db)
+                        require("org-roam.database.schema"):update(db)
                         self.__db = db
                         self.__load_state = true
                         return nil
                     end)
                     :catch(function(err)
-                        log.fmt_error("Failed to load database: %s", err)
+                        require("org-roam.core.log").fmt_error("Failed to load database: %s", err)
                         -- Punt error to the outer `catch` so it can create the database.
                         error(err)
                     end)
             end)
             :catch(function()
-                local db = Database:new()
-                schema:update(db)
+                local db = require("org-roam.core.database"):new()
+                require("org-roam.database.schema"):update(db)
                 self.__db = db
                 self.__load_state = true
             end)
@@ -404,7 +406,7 @@ function M:database()
         self.__load_state = state
         return state
     elseif state == true then
-        return Promise.resolve(self.__db)
+        return require("orgmode.utils.promise").resolve(self.__db)
     else
         return state
     end
@@ -424,14 +426,14 @@ function M:files(opts)
     opts = opts or {}
 
     -- Grab or create org files (not loaded)
-    local files = self.__files or OrgFiles:new({ paths = self.path.files })
+    local files = self.__files or require("orgmode.files"):new({ paths = self.path.files })
     self.__files = files
 
     -- If not skipping, perform loading/reloading of org files
     if not opts.skip then
         return files:load(opts.force)
     else
-        return Promise.resolve(files)
+        return require("orgmode.utils.promise").resolve(files)
     end
 end
 

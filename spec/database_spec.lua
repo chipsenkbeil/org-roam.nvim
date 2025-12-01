@@ -2,27 +2,40 @@ describe("org-roam.database", function()
     local Database = require("org-roam.database")
     local utils = require("spec.utils")
 
-    ---Database populated before each test.
-    ---@type org-roam.Database
-    local db
+    ---@return org-roam.Database db, string one_path, string two_path, string three_path
+    local function setup_db()
+        local test_dir = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
+        local one_path = vim.fs.joinpath(test_dir, "one.org")
+        local two_path = vim.fs.joinpath(test_dir, "two.org")
+        local three_path = vim.fs.joinpath(test_dir, "three.org")
 
-    ---@type string, string, string
-    local one_path, two_path, three_path
-
-    before_each(function()
-        local test_dir = utils.make_temp_org_files_directory()
-        one_path = utils.join_path(test_dir, "one.org")
-        two_path = utils.join_path(test_dir, "two.org")
-        three_path = utils.join_path(test_dir, "three.org")
-
-        db = Database:new({
-            db_path = utils.join_path(test_dir, "db"),
+        local db = Database:new({
+            db_path = vim.fs.joinpath(test_dir, "db"),
             directory = test_dir,
             org_files = {},
         })
+
+        return db, one_path, two_path, three_path
+    end
+
+    before_each(function()
+        -- NOTE: We need to run this in this core test because org_file calls
+        --       are triggering the ftplugin/org.lua, which is trying to use
+        --       vim.cmd.something(...) and is failing because of a plenary issue
+        utils.init_before_test()
+    end)
+
+    after_each(function()
+        utils.cleanup_after_test()
     end)
 
     it("should support loading new files from a directory", function()
+        local db = setup_db()
+
         -- Trigger initial loading of all files
         db:load():wait()
 
@@ -40,6 +53,8 @@ describe("org-roam.database", function()
     end)
 
     it("should support loading modified files from a directory", function()
+        local db, one_path = setup_db()
+
         -- Trigger initial loading of all files
         db:load():wait()
 
@@ -67,6 +82,8 @@ describe("org-roam.database", function()
     end)
 
     it("should support loading a new single file", function()
+        local db, one_path = setup_db()
+
         -- Load a singular file
         db:load_file({ path = one_path }):wait()
 
@@ -81,6 +98,8 @@ describe("org-roam.database", function()
     end)
 
     it("should support loading a modified single file", function()
+        local db, one_path = setup_db()
+
         -- Load a singular file
         db:load_file({ path = one_path }):wait()
 
@@ -100,6 +119,8 @@ describe("org-roam.database", function()
     end)
 
     it("should support loading a modified file when loading the directory containing it", function()
+        local db, one_path = setup_db()
+
         -- Load a singular file
         db:load_file({ path = one_path }):wait()
 
@@ -123,6 +144,8 @@ describe("org-roam.database", function()
     end)
 
     it("should support loading a single modified file after loading the directory containing it", function()
+        local db, one_path = setup_db()
+
         -- Trigger initial loading of all files
         db:load():wait()
 
@@ -150,6 +173,8 @@ describe("org-roam.database", function()
     end)
 
     it("should support retrieving nodes by alias", function()
+        local db = setup_db()
+
         -- Trigger initial loading of all files
         db:load():wait()
 
@@ -168,6 +193,8 @@ describe("org-roam.database", function()
     end)
 
     it("should support retrieving nodes by file", function()
+        local db, one_path, two_path, three_path = setup_db()
+
         -- Trigger initial loading of all files
         db:load():wait()
 
@@ -186,6 +213,8 @@ describe("org-roam.database", function()
     end)
 
     it("should support retrieving nodes by origin", function()
+        local db = setup_db()
+
         -- Trigger initial loading of all files
         db:load():wait()
 
@@ -204,6 +233,8 @@ describe("org-roam.database", function()
     end)
 
     it("should support retrieving nodes by tag", function()
+        local db = setup_db()
+
         -- Trigger initial loading of all files
         db:load():wait()
 
@@ -222,6 +253,8 @@ describe("org-roam.database", function()
     end)
 
     it("should support retrieving nodes by title", function()
+        local db = setup_db()
+
         -- Trigger initial loading of all files
         db:load():wait()
 
@@ -240,6 +273,8 @@ describe("org-roam.database", function()
     end)
 
     it("should support retrieving links by file", function()
+        local db, _, two_path = setup_db()
+
         -- Trigger initial loading of all files
         db:load():wait()
 
@@ -256,6 +291,8 @@ describe("org-roam.database", function()
     end)
 
     it("should support retrieving backlinks by file", function()
+        local db, _, two_path = setup_db()
+
         -- Trigger initial loading of all files
         db:load():wait()
 

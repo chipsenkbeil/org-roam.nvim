@@ -4,13 +4,6 @@
 -- Buffer interface for org-roam.
 -------------------------------------------------------------------------------
 
-local Emitter = require("org-roam.core.utils.emitter")
-local notify = require("org-roam.core.ui.notify")
-local random = require("org-roam.core.utils.random")
-local tbl_utils = require("org-roam.core.utils.table")
-local ui_utils = require("org-roam.core.utils.ui")
-local Component = require("org-roam.core.ui.component")
-
 local EVENTS = {
     ---When rendering is about to start.
     PRE_RENDER = "pre_render",
@@ -69,7 +62,7 @@ local function make_buffer(opts)
     assert(bufnr ~= 0, "failed to create buffer")
 
     -- Set name to something random (unless specified)
-    vim.api.nvim_buf_set_name(bufnr, opts.name or ("org-roam-" .. random.uuid_v4()))
+    vim.api.nvim_buf_set_name(bufnr, opts.name or ("org-roam-" .. require("org-roam.core.utils.random").uuid_v4()))
 
     -- Clear out all options that we've used explicitly
     opts.name = nil
@@ -78,7 +71,7 @@ local function make_buffer(opts)
 
     -- Apply all remaining options passed
     for k, v in pairs(opts) do
-        vim.api.nvim_buf_set_option(bufnr, k, v)
+        vim.api.nvim_set_option_value(k, v, { buf = bufnr })
     end
 
     return bufnr
@@ -99,7 +92,7 @@ function M:new(opts)
     instance.__bufnr = make_buffer(opts)
     instance.__offset = offset
     instance.__namespace = vim.api.nvim_create_namespace(vim.api.nvim_buf_get_name(instance.__bufnr))
-    instance.__emitter = Emitter:new()
+    instance.__emitter = require("org-roam.core.utils.emitter"):new()
     instance.__state = STATE.IDLE
     instance.__keybindings = { registered = {}, callbacks = {} }
     instance.__components = {}
@@ -113,7 +106,7 @@ end
 function M:add_component(component)
     -- If given a raw function, convert it into a component
     if type(component) == "function" then
-        component = Component:new(component)
+        component = require("org-roam.core.ui.component"):new(component)
     end
 
     table.insert(self.__components, component)
@@ -229,7 +222,7 @@ end
 
 ---@return boolean
 function M:is_modifiable()
-    return vim.api.nvim_buf_get_option(self.__bufnr, "modifiable") == true
+    return vim.api.nvim_get_option_value("modifiable", { buf = self.__bufnr }) == true
 end
 
 ---Set buffer to paused rendering state, canceling any scheduled render.
@@ -291,7 +284,7 @@ function M:render(opts)
         ---@type {win:integer, pos:{[1]:integer, [2]:integer}}[]
         local cursors = vim.tbl_map(function(winnr)
             return { win = winnr, pos = vim.api.nvim_win_get_cursor(winnr) }
-        end, ui_utils.get_windows_for_buffer(self.__bufnr))
+        end, require("org-roam.core.utils.ui").get_windows_for_buffer(self.__bufnr))
 
         -- Clear the buffer of its content
         -- NOTE: If clear fails, something has gone wrong in neovim, which
@@ -304,7 +297,7 @@ function M:render(opts)
                 if ret.ok then
                     self:__apply_lines(ret.lines, true)
                 else
-                    notify.error("component failed: " .. ret.error)
+                    require("org-roam.core.ui.notify").error("component failed: " .. ret.error)
                 end
             end
         end
@@ -343,7 +336,7 @@ function M:__apply_lines(ui_lines, force)
 
     local modifiable = self:is_modifiable()
     if force then
-        vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+        vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
     end
 
     -- Check if the buffer is empty
@@ -458,7 +451,10 @@ function M:__apply_lines(ui_lines, force)
 
     -- Apply all highlights
     for _, hl in ipairs(highlights) do
-        vim.api.nvim_buf_add_highlight(self.__bufnr, self.__namespace, hl.group, hl.line, hl.cstart, hl.cend)
+        vim.api.nvim_buf_set_extmark(self.__bufnr, self.__namespace, hl.line, hl.cstart, {
+            hl_group = hl.group,
+            end_col = hl.cend,
+        })
     end
 
     -- Extract out global lazy functions so we don't call them
@@ -534,12 +530,14 @@ function M:__apply_lines(ui_lines, force)
                 local lhs = kb.lhs
 
                 -- Trigger all callbacks for the line
-                for _, cb in ipairs(tbl_utils.get(self.__keybindings.callbacks, line, lhs) or {}) do
+                local line_cbs = (self.__keybindings.callbacks[line] and self.__keybindings.callbacks[line][lhs]) or {}
+                for _, cb in ipairs(line_cbs) do
                     vim.schedule(cb)
                 end
 
                 -- Trigger all global callbacks (line == -1)
-                for _, cb in ipairs(tbl_utils.get(self.__keybindings.callbacks, -1, lhs) or {}) do
+                local global_cbs = (self.__keybindings.callbacks[-1] and self.__keybindings.callbacks[-1][lhs]) or {}
+                for _, cb in ipairs(global_cbs) do
                     vim.schedule(cb)
                 end
             end, {
@@ -551,7 +549,7 @@ function M:__apply_lines(ui_lines, force)
     end
 
     if force then
-        vim.api.nvim_buf_set_option(bufnr, "modifiable", modifiable)
+        vim.api.nvim_set_option_value("modifiable", modifiable, { buf = bufnr })
     end
 end
 
@@ -565,7 +563,7 @@ function M:__clear(opts)
 
     local modifiable = self:is_modifiable()
     if force then
-        vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", true)
+        vim.api.nvim_set_option_value("modifiable", true, { buf = self.__bufnr })
     end
 
     -- Clear highlights and contents of the buffer
@@ -578,7 +576,7 @@ function M:__clear(opts)
     --       I tried to add a check earlier to see if the buffer was loaded,
     --       but it didn't do anything to help. So for now we're ignoring
     --       this as this seems to happen in the test only and does not stop
-    --       the test from completing successfull.
+    --       the test from completing successfully.
     vim.api.nvim_buf_clear_namespace(self.__bufnr, self.__namespace, self.__offset, -1)
 
     -- NOTE: This fails with "E315: ml_get: invalid lnum: 2" in our CI (sometimes); so,
@@ -588,7 +586,7 @@ function M:__clear(opts)
     local ok = pcall(vim.api.nvim_buf_set_lines, self.__bufnr, self.__offset, -1, true, {})
 
     if force then
-        vim.api.nvim_buf_set_option(self.__bufnr, "modifiable", modifiable)
+        vim.api.nvim_set_option_value("modifiable", modifiable, { buf = self.__bufnr })
     end
 
     return ok

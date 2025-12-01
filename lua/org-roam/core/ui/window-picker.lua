@@ -5,10 +5,6 @@
 -- Modelled after nvim-window-picker (https://github.com/s1n7ax/nvim-window-picker).
 -------------------------------------------------------------------------------
 
-local Emitter = require("org-roam.core.utils.emitter")
-local Hint = require("org-roam.core.ui.window-picker.hint")
-local notify = require("org-roam.core.ui.notify")
-
 local DEFAULT_CHARS = "FJDKSLA;CMRUEIWOQP"
 
 ---Escape character as a numeric code.
@@ -42,7 +38,7 @@ function M:new(opts)
     setmetatable(instance, M)
     instance.__autoselect = opts.autoselect or false
     instance.__chars = string.lower(opts.chars or DEFAULT_CHARS)
-    instance.__emitter = Emitter:new()
+    instance.__emitter = require("org-roam.core.utils.emitter"):new()
     instance.__filter = opts.filter or function()
         return true
     end
@@ -69,11 +65,11 @@ end
 
 ---Opens the window picker dialog.
 function M:open()
-    local hint = Hint:new({ chars = self.__chars })
+    local hint = require("org-roam.core.ui.window-picker.hint"):new({ chars = self.__chars })
     local windows = self:__get_windows()
 
     if #windows == 0 then
-        notify.warn("No windows left to pick after filtering")
+        require("org-roam.core.ui.notify").warn("No windows left to pick after filtering")
         self.__emitter:emit(EVENTS.CANCEL)
         return
     end
@@ -102,7 +98,7 @@ function M:open()
         if window then
             self.__emitter:emit(EVENTS.CHOICE, window)
         else
-            notify.warn("Invalid window selected using char: " .. char)
+            require("org-roam.core.ui.notify").warn("Invalid window selected using char: " .. char)
             self.__emitter:emit(EVENTS.CANCEL)
         end
     end)

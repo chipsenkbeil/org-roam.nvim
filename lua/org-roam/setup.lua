@@ -4,6 +4,8 @@
 -- Contains logic to initialize the plugin.
 -------------------------------------------------------------------------------
 
+local AUGROUP = vim.api.nvim_create_augroup("org-roam.setup", {})
+
 ---@param roam OrgRoam
 ---@return org-roam.Setup
 return function(roam)
@@ -17,22 +19,38 @@ return function(roam)
 
     ---Calls the setup function to initialize the plugin.
     ---@param config org-roam.Config|nil
-    ---@return OrgPromise<OrgRoam>
+    ---@return OrgRoam
     function M.call(config)
         M.__merge_config(config or {})
         M.__define_autocmds()
         M.__define_commands()
         M.__define_keybindings()
-        M.__modify_orgmode_plugin()
 
         -- Create the directories if they are missing
-        local path = require("org-roam.core.utils.path")
         vim.fn.mkdir(roam.config.directory, "p")
-        vim.fn.mkdir(path.join(roam.config.directory, roam.config.extensions.dailies.directory), "p")
+        vim.fn.mkdir(vim.fs.joinpath(roam.config.directory, roam.config.extensions.dailies.directory), "p")
 
-        return M.__initialize_database():next(function()
-            return roam
+        -- Loading the orgmode plugin, which is requried for our modifications,
+        -- is expensive; so, we instead will do this modification when the
+        -- filetype is set to org for the very first time
+        vim.api.nvim_create_autocmd({ "FileType" }, {
+            group = AUGROUP,
+            pattern = { "org" },
+            once = true,
+            callback = function()
+                M.__modify_orgmode_plugin()
+            end,
+            desc = "Apply org-roam modifications to orgmode plugin",
+        })
+
+        -- Loading the database can take some time, even with our cache,
+        -- because of orgmode itself also needing to load the files. We kick
+        -- this off to run in the background to avoid a delayed startup time
+        vim.schedule(function()
+            M.__initialize_database()
         end)
+
+        return roam
     end
 
     ---@private
@@ -81,6 +99,10 @@ return function(roam)
         if not M.__initialize_database_done then
             M.__initialize_database_done = true
             return require("org-roam.setup.database")(roam):next(function()
+                vim.api.nvim_exec_autocmds("User", {
+                    pattern = "OrgRoamInitialized",
+                    modeline = false,
+                })
                 return nil
             end)
         else

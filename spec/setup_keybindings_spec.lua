@@ -10,15 +10,19 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("add_alias keybinding should support adding an alias to the node", function()
-        local directory = utils.make_temp_org_files_directory()
-        local test_path = utils.join_path(directory, "one.org")
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
+        local test_path = vim.fs.joinpath(directory, "one.org")
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -67,15 +71,19 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("remove_alias keybinding should support removing an alias from the node", function()
-        local directory = utils.make_temp_org_files_directory()
-        local test_path = utils.join_path(directory, "one.org")
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
+        local test_path = vim.fs.joinpath(directory, "one.org")
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -120,15 +128,19 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("add_origin keybinding should support setting the origin for the node", function()
-        local directory = utils.make_temp_org_files_directory()
-        local test_path = utils.join_path(directory, "one.org")
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
+        local test_path = vim.fs.joinpath(directory, "one.org")
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -175,15 +187,19 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("remove_origin keybinding should support removing the origin for the node", function()
-        local directory = utils.make_temp_org_files_directory()
-        local test_path = utils.join_path(directory, "two.org")
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
+        local test_path = vim.fs.joinpath(directory, "two.org")
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -225,8 +241,12 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("goto_prev_node keybinding should go to the previous node if current node has an origin", function()
-        local directory = utils.make_temp_org_files_directory()
-        local test_path = utils.join_path(directory, "test-file.org")
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
+        local test_path = vim.fs.joinpath(directory, "test-file.org")
         local id = "test-id"
 
         -- Create our test file with an origin
@@ -243,7 +263,7 @@ describe("org-roam.setup.keybindings", function()
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -275,14 +295,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("goto_next_node keybinding should to the next node using origin", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -292,7 +316,7 @@ describe("org-roam.setup.keybindings", function()
         roam.database:load():wait()
 
         -- Load a file used as an origin into the buffer
-        vim.cmd.edit(utils.join_path(directory, "one.org"))
+        vim.cmd.edit(vim.fs.joinpath(directory, "one.org"))
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.goto_next_node, {
@@ -315,8 +339,12 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("goto_next_node keybinding should to the next node using selection of origins", function()
-        local directory = utils.make_temp_org_files_directory()
-        local test_path = utils.join_path(directory, "test-file.org")
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
+        local test_path = vim.fs.joinpath(directory, "test-file.org")
 
         utils.write_to(
             test_path,
@@ -333,7 +361,7 @@ describe("org-roam.setup.keybindings", function()
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -343,7 +371,7 @@ describe("org-roam.setup.keybindings", function()
         roam.database:load():wait()
 
         -- Load a file used as an origin into the buffer
-        vim.cmd.edit(utils.join_path(directory, "one.org"))
+        vim.cmd.edit(vim.fs.joinpath(directory, "one.org"))
 
         -- Given two choices, pick node 2
         utils.mock_select_pick(function(_, _, helpers)
@@ -371,14 +399,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("quickfix_backlinks keybinding should be able to display backlinks for the node under cursor", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -388,7 +420,7 @@ describe("org-roam.setup.keybindings", function()
         roam.database:load():wait()
 
         -- Load up a test file
-        vim.cmd.edit(utils.join_path(directory, "two.org"))
+        vim.cmd.edit(vim.fs.joinpath(directory, "two.org"))
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.quickfix_backlinks, {
@@ -404,14 +436,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("toggle_roam_buffer keybinding should open roam buffer for node under cursor", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -421,7 +457,7 @@ describe("org-roam.setup.keybindings", function()
         roam.database:load():wait()
 
         -- Load up a test file
-        vim.cmd.edit(utils.join_path(directory, "two.org"))
+        vim.cmd.edit(vim.fs.joinpath(directory, "two.org"))
 
         -- Trigger the keybinding and wait a bit
         utils.trigger_mapping("n", roam.config.bindings.toggle_roam_buffer, {
@@ -446,14 +482,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("toggle_roam_buffer_fixed keybinding should open roam buffer for selected node", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
                 ui = {
                     node_buffer = {
@@ -498,14 +538,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("complete_at_point keybinding should complete a link to a node based on expression under cursor", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -541,14 +585,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("capture keybinding should open capture buffer from normal mode", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -559,7 +607,7 @@ describe("org-roam.setup.keybindings", function()
         roam.database:load():wait()
 
         -- Open a file buffer so we avoid capture closing neovim
-        vim.cmd.edit(utils.join_path(directory, "one.org"))
+        vim.cmd.edit(vim.fs.joinpath(directory, "one.org"))
 
         -- Select the default template
         utils.mock_vim_inputs({
@@ -598,14 +646,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("capture keybinding should open capture buffer with title matching visual selection", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -615,7 +667,7 @@ describe("org-roam.setup.keybindings", function()
         roam.database:load():wait()
 
         -- Open a file buffer so we avoid capture closing neovim
-        vim.cmd.edit(utils.join_path(directory, "one.org"))
+        vim.cmd.edit(vim.fs.joinpath(directory, "one.org"))
 
         -- Select the default template
         utils.mock_vim_inputs({
@@ -663,14 +715,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("find_node keybinding should open buffer for selected node", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -704,14 +760,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("find_node keybinding should open buffer using visual selection as filter", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -758,14 +818,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("insert_node keybinding should insert a link at cursor for selected node", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -796,14 +860,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("insert_node keybinding should support replacing visual selection", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -846,14 +914,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("insert_node_immediate keybinding should insert link to node without capture dialog", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })
@@ -885,14 +957,18 @@ describe("org-roam.setup.keybindings", function()
     end)
 
     it("insert_node_immediate keybinding should support replacing visual selection", function()
-        local directory = utils.make_temp_org_files_directory()
+        local directory = utils.make_temp_org_files_directory({
+            filter = function(entry)
+                return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+            end,
+        })
 
         -- Configure plugin to update database on write
         local roam = utils.init_plugin({
             setup = {
                 directory = directory,
                 database = {
-                    path = utils.join_path(directory, "db"),
+                    path = vim.fs.joinpath(directory, "db"),
                 },
             },
         })

@@ -4,8 +4,6 @@
 -- Setup logic for roam keybindings.
 -------------------------------------------------------------------------------
 
-local notify = require("org-roam.core.ui.notify")
-
 ---@alias org-roam.config.NvimMode
 ---| "n"
 ---| "v"
@@ -78,7 +76,7 @@ local function get_visual_selection(roam)
         vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
 
         vim.schedule(function()
-            notify.echo_error("node insertion not supported for blockwise-visual mode")
+            require("org-roam.core.ui.notify").echo_error("node insertion not supported for blockwise-visual mode")
         end)
 
         return "unsupported"

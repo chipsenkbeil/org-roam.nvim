@@ -5,7 +5,6 @@ local Promise = require("orgmode.utils.promise")
 
 local io = require("org-roam.core.utils.io")
 local Node = require("org-roam.core.file.node")
-local path = require("org-roam.core.utils.path")
 local tbl_utils = require("org-roam.core.utils.table")
 local Range = require("org-roam.core.file.range")
 local Select = require("org-roam.core.ui.select")
@@ -13,7 +12,7 @@ local uuid_v4 = require("org-roam.core.utils.random").uuid_v4
 
 local ORG_FILES_DIR = (function()
     local str = debug.getinfo(2, "S").source:sub(2)
-    return path.join(vim.fs.dirname(str:match("(.*/)")), "files")
+    return vim.fs.joinpath(vim.fs.dirname(str:match("(.*/)")), "files")
 end)()
 
 local AUGROUP_NAME = "org-roam.nvim"
@@ -45,6 +44,24 @@ function M.debug_print(...)
 
     if __debug_enabled then
         print(...)
+    end
+end
+
+---Preps to listen for being initialized.
+---@return fun() wait_until_ready
+function M.prep_ready()
+    local ready = false
+    vim.api.nvim_create_autocmd("User", {
+        pattern = "OrgRoamInitialized",
+        once = true,
+        callback = function()
+            ready = true
+        end,
+    })
+    return function()
+        vim.wait(1000, function()
+            return ready
+        end, 200)
     end
 end
 
@@ -109,28 +126,42 @@ function M.indent(s)
     )
 end
 
+---Loads an orgfile from disk.
+---@param path string
+---@return OrgFile|false
+function M.load_org_file(path)
+    return OrgFile.load(path):wait()
+end
+
 ---Creates a new orgfile, stripping common indentation.
 ---@param content string
----@param opts? {path?:string, skip_write?:boolean}
+---@param opts? {path?:string, trim_empty?:boolean, skip_write?:boolean}
 ---@return OrgFile
 function M.org_file(content, opts)
     opts = opts or {}
-    local lines = vim.split(M.indent(content), "\n")
+
+    -- Remove leading spaces
+    content = M.indent(content)
+
+    local lines = vim.split(content, "\n", { trimempty = opts.trim_empty })
     local filename = opts.path or vim.fn.tempname()
     if not vim.endswith(filename, ".org") then
         filename = filename .. ".org"
     end
 
-    -- Write to the file to ensure that it matches the content
-    -- to avoid testing race conditions somehow
     if not opts.skip_write then
         M.write_to(filename, content)
     end
 
-    ---@type OrgFile
+    -- NOTE: We MUST create a buffer with the lines, otherwise
+    --       there are issues when attempting to access the
+    --       range of the org file
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
+
     local file = OrgFile:new({
         filename = filename,
-        lines = lines,
+        buf = buf,
     })
     file:parse()
 
@@ -171,20 +202,19 @@ end
 
 ---Creates a new temporary directory, copies the org files
 ---from `files/` into it, and returns the path.
+---@param opts? {filter?:fun(entry:org-roam.core.utils.io.WalkEntry):(boolean|nil)}
 ---@return string
-function M.make_temp_org_files_directory()
+function M.make_temp_org_files_directory(opts)
+    opts = opts or {}
+
     local root_dir = vim.fn.tempname() .. "_test_org_dir"
     assert(vim.fn.mkdir(root_dir, "p") == 1, "failed to create org directory")
 
     for entry in io.walk(ORG_FILES_DIR, { depth = math.huge }) do
         ---@cast entry org-roam.core.utils.io.WalkEntry
-        if entry.type == "file" then
-            local err, data = io.read_file_sync(entry.path)
-            assert(not err, err)
-
-            ---@cast data -nil
-            err = io.write_file_sync(path.join(root_dir, entry.name), data)
-            assert(not err, err)
+        if entry.type == "file" and (not opts.filter or opts.filter(entry)) then
+            local data = io.read_file(entry.path):wait()
+            io.write_file(vim.fs.joinpath(root_dir, entry.name), data):wait()
         end
     end
 
@@ -205,7 +235,7 @@ function M.make_temp_filename(opts)
     opts = opts or {}
     local filename = uuid_v4()
     if opts.dir then
-        filename = M.join_path(opts.dir, filename)
+        filename = vim.fs.joinpath(opts.dir, filename)
     end
     if opts.ext then
         filename = filename .. "." .. opts.ext
@@ -218,43 +248,29 @@ function M.random_id()
     return uuid_v4()
 end
 
----@param ... string
----@return string
-function M.join_path(...)
-    return path.join(...)
-end
-
 ---@param path string
 ---@param ... string|string[]
 function M.write_to(path, ...)
-    local lines = tbl_utils.flatten({ ... })
+    local lines = vim.iter({ ... }):flatten():totable()
     local content = table.concat(lines, "\n")
 
-    local err = io.write_file_sync(path, content)
-    assert(not err, err)
+    io.write_file(path, content):wait()
 end
 
 ---@param path string
 ---@param ... string|string[]
 function M.append_to(path, ...)
-    local lines = tbl_utils.flatten({ ... })
+    local lines = vim.iter({ ... }):flatten():totable()
     local content = table.concat(lines, "\n")
 
-    local err, data = io.read_file_sync(path)
-    assert(not err, err)
-
-    ---@cast data -nil
-    err = io.write_file_sync(path, data .. content)
-    assert(not err, err)
+    local data = io.read_file(path):wait()
+    io.write_file(path, data .. content):wait()
 end
 
 ---@param path string
 ---@return string[]
 function M.read_from(path)
-    local err, data = io.read_file_sync(path)
-    assert(not err, err)
-
-    ---@cast data -nil
+    local data = io.read_file(path):wait()
     return vim.split(data, "\n", { plain = true })
 end
 
@@ -402,17 +418,26 @@ function M.init_plugin(opts)
     -- so extra features like cursor node tracking works
     local roam = require("org-roam"):new()
     if opts.setup then
+        local wait_until_ready = M.prep_ready()
         local test_dir = M.make_temp_directory()
         local config = {
             directory = test_dir,
             database = {
-                path = M.join_path(test_dir, "db"),
+                path = vim.fs.joinpath(test_dir, "db"),
             },
         }
         if type(opts.setup) == "table" then
             config = vim.tbl_deep_extend("force", config, opts.setup)
         end
-        roam.setup(config):wait()
+
+        roam.setup(config)
+
+        -- Trigger org filetype so we also override the open_at_point impl
+        local ft = vim.bo.filetype
+        vim.bo.filetype = "org"
+        vim.bo.filetype = ft
+
+        wait_until_ready()
     end
     return roam
 end

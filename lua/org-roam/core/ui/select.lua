@@ -5,11 +5,6 @@
 -- Modelled after Emacs' vertico completion (https://github.com/minad/vertico).
 -------------------------------------------------------------------------------
 
-local C = require("org-roam.core.ui.component")
-local Emitter = require("org-roam.core.utils.emitter")
-local tbl_utils = require("org-roam.core.utils.table")
-local Window = require("org-roam.core.ui.window")
-
 ---Collection of events that can be fired.
 local EVENTS = {
     ---Selection dialog is canceled.
@@ -212,7 +207,7 @@ function M:new(opts)
     }
 
     instance.__state = {
-        emitter = Emitter:new(),
+        emitter = require("org-roam.core.utils.emitter"):new(),
         last_win = nil,
         prompt_id = nil,
         window = nil,
@@ -297,6 +292,7 @@ function M:open()
     if not self.__state.window then
         init_highlights()
 
+        local Window = require("org-roam.core.ui.window")
         local window = Window:new({
             name = "org-roam-select",
             open = Window.calc_open.bottom(self.__view.max_rows + 1),
@@ -553,7 +549,8 @@ function M:__select_move_down()
     self.__view.start = start
 
     -- Notify of a selection change
-    local item = self.__params.items[tbl_utils.get(self.__view.filtered_items, idx, 1)]
+    local items_idx = self.__view.filtered_items[idx] ~= nil and self.__view.filtered_items[idx][1]
+    local item = self.__params.items[items_idx]
     self.__state.emitter:emit(EVENTS.SELECT_CHANGE, item, idx)
 
     -- Schedule an update of the view
@@ -590,7 +587,8 @@ function M:__select_move_up()
     self.__view.start = start
 
     -- Notify of a selection change
-    local item = self.__params.items[tbl_utils.get(self.__view.filtered_items, idx, 1)]
+    local items_idx = self.__view.filtered_items[idx] ~= nil and self.__view.filtered_items[idx][1]
+    local item = self.__params.items[items_idx]
     self.__state.emitter:emit(EVENTS.SELECT_CHANGE, item, idx)
 
     -- Schedule an update of the view
@@ -874,7 +872,7 @@ function M:__render_component()
         table.insert(
             lines,
             vim.tbl_map(function(segment)
-                return C.hl(string.sub(text, segment[1], segment[2]), segment[3])
+                return require("org-roam.core.ui.component").hl(string.sub(text, segment[1], segment[2]), segment[3])
             end, segments)
         )
     end

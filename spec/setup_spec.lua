@@ -10,13 +10,19 @@ describe("org-roam.setup", function()
     end)
 
     it("should fail if no directory supplied", function()
+        local wait_until_ready = utils.prep_ready()
+
         assert.is.error(function()
             local roam = utils.init_plugin({ setup = false })
-            roam.setup({}):wait()
+            roam.setup({})
+
+            -- Wait for plugin to finish initializing
+            wait_until_ready()
         end)
     end)
 
     it("should adjust the database to the supplied configuration", function()
+        local wait_until_ready = utils.prep_ready()
         local db_path = vim.fn.tempname() .. "-test-db"
         local directory = utils.make_temp_org_files_directory()
 
@@ -24,7 +30,10 @@ describe("org-roam.setup", function()
         roam.setup({
             database = { path = db_path },
             directory = directory,
-        }):wait()
+        })
+
+        -- Wait for plugin to finish initializing
+        wait_until_ready()
 
         assert.are.equal(db_path, roam.database:path())
         assert.are.equal(directory, roam.database:files_path())
@@ -66,6 +75,7 @@ describe("org-roam.setup", function()
     )
 
     it("should load files", function()
+        local wait_until_ready = utils.prep_ready()
         local db_path = vim.fn.tempname() .. "-test-db"
         local fixture_path = vim.fn.getcwd() .. "/spec/fixture/"
         local directory = fixture_path .. "roam/"
@@ -79,7 +89,10 @@ describe("org-roam.setup", function()
                 fixture_path .. "/external/dir_2/two.org",
                 fixture_path .. "/external/dir_3/",
             },
-        }):wait()
+        })
+
+        -- Wait for plugin to finish initializing
+        wait_until_ready()
 
         local file_names = {
             "Some_topic.org",

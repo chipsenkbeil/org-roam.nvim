@@ -99,12 +99,10 @@ local default_config = {
 local function make_internal_logger(config)
     config = vim.tbl_deep_extend("force", default_config, config)
 
-    local join_path = require("org-roam.core.utils.path").join
-
     ---@type string|nil
     local outfile = vim.F.if_nil(
         config.outfile,
-        join_path(vim.api.nvim_call_function("stdpath", { "cache" }), config.plugin .. ".log")
+        vim.fs.joinpath(vim.api.nvim_call_function("stdpath", { "cache" }), config.plugin .. ".log")
     )
 
     local obj = { config = config }
@@ -179,7 +177,7 @@ local function make_internal_logger(config)
                     ---@diagnostic disable-next-line:param-type-mismatch
                     local ok = pcall(vim.cmd, string.format([[echom "%s"]], formatted_msg))
                     if not ok then
-                        vim.api.nvim_out_write(msg .. "\n")
+                        vim.api.nvim_echo({ { msg .. "\n" } }, true, {})
                     end
                 end
 

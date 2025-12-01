@@ -4,31 +4,26 @@
 -- Setup logic for roam commands.
 -------------------------------------------------------------------------------
 
-local log = require("org-roam.core.log")
-local notify = require("org-roam.core.ui.notify")
-
 ---@param roam OrgRoam
 return function(roam)
-    local Profiler = require("org-roam.core.utils.profiler")
-
     vim.api.nvim_create_user_command("RoamSave", function(opts)
         local force = opts.bang or false
         local args = opts.args or ""
         local sync = string.lower(vim.trim(args)) == "sync"
-        log.fmt_debug("Saving database (sync = %s)", sync)
+        require("org-roam.core.log").fmt_debug("Saving database (sync = %s)", sync)
 
         -- Start profiling so we can report the time taken
-        local profiler = Profiler:new()
+        local profiler = require("org-roam.core.utils.profiler"):new()
         profiler:start()
 
         local promise = roam.database
             :save({ force = force })
             :next(function(...)
                 local tt = profiler:stop():time_taken_as_string()
-                notify.info("Saved database [took " .. tt .. "]")
+                require("org-roam.core.ui.notify").info("Saved database [took " .. tt .. "]")
                 return ...
             end)
-            :catch(notify.error)
+            :catch(require("org-roam.core.ui.notify").error)
 
         if sync then
             promise:wait()
@@ -45,18 +40,18 @@ return function(roam)
         local sync = string.lower(vim.trim(args)) == "sync"
 
         -- Start profiling so we can report the time taken
-        local profiler = Profiler:new()
+        local profiler = require("org-roam.core.utils.profiler"):new()
         profiler:start()
 
-        log.fmt_debug("Updating database (force = %s, sync = %s)", force, sync)
+        require("org-roam.core.log").fmt_debug("Updating database (force = %s, sync = %s)", force, sync)
         local promise = roam.database
             :load({ force = force or "scan" })
             :next(function(...)
                 local tt = profiler:stop():time_taken_as_string()
-                notify.info("Updated database [took " .. tt .. "]")
+                require("org-roam.core.ui.notify").info("Updated database [took " .. tt .. "]")
                 return ...
             end)
-            :catch(notify.error)
+            :catch(require("org-roam.core.ui.notify").error)
 
         if sync then
             promise:wait()
@@ -71,7 +66,7 @@ return function(roam)
         local args = opts.args or ""
         local sync = string.lower(vim.trim(args)) == "sync"
 
-        log.fmt_debug("Resetting database (sync = %s)", sync)
+        require("org-roam.core.log").fmt_debug("Resetting database (sync = %s)", sync)
         local promise = roam.database:delete_disk_cache():next(function(success)
             roam.database = roam.database:new({
                 db_path = roam.database:path(),
@@ -79,16 +74,16 @@ return function(roam)
             })
 
             -- Start profiling so we can report the time taken
-            local profiler = Profiler:new()
+            local profiler = require("org-roam.core.utils.profiler"):new()
             profiler:start()
             return roam.database
                 :load()
                 :next(function(...)
                     local tt = profiler:stop():time_taken_as_string()
-                    notify.info("Loaded database [took " .. tt .. "]")
+                    require("org-roam.core.ui.notify").info("Loaded database [took " .. tt .. "]")
                     return ...
                 end)
-                :catch(notify.error)
+                :catch(require("org-roam.core.ui.notify").error)
         end)
 
         if sync then

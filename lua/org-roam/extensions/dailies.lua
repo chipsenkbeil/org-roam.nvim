@@ -6,20 +6,11 @@
 -- See https://www.orgroam.com/manual.html#org_002droam_002ddailies
 -------------------------------------------------------------------------------
 
-local io = require("org-roam.core.utils.io")
-local join_path = require("org-roam.core.utils.path").join
-local notify = require("org-roam.core.ui.notify")
-local random = require("org-roam.core.utils.random")
-
-local Date = require("orgmode.objects.date")
-local Calendar = require("orgmode.objects.calendar")
-local Promise = require("orgmode.utils.promise")
-
 ---Returns the full path to the roam dailies directory.
 ---@param roam OrgRoam
 ---@return string
 local function roam_dailies_dir(roam)
-    return vim.fs.normalize(join_path(roam.config.directory, roam.config.extensions.dailies.directory))
+    return vim.fs.normalize(vim.fs.joinpath(roam.config.directory, roam.config.extensions.dailies.directory))
 end
 
 ---Converts date to YYYY-MM-DD format.
@@ -37,7 +28,7 @@ end
 local function date_to_path(roam, date)
     -- Should produce YYYY-MM-DD.org
     local filename = date_string(date) .. ".org"
-    return join_path(roam_dailies_dir(roam), filename)
+    return vim.fs.joinpath(roam_dailies_dir(roam), filename)
 end
 
 ---Converts a path into a date.
@@ -45,7 +36,7 @@ end
 ---@return OrgDate|nil
 local function path_to_date(path)
     local filename = vim.fn.fnamemodify(path, ":t:r")
-    return Date.from_string(filename)
+    return require("orgmode.objects.date").from_string(filename)
 end
 
 ---Converts buffer's name into a date.
@@ -61,13 +52,14 @@ end
 ---@param roam OrgRoam
 ---@return string[]
 local function roam_dailies_files(roam)
-    return io.walk(roam_dailies_dir(roam))
+    return require("org-roam.core.utils.io")
+        .walk(roam_dailies_dir(roam))
         :filter(function(entry)
             ---@cast entry org-roam.core.utils.io.WalkEntry
             local filename = vim.fn.fnamemodify(entry.filename, ":t:r")
             local ext = vim.fn.fnamemodify(entry.filename, ":e")
             local is_org = ext == "org" or ext == "org_archive"
-            local is_date = Date.is_valid_date_string(filename) ~= nil
+            local is_date = require("orgmode.objects.date").is_valid_date_string(filename) ~= nil
             return entry.type == "file" and is_org and is_date
         end)
         :map(function(entry)
@@ -97,7 +89,7 @@ local function roam_dailies_dates(roam)
         end,
         vim.tbl_map(function(path)
             local filename = vim.fn.fnamemodify(path, ":t:r")
-            return Date.from_string(filename)
+            return require("orgmode.objects.date").from_string(filename)
         end, roam_dailies_files(roam))
     )
 end
@@ -112,15 +104,15 @@ local function make_daily_buffer(roam, date, title)
     assert(buf ~= 0, "failed to create daily buffer")
 
     -- Update the filename of the buffer to be `path/to/{DATE}.org`
-    vim.api.nvim_buf_set_name(buf, join_path(roam_dailies_dir(roam), date_string(date) .. ".org"))
+    vim.api.nvim_buf_set_name(buf, vim.fs.joinpath(roam_dailies_dir(roam), date_string(date) .. ".org"))
 
     -- Set filetype to org
-    vim.api.nvim_buf_set_option(buf, "filetype", "org")
+    vim.api.nvim_set_option_value("filetype", "org", { buf = buf })
 
     -- Populate the buffer
     vim.api.nvim_buf_set_lines(buf, 0, -1, true, {
         ":PROPERTIES:",
-        ":ID: " .. random.id(),
+        ":ID: " .. require("org-roam.core.utils.random").id(),
         ":END:",
         "#+TITLE: " .. (title or date_string(date)),
         "",
@@ -156,7 +148,7 @@ local function make_dailies_templates(roam, date)
         -- and be populated with the specified date
         local target = tmpl.target
         if target then
-            tmpl.target = join_path(roam.config.extensions.dailies.directory, format_date(target))
+            tmpl.target = vim.fs.joinpath(roam.config.extensions.dailies.directory, format_date(target))
         end
 
         local template = tmpl.template
@@ -189,14 +181,10 @@ local function make_render_on_day(roam)
     ---@param opts OrgCalendarOnRenderDayOpts
     return function(day, opts)
         if dates[key(day)] then
-            vim.api.nvim_buf_add_highlight(
-                opts.buf,
-                opts.namespace,
-                roam.config.extensions.dailies.ui.calendar.hl_date_exists,
-                opts.line - 1,
-                opts.from - 1,
-                opts.to
-            )
+            vim.api.nvim_buf_set_extmark(opts.buf, opts.namespace, opts.line - 1, opts.from - 1, {
+                hl_group = roam.config.extensions.dailies.ui.calendar.hl_date_exists,
+                end_col = opts.to, -- zero-based exclusive
+            })
         end
     end
 end
@@ -217,17 +205,19 @@ return function(roam)
 
         local date = opts.date
         if type(date) == "string" then
-            date = Date.from_string(date)
+            date = require("orgmode.objects.date").from_string(date)
             if not date then
-                return Promise.reject("invalid date string")
+                return require("orgmode.utils.promise").reject("invalid date string")
             end
         end
 
-        return (date and Promise.resolve(date) or Calendar.new({
-            date = date,
-            title = opts.title,
-            on_day = make_render_on_day(roam),
-        }):open()):next(function(date)
+        return (date and require("orgmode.utils.promise").resolve(date) or require("orgmode.objects.calendar")
+            .new({
+                date = date,
+                title = opts.title,
+                on_day = make_render_on_day(roam),
+            })
+            :open()):next(function(date)
             if date then
                 return roam.api.capture_node({
                     origin = false,
@@ -243,19 +233,19 @@ return function(roam)
     ---Opens the capture dialog for today's date.
     ---@return OrgPromise<string|nil>
     function M.capture_today()
-        return M.capture_date({ date = Date.today() })
+        return M.capture_date({ date = require("orgmode.objects.date").today() })
     end
 
     ---Opens the capture dialog for tomorrow's date.
     ---@return OrgPromise<string|nil>
     function M.capture_tomorrow()
-        return M.capture_date({ date = Date.tomorrow() })
+        return M.capture_date({ date = require("orgmode.objects.date").tomorrow() })
     end
 
     ---Opens the capture dialog for yesterday's date.
     ---@return OrgPromise<string|nil>
     function M.capture_yesterday()
-        local yesterday = Date.today():subtract({ day = 1 })
+        local yesterday = require("orgmode.objects.date").today():subtract({ day = 1 })
         return M.capture_date({ date = yesterday })
     end
 
@@ -277,16 +267,18 @@ return function(roam)
 
         local date = opts.date
         if type(date) == "string" then
-            date = Date.from_string(date)
+            date = require("orgmode.objects.date").from_string(date)
             if not date then
-                return Promise.reject("invalid date string")
+                return require("orgmode.utils.promise").reject("invalid date string")
             end
         end
 
         if type(date) == "table" then
-            date_promise = Promise.resolve(date)
+            date_promise = require("orgmode.utils.promise").resolve(date)
         else
-            date_promise = Calendar.new({ date = Date.today(), on_day = make_render_on_day(roam) }):open()
+            date_promise = require("orgmode.objects.calendar")
+                .new({ date = require("orgmode.objects.date").today(), on_day = make_render_on_day(roam) })
+                :open()
         end
 
         return date_promise:next(function(date)
@@ -295,8 +287,9 @@ return function(roam)
             -- WITHOUT saving it
             if date then
                 local path = date_to_path(roam, date)
-                return Promise.new(function(resolve)
-                    io.stat(path)
+                return require("orgmode.utils.promise").new(function(resolve)
+                    require("org-roam.core.utils.io")
+                        .stat(path)
                         :next(function(stat)
                             pcall(vim.api.nvim_set_current_win, win)
                             vim.cmd.edit(path)
@@ -326,19 +319,19 @@ return function(roam)
     ---Navigates to today's note.
     ---@return OrgPromise<OrgDate|nil>
     function M.goto_today()
-        return M.goto_date({ date = Date.today() })
+        return M.goto_date({ date = require("orgmode.objects.date").today() })
     end
 
     ---Navigates to tomorrow's note.
     ---@return OrgPromise<OrgDate|nil>
     function M.goto_tomorrow()
-        return M.goto_date({ date = Date.tomorrow() })
+        return M.goto_date({ date = require("orgmode.objects.date").tomorrow() })
     end
 
     ---Navigates to yesterday's note.
     ---@return OrgPromise<OrgDate|nil>
     function M.goto_yesterday()
-        local yesterday = Date.today():subtract({ day = 1 })
+        local yesterday = require("orgmode.objects.date").today():subtract({ day = 1 })
         return M.goto_date({ date = yesterday })
     end
 
@@ -358,7 +351,7 @@ return function(roam)
         local win = opts.win or vim.api.nvim_get_current_win()
         local date = buf_to_date(vim.api.nvim_win_get_buf(win))
         if not date then
-            return Promise.resolve(nil)
+            return require("orgmode.utils.promise").resolve(nil)
         end
 
         -- Figure out our position among the files, adjust
@@ -374,27 +367,27 @@ return function(roam)
 
                 if idx < 1 then
                     if not opts.suppress then
-                        notify.echo_info("Cannot go further back")
+                        require("org-roam.core.ui.notify").echo_info("Cannot go further back")
                     end
-                    return Promise.resolve(nil)
+                    return require("orgmode.utils.promise").resolve(nil)
                 end
 
                 if idx > #files then
                     if not opts.suppress then
-                        notify.echo_info("Cannot go further forward")
+                        require("org-roam.core.ui.notify").echo_info("Cannot go further forward")
                     end
-                    return Promise.resolve(nil)
+                    return require("orgmode.utils.promise").resolve(nil)
                 end
 
                 local target_date = path_to_date(files[idx])
                 if not target_date then
-                    return Promise.reject("invalid file: " .. vim.inspect(files[idx]))
+                    return require("orgmode.utils.promise").reject("invalid file: " .. vim.inspect(files[idx]))
                 end
                 return M.goto_date({ date = target_date, win = win })
             end
         end
 
-        return Promise.resolve(nil)
+        return require("orgmode.utils.promise").resolve(nil)
     end
 
     ---Navigates to the previous date based on the node under cursor.

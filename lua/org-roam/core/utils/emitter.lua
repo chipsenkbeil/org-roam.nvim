@@ -4,8 +4,6 @@
 -- Utilities to manage events.
 -------------------------------------------------------------------------------
 
-local log = require("org-roam.core.log")
-
 ---Implementation of a manager of events that can both store callbacks and trigger events.
 ---@class org-roam.core.utils.Emitter
 ---@field private __event_handlers table<any, table<fun(), fun()>>
@@ -29,8 +27,9 @@ local function call_handler(event, handler, ...)
     local ok, err = pcall(handler, ...)
     if not ok then
         vim.schedule(function()
+            local log = require("org-roam.core.log")
             log.fmt_warn("org-roam.core.utils.Emitter handler failed for event %s with error %s", event, err)
-            vim.api.nvim_err_writeln(err)
+            vim.api.nvim_echo({ { err } }, true, { err = true })
         end)
     end
 end

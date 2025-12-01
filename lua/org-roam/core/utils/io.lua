@@ -4,39 +4,16 @@
 -- Utilities to do input/output operations.
 -------------------------------------------------------------------------------
 
-local uv = vim.uv or vim.loop
-
-local Iterator = require("org-roam.core.utils.iterator")
-local path_utils = require("org-roam.core.utils.path")
-
-local Promise = require("orgmode.utils.promise")
-
 -- 0o644 (rw-r--r--)
 -- Owner can read and write.
 -- Group can read.
 -- Other can read.
 ---@diagnostic disable-next-line:param-type-mismatch
 local DEFAULT_FILE_PERMISSIONS = tonumber(644, 8)
+---@cast DEFAULT_FILE_PERMISSIONS -nil
 
 ---@class org-roam.core.utils.IO
 local M = {}
-
----Write some data synchronously to disk, creating the file or overwriting
----if it exists.
----@param path string
----@param data string|string[]
----@param opts? {timeout?:integer}
----@return string|nil err
-function M.write_file_sync(path, data, opts)
-    opts = opts or {}
-
-    ---@type boolean, string|nil
-    local _, err = pcall(function()
-        M.write_file(path, data):wait(opts.timeout)
-    end)
-
-    return err
-end
 
 ---Write some data asynchronously to disk, creating the file or overwriting
 ---if it exists.
@@ -52,8 +29,9 @@ function M.write_file(path, data)
         vim.fn.mkdir(dir, "p")
     end
 
+    local Promise = require("orgmode.utils.promise")
     return Promise.new(function(resolve, reject)
-        uv.fs_open(path, "w", DEFAULT_FILE_PERMISSIONS, function(err, fd)
+        vim.uv.fs_open(path, "w", DEFAULT_FILE_PERMISSIONS, function(err, fd)
             if err then
                 return vim.schedule(function()
                     reject(err)
@@ -61,7 +39,7 @@ function M.write_file(path, data)
             end
 
             ---@cast fd -nil
-            uv.fs_write(fd, data, -1, function(err)
+            vim.uv.fs_write(fd, data, -1, function(err)
                 if err then
                     return vim.schedule(function()
                         reject(err)
@@ -71,14 +49,14 @@ function M.write_file(path, data)
                 -- Force writing of data to avoid situations where
                 -- we write and then immediately try to read and get
                 -- the old file contents
-                uv.fs_fsync(fd, function(err)
+                vim.uv.fs_fsync(fd, function(err)
                     if err then
                         return vim.schedule(function()
                             reject(err)
                         end)
                     end
 
-                    uv.fs_close(fd, function(err)
+                    vim.uv.fs_close(fd, function(err)
                         if err then
                             return vim.schedule(function()
                                 reject(err)
@@ -95,27 +73,13 @@ function M.write_file(path, data)
     end)
 end
 
----Reads data synchronously to disk.
----@param path string
----@param opts? {timeout?:integer}
----@return string|nil err, string|nil data
-function M.read_file_sync(path, opts)
-    opts = opts or {}
-
-    ---@type boolean, string
-    local ok, data = pcall(function()
-        return M.read_file(path):wait(opts.timeout)
-    end)
-
-    return not ok and data or nil, ok and data or nil
-end
-
 ---Read some data asynchronously from disk.
 ---@param path string
 ---@return OrgPromise<string>
 function M.read_file(path)
+    local Promise = require("orgmode.utils.promise")
     return Promise.new(function(resolve, reject)
-        uv.fs_open(path, "r", 0, function(err, fd)
+        vim.uv.fs_open(path, "r", 0, function(err, fd)
             if err then
                 return vim.schedule(function()
                     reject(err)
@@ -123,7 +87,7 @@ function M.read_file(path)
             end
 
             ---@cast fd -nil
-            uv.fs_fstat(fd, function(err, stat)
+            vim.uv.fs_fstat(fd, function(err, stat)
                 if err then
                     return vim.schedule(function()
                         reject(err)
@@ -131,14 +95,14 @@ function M.read_file(path)
                 end
 
                 ---@cast stat -nil
-                uv.fs_read(fd, stat.size, 0, function(err, data)
+                vim.uv.fs_read(fd, stat.size, 0, function(err, data)
                     if err then
                         return vim.schedule(function()
                             reject(err)
                         end)
                     end
 
-                    uv.fs_close(fd, function(err)
+                    vim.uv.fs_close(fd, function(err)
                         if err then
                             return vim.schedule(function()
                                 reject(err)
@@ -159,33 +123,11 @@ end
 ---execute permission of the named file is not required, but all directories
 ---listed in the path name leading to the file must be searchable.
 ---@param path string
----@param opts? {timeout?:integer}
----@return string|nil err, uv.aliases.fs_stat_table|nil stat
-function M.stat_sync(path, opts)
-    opts = opts or {}
-
-    ---@type boolean, string|uv.aliases.fs_stat_table
-    local ok, data = pcall(function()
-        return M.stat(path):wait(opts.timeout)
-    end)
-
-    if ok then
-        ---@cast data -string
-        return nil, data
-    else
-        ---@cast data string
-        return data, nil
-    end
-end
-
----Obtains information about the file pointed to by `path`. Read, write, or
----execute permission of the named file is not required, but all directories
----listed in the path name leading to the file must be searchable.
----@param path string
----@return OrgPromise<uv.aliases.fs_stat_table>
+---@return OrgPromise<uv.fs_stat.result>
 function M.stat(path)
+    local Promise = require("orgmode.utils.promise")
     return Promise.new(function(resolve, reject)
-        uv.fs_stat(path, function(err, stat)
+        vim.uv.fs_stat(path, function(err, stat)
             if err then
                 return vim.schedule(function()
                     reject(err)
@@ -201,31 +143,11 @@ end
 
 ---Removes the file specified by `path`.
 ---@param path string
----@param opts? {timeout?:integer}
----@return string|nil err, boolean|nil success
-function M.unlink_sync(path, opts)
-    opts = opts or {}
-
-    ---@type boolean, string|boolean
-    local ok, data = pcall(function()
-        return M.unlink(path):wait(opts.timeout)
-    end)
-
-    if ok then
-        ---@cast data -string
-        return nil, data
-    else
-        ---@cast data string
-        return data, nil
-    end
-end
-
----Removes the file specified by `path`.
----@param path string
 ---@return OrgPromise<boolean>
 function M.unlink(path)
+    local Promise = require("orgmode.utils.promise")
     return Promise.new(function(resolve, reject)
-        uv.fs_unlink(path, function(err, success)
+        vim.uv.fs_unlink(path, function(err, success)
             if err then
                 return vim.schedule(function()
                     reject(err)
@@ -257,6 +179,7 @@ end
 
 ---@class org-roam.core.utils.io.WalkOpts
 ---@field depth integer|nil #how deep the traverse (default 1)
+---@field follow boolean|nil #if true, follows symlinks
 ---@field resolve boolean|nil #if true, resolves paths
 ---@field skip (fun(dir_name: string): boolean)|nil #predicate
 
@@ -275,13 +198,13 @@ function M.walk(path, opts)
     ---@return org-roam.core.utils.io.WalkEntry?
     local function map_entry(name, type)
         if name and type then
-            local entry_path = path_utils.join(path, name)
+            local entry_path = vim.fs.joinpath(path, name)
 
             if opts.resolve then
                 entry_path = vim.fn.resolve(entry_path)
             end
 
-            entry_path = path_utils.normalize(entry_path, { expand_env = true })
+            entry_path = vim.fs.normalize(entry_path, { expand_env = true })
 
             return {
                 name = name,
@@ -292,8 +215,10 @@ function M.walk(path, opts)
         end
     end
 
+    local Iterator = require("org-roam.core.utils.iterator")
     return Iterator:new(vim.fs.dir(path, {
         depth = opts.depth,
+        follow = opts.follow,
         skip = opts.skip,
     })):map(map_entry)
 end

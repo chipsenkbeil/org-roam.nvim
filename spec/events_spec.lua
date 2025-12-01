@@ -1,9 +1,5 @@
 describe("org-roam.events", function()
-    local roam --[[ @type OrgRoam ]]
     local utils = require("spec.utils")
-
-    ---@type string, string, string
-    local test_path_one, test_path_two, test_path_three
 
     ---Moves cursor and forces a trigger of "CursorMoved".
     ---@param line integer
@@ -14,17 +10,26 @@ describe("org-roam.events", function()
         })
     end
 
-    before_each(function()
-        utils.init_before_test()
-
-        roam = utils.init_plugin({
+    ---@return OrgRoam roam, string one_path, string two_path, string three_path
+    local function setup_roam()
+        local roam = utils.init_plugin({
             setup = {
-                directory = utils.make_temp_org_files_directory(),
+                directory = utils.make_temp_org_files_directory({
+                    filter = function(entry)
+                        return vim.list_contains({ "one.org", "two.org", "three.org" }, entry.filename)
+                    end,
+                }),
             },
         })
-        test_path_one = utils.join_path(roam.config.directory, "one.org")
-        test_path_two = utils.join_path(roam.config.directory, "two.org")
-        test_path_three = utils.join_path(roam.config.directory, "three.org")
+        local one_path = vim.fs.joinpath(roam.config.directory, "one.org")
+        local two_path = vim.fs.joinpath(roam.config.directory, "two.org")
+        local three_path = vim.fs.joinpath(roam.config.directory, "three.org")
+
+        return roam, one_path, two_path, three_path
+    end
+
+    before_each(function()
+        utils.init_before_test()
     end)
 
     after_each(function()
@@ -32,13 +37,20 @@ describe("org-roam.events", function()
     end)
 
     it("jumping between buffers should report node changes", function()
+        local _, test_path_one, test_path_two, test_path_three = setup_roam()
+
         ---@type string[]
         local nodes = {}
 
         -- Register such that each change gets stored in the table above
-        roam.events.on_cursor_node_changed(function(node)
-            table.insert(nodes, node and node.id or "")
-        end)
+        vim.api.nvim_create_autocmd("User", {
+            group = "org-roam.nvim",
+            pattern = "OrgRoamNodeEnter",
+            callback = function(args)
+                local node = args.data
+                table.insert(nodes, node and node.id or "")
+            end,
+        })
 
         -- Load up a couple of files and create new windows to verify node changes
         -- NOTE: Only buffers with *.org will trigger, so empty new windows won't!
@@ -54,12 +66,14 @@ describe("org-roam.events", function()
         -- Wait a moment for async events to process
         utils.wait()
 
-        assert.are.same({ "1", "2", "", "3", "1" }, nodes)
+        assert.are.same({ "1", "2", "3", "1" }, nodes)
     end)
 
     it("moving around buffer with multiple nodes should report changes", function()
+        local roam = setup_roam()
+
         -- Save the file without our test directory
-        local test_path = utils.join_path(roam.config.directory, "new.org")
+        local test_path = vim.fs.joinpath(roam.config.directory, "new.org")
         utils.write_to(
             test_path,
             utils.indent([=[
@@ -86,9 +100,14 @@ describe("org-roam.events", function()
         local nodes = {}
 
         -- Register such that each change gets stored in the table above
-        roam.events.on_cursor_node_changed(function(node)
-            table.insert(nodes, node and node.id or "")
-        end)
+        vim.api.nvim_create_autocmd("User", {
+            group = "org-roam.nvim",
+            pattern = "OrgRoamNodeEnter",
+            callback = function(args)
+                local node = args.data
+                table.insert(nodes, node and node.id or "")
+            end,
+        })
 
         -- Load the test file we just created
         vim.cmd.edit(test_path)

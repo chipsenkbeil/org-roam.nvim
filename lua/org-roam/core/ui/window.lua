@@ -4,10 +4,6 @@
 -- Logic to create windows.
 -------------------------------------------------------------------------------
 
-local Buffer = require("org-roam.core.ui.buffer")
-local Emitter = require("org-roam.core.utils.emitter")
-local random = require("org-roam.core.utils.random")
-
 ---@enum org-roam.core.ui.window.Open
 local OPEN = {
     ---Configuration to open the window on the right side.
@@ -63,7 +59,7 @@ M.calc_open = OPEN
 ---@return org-roam.core.ui.Window
 function M:new(opts)
     opts = vim.tbl_deep_extend("keep", opts or {}, {
-        name = string.format("org-roam-%s", random.uuid_v4()),
+        name = string.format("org-roam-%s", require("org-roam.core.utils.random").uuid_v4()),
         open = OPEN.right(),
         bufopts = {
             -- Don't let the buffer represent a file or be editable by default
@@ -89,7 +85,8 @@ function M:new(opts)
     setmetatable(instance, M)
 
     -- Create the buffer we will use with the window
-    instance.__buffer = opts.buffer or Buffer:new(vim.tbl_extend("keep", opts.bufopts or {}, { name = opts.name }))
+    instance.__buffer = opts.buffer
+        or require("org-roam.core.ui.buffer"):new(vim.tbl_extend("keep", opts.bufopts or {}, { name = opts.name }))
 
     -- Apply any components we've been assigned
     if type(opts.components) == "table" then
@@ -101,7 +98,7 @@ function M:new(opts)
 
     instance.__name = assert(opts.name)
     instance.__open = assert(opts.open)
-    instance.__emitter = Emitter:new()
+    instance.__emitter = require("org-roam.core.utils.emitter"):new()
     instance.__bufopts = assert(opts.bufopts)
     instance.__winopts = assert(opts.winopts)
     instance.__focus_on_open = opts.focus_on_open or false
@@ -147,7 +144,7 @@ function M:open()
 
     -- Configure the window with our options
     for k, v in pairs(self.__winopts) do
-        vim.api.nvim_win_set_option(self.__win, k, v)
+        vim.api.nvim_set_option_value(k, v, { win = self.__win })
     end
 
     -- Configure an autocommand to trigger when the window closes

@@ -31,9 +31,6 @@
 -- >    given interval.
 -------------------------------------------------------------------------------
 
-local Queue = require("org-roam.core.utils.queue")
-local unpack = require("org-roam.core.utils.table").unpack
-
 local DEFAULT_LIMIT = 2 ^ 31
 
 ---An augmented tree using intervals as defined in
@@ -117,6 +114,8 @@ end
 ---@param b org-roam.core.utils.IntervalTree
 ---@return -1|0|1 cmp
 local function cmp_tree_interval(a, b)
+    local unpack = require("org-roam.core.utils.table").unpack
+
     ---@type integer, integer
     local a_start, a_end = unpack(a:range())
     ---@type integer, integer
@@ -237,6 +236,7 @@ function M:find_all(opts)
         end
     end
 
+    local Queue = require("org-roam.core.utils.queue")
     local queue = Queue:new({ self })
     while not queue:is_empty() and #nodes < limit do
         ---@type org-roam.core.utils.IntervalTree

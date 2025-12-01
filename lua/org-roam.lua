@@ -13,11 +13,11 @@ end
 ---@field api org-roam.Api
 ---@field config org-roam.Config
 ---@field database org-roam.Database
----@field events org-roam.Events
 ---@field ext org-roam.Extensions
 ---@field setup org-roam.Setup
 ---@field ui org-roam.UserInterface
 ---@field utils org-roam.Utils
+---@field __augroup integer (internal autocmd group)
 local M = {}
 
 ---@private
@@ -70,10 +70,6 @@ function M:new(config)
         })
     end
 
-    lazy.events = function()
-        return require("org-roam.events")(instance)
-    end
-
     lazy.ext = function()
         return require("org-roam.extensions")(instance)
     end
@@ -89,6 +85,9 @@ function M:new(config)
     lazy.utils = function()
         return require("org-roam.utils")
     end
+
+    -- Create our distinct group id we use for autocmds
+    instance.__augroup = vim.api.nvim_create_augroup("org-roam.nvim", {})
 
     instance.__lazy = lazy
     return instance

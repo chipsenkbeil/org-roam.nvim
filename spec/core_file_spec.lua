@@ -5,6 +5,17 @@ describe("org-roam.core.file", function()
     -- Drop-in replacement for `math.huge` that we use for file node end range.
     local MAX_NUMBER = 2 ^ 31
 
+    before_each(function()
+        -- NOTE: We need to run this in this core test because org_file calls
+        --       are triggering the ftplugin/org.lua, which is trying to use
+        --       vim.cmd.something(...) and is failing because of a plenary issue
+        utils.init_before_test()
+    end)
+
+    after_each(function()
+        utils.cleanup_after_test()
+    end)
+
     it("parse blank orgfile", function()
         local orgfile = utils.org_file("")
 
@@ -15,18 +26,9 @@ describe("org-roam.core.file", function()
     end)
 
     it("parse orgfile with single file node", function()
-        local orgfile = utils.org_file([=[
-            :PROPERTIES:
-            :ID: 1234
-            :ROAM_ALIASES: "one alias" two three "\"four\""
-            :END:
-
-            This is an org file with [[https://example.com][web links]],
-            and [[id:5678][id links]], only of which the id link will
-            be captured within our node.
-
-            #+FILETAGS: :tag1:tag2:tag3:
-        ]=])
+        local root = utils.make_temp_org_files_directory()
+        local orgfile = utils.load_org_file(vim.fs.joinpath(root, "single-file-node.org"))
+        assert(orgfile, "failed to load orgfile")
 
         local file = File:from_org_file(orgfile)
         assert.are.equal(orgfile.filename, file.filename)
@@ -80,22 +82,9 @@ describe("org-roam.core.file", function()
     end)
 
     it("parse orgfile with single headline node", function()
-        local orgfile = utils.org_file([=[
-            #+FILETAGS: :tag1:tag2:tag3:
-
-            Text outside of the headline won't be included in nodes.
-            This includes [[id:1234][id links]].
-
-            * Some headline :HEADLINE_TAG:
-                :PROPERTIES:
-                :ID: 1234
-                :ROAM_ALIASES: "one alias" two three "\"four\""
-                :END:
-
-                This is an org file with [[https://example.com][web links]],
-                and [[id:5678][id links]], only of which the id link will
-                be captured within our node.
-        ]=])
+        local root = utils.make_temp_org_files_directory()
+        local orgfile = utils.load_org_file(vim.fs.joinpath(root, "single-headline-node.org"))
+        assert(orgfile, "failed to load orgfile")
 
         local file = File:from_org_file(orgfile)
         assert.are.equal(orgfile.filename, file.filename)
@@ -123,18 +112,19 @@ describe("org-roam.core.file", function()
                 path = "id:5678",
                 range = {
                     end_ = {
-                        column = 28,
-                        offset = 343,
+                        column = 24,
+                        offset = 319,
                         row = 12,
                     },
                     start = {
-                        column = 8,
-                        offset = 323,
+                        column = 4,
+                        offset = 299,
                         row = 12,
                     },
                 },
             },
         }, file.links)
+
         assert.are.same({
             ["1234"] = {
                 aliases = { "one alias", "two", "three", '"four"' },
@@ -143,15 +133,15 @@ describe("org-roam.core.file", function()
                 level = 1,
                 linked = {
                     ["5678"] = {
-                        { column = 8, offset = 323, row = 12 },
+                        { column = 4, offset = 299, row = 12 },
                     },
                 },
                 mtime = orgfile.metadata.mtime,
                 range = {
                     end_ = {
-                        column = 0,
-                        offset = 410,
-                        row = 14,
+                        column = 28,
+                        offset = 381,
+                        row = 13,
                     },
                     start = {
                         column = 0,
@@ -166,43 +156,9 @@ describe("org-roam.core.file", function()
     end)
 
     it("parse orgfile with multiple nodes", function()
-        local orgfile = utils.org_file([=[
-            :PROPERTIES:
-            :ID: 1234
-            :END:
-
-            #+FILETAGS: :tag1:tag2:tag3:
-            #+TITLE: test title
-
-            Text outside of the headline won't be included in nodes.
-            This includes [[id:1111][id links]].
-
-            * Some headline :HEADLINE_TAG:
-                :PROPERTIES:
-                :ID: 5678
-                :ROAM_ALIASES: "one alias" two three "\"four\""
-                :END:
-
-                This is a section node with [[https://example.com][web links]],
-                and [[id:2222][id links]], only of which the id link will
-                be captured within our node.
-
-            * Another headline :HEADLINE_TAG_2:
-
-                This is an regular section with [[https://example.com][web links]],
-                and [[id:3333][id links]], only of which the id link will
-                be captured as part of the file node.
-
-            ** Nested headline :HEADLINE_TAG_3:
-                :PROPERTIES:
-                :ID: abcd-1234
-                :ROAM_ALIASES: five six
-                :END:
-
-                This is another section node with [[https://example.com][web links]],
-                and [[id:4444][id links]], only of which the id link will
-                be captured within our node.
-        ]=])
+        local root = utils.make_temp_org_files_directory()
+        local orgfile = utils.load_org_file(vim.fs.joinpath(root, "multiple-nodes.org"))
+        assert(orgfile, "failed to load orgfile")
 
         local file = File:from_org_file(orgfile)
         assert.are.equal(orgfile.filename, file.filename)
@@ -230,13 +186,13 @@ describe("org-roam.core.file", function()
                 path = "id:2222",
                 range = {
                     end_ = {
-                        column = 28,
-                        offset = 396,
+                        column = 24,
+                        offset = 372,
                         row = 17,
                     },
                     start = {
-                        column = 8,
-                        offset = 376,
+                        column = 4,
+                        offset = 352,
                         row = 17,
                     },
                 },
@@ -247,13 +203,13 @@ describe("org-roam.core.file", function()
                 path = "id:3333",
                 range = {
                     end_ = {
-                        column = 28,
-                        offset = 601,
+                        column = 24,
+                        offset = 565,
                         row = 23,
                     },
                     start = {
-                        column = 8,
-                        offset = 581,
+                        column = 4,
+                        offset = 545,
                         row = 23,
                     },
                 },
@@ -264,13 +220,13 @@ describe("org-roam.core.file", function()
                 path = "id:4444",
                 range = {
                     end_ = {
-                        column = 28,
-                        offset = 891,
+                        column = 24,
+                        offset = 827,
                         row = 33,
                     },
                     start = {
-                        column = 8,
-                        offset = 871,
+                        column = 4,
+                        offset = 807,
                         row = 33,
                     },
                 },
@@ -293,8 +249,8 @@ describe("org-roam.core.file", function()
                     },
                     ["3333"] = {
                         {
-                            column = 8,
-                            offset = 581,
+                            column = 4,
+                            offset = 545,
                             row = 23,
                         },
                     },
@@ -323,8 +279,8 @@ describe("org-roam.core.file", function()
                 linked = {
                     ["2222"] = {
                         {
-                            column = 8,
-                            offset = 376,
+                            column = 4,
+                            offset = 352,
                             row = 17,
                         },
                     },
@@ -333,7 +289,7 @@ describe("org-roam.core.file", function()
                 range = {
                     end_ = {
                         column = 0,
-                        offset = 464,
+                        offset = 436,
                         row = 20,
                     },
                     start = {
@@ -353,8 +309,8 @@ describe("org-roam.core.file", function()
                 linked = {
                     ["4444"] = {
                         {
-                            column = 8,
-                            offset = 871,
+                            column = 4,
+                            offset = 807,
                             row = 33,
                         },
                     },
@@ -362,13 +318,13 @@ describe("org-roam.core.file", function()
                 mtime = orgfile.metadata.mtime,
                 range = {
                     end_ = {
-                        column = 0,
-                        offset = 958,
-                        row = 35,
+                        column = 28,
+                        offset = 889,
+                        row = 34,
                     },
                     start = {
                         column = 0,
-                        offset = 678,
+                        offset = 638,
                         row = 26,
                     },
                 },

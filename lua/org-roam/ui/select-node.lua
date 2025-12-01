@@ -4,8 +4,6 @@
 -- Opens a dialog to select a node, returning its id.
 -------------------------------------------------------------------------------
 
-local Select = require("org-roam.core.ui.select")
-
 ---@class (exact) org-roam.ui.SelectNodeOpts
 ---@field allow_select_missing? boolean
 ---@field auto_select? boolean
@@ -76,7 +74,7 @@ local function roam_select_node(roam, opts)
         cancel_on_no_init_matches = true,
     }, opts or {})
 
-    return Select:new(select_opts)
+    return require("org-roam.core.ui.select"):new(select_opts)
 end
 
 ---@param roam OrgRoam

@@ -4,14 +4,6 @@
 -- Specialized buffer representing an org-roam buffer for a particular node.
 -------------------------------------------------------------------------------
 
-local Buffer = require("org-roam.core.ui.buffer")
-local C = require("org-roam.core.ui.component")
-local Emitter = require("org-roam.core.utils.emitter")
-local highlighter = require("org-roam.core.ui.highlighter")
-local notify = require("org-roam.core.ui.notify")
-local tbl_utils = require("org-roam.core.utils.table")
-local WindowPicker = require("org-roam.core.ui.window-picker")
-
 local EVENTS = {
     REFRESH = "refresh",
 }
@@ -68,7 +60,7 @@ local ICONS = {
 local CACHE = {}
 
 ---Global event emitter to ensure all windows stay accurate.
-local EMITTER = Emitter:new()
+local EMITTER = require("org-roam.core.utils.emitter"):new()
 
 ---Highlights lazy ranges in the window as org syntax.
 ---
@@ -77,7 +69,7 @@ local EMITTER = Emitter:new()
 ---@param ns_id integer
 ---@param ranges {[1]:integer, [2]:integer}[] # (start, end) base-zero, end-exclusive
 local function lazy_highlight_for_org(buf, ns_id, ranges)
-    highlighter.highlight_ranges_as_org(buf, ranges, {
+    require("org-roam.core.ui.highlighter").highlight_ranges_as_org(buf, ranges, {
         ephemeral = true,
         namespace = ns_id,
     })
@@ -103,6 +95,7 @@ local function load_lines_at_cursor(roam, path, cursor)
     ---@param file OrgFile
     ---@return string[]
     local function file_to_lines(file)
+        ---@type TSNode?
         local node = file:get_node_at_cursor(cursor)
         local container_types = {
             "directive",
@@ -122,7 +115,7 @@ local function load_lines_at_cursor(roam, path, cursor)
             local pty = node and node:parent() and node:parent():type() or ""
 
             -- Check if we're actually in a list item and advance up out of paragraph
-            if ty == "paragraph" and pty == "listitem" then
+            if node and ty == "paragraph" and pty == "listitem" then
                 node = node:parent()
             end
         end
@@ -174,11 +167,13 @@ local function load_lines_at_cursor(roam, path, cursor)
             return results
         end)
         :catch(function(err)
-            notify.error(err)
+            require("org-roam.core.ui.notify").error(err)
         end)
 
     ---@param line string
     return vim.tbl_map(function(line)
+        local C = require("org-roam.core.ui.component")
+
         -- Because this can have a performance hit & flickering, we only
         -- do lazy highlighting as org syntax if enabled
         if roam.config.ui.node_buffer.highlight_previews then
@@ -199,6 +194,8 @@ end
 ---@param details {fixed:boolean}
 ---@return org-roam.core.ui.Line[] lines
 local function render(roam, this, node, details)
+    local C = require("org-roam.core.ui.component")
+
     ---@diagnostic disable-next-line:invisible
     local state = this.__state
 
@@ -249,10 +246,11 @@ local function render(roam, this, node, details)
                         return winnr ~= win
                     end
 
-                    WindowPicker:new({
-                        autoselect = true,
-                        filter = filter,
-                    })
+                    require("org-roam.core.ui.window-picker")
+                        :new({
+                            autoselect = true,
+                            filter = filter,
+                        })
                         :on_choice(function(winnr)
                             roam.utils.goto_node({
                                 node = origin_node,
@@ -294,7 +292,11 @@ local function render(roam, this, node, details)
 
                         -- Get the expanded state of the first link to use for everything
                         if is_expanded == nil then
-                            is_expanded = tbl_utils.get(state.expanded, backlink_node.id, row, col) or false
+                            is_expanded = (
+                                state.expanded[backlink_node.id]
+                                and state.expanded[backlink_node.id][row]
+                                and state.expanded[backlink_node.id][row][col]
+                            ) or false
                         end
 
                         if not state.expanded[backlink_node.id] then
@@ -334,7 +336,11 @@ local function render(roam, this, node, details)
                     backlink_links_cnt = backlink_links_cnt + 1
 
                     ---@type boolean
-                    local is_expanded = tbl_utils.get(state.expanded, backlink_node.id, row - 1, col - 1) or false
+                    local is_expanded = (
+                        state.expanded[backlink_node.id]
+                        and state.expanded[backlink_node.id][row - 1]
+                        and state.expanded[backlink_node.id][row - 1][col - 1]
+                    ) or false
 
                     local function do_expand()
                         if not state.expanded then
@@ -359,10 +365,11 @@ local function render(roam, this, node, details)
                             return winnr ~= win
                         end
 
-                        WindowPicker:new({
-                            autoselect = true,
-                            filter = filter,
-                        })
+                        require("org-roam.core.ui.window-picker")
+                            :new({
+                                autoselect = true,
+                                filter = filter,
+                            })
                             :on_choice(function(winnr)
                                 vim.api.nvim_set_current_win(winnr)
                                 vim.cmd("e " .. backlink_node.file)
@@ -419,7 +426,7 @@ local function render(roam, this, node, details)
         table.insert(lines, {
             C.action(KEYBINDINGS.EXPAND_ALL.key, do_expand_all, { global = true }),
             C.action(KEYBINDINGS.REFRESH_BUFFER.key, function()
-                highlighter.clear_cache()
+                require("org-roam.core.ui.highlighter").clear_cache()
                 EMITTER:emit(EVENTS.REFRESH, { force = true })
             end, { global = true }),
         })
@@ -465,12 +472,14 @@ function M:new(roam, opts)
         end
     end)()
 
-    local buffer = Buffer:new({
-        filetype = "org-roam-node-buffer",
-        modifiable = false,
-        buftype = "nofile",
-        swapfile = false,
-    }):add_component(cached_render)
+    local buffer = require("org-roam.core.ui.buffer")
+        :new({
+            filetype = "org-roam-node-buffer",
+            modifiable = false,
+            buftype = "nofile",
+            swapfile = false,
+        })
+        :add_component(cached_render)
     instance.__buffer = buffer
 
     -- For this kind of buffer, always force normal mode.

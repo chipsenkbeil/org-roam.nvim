@@ -1172,6 +1172,59 @@
 
    If =sync= argument is provided, will perform the update synchronously.
 
+* Autocommands
+
+** OrgRoamInitialized
+
+   Triggered when the plugin is fully initialized, including the database.
+
+   Example:
+
+   #+begin_src lua
+   vim.api.nvim_create_autocmd("User", {
+     pattern = "OrgRoamInitialized",
+     callback = function()
+       vim.print("org roam initialized") -- Print initialized
+     end,
+   })
+   #+end_src
+
+
+** OrgRoamNodeEnter
+
+   Triggered when entering a buffer or moving a cursor to an org roam node.
+
+   The =data= argument of the autocmd's callback will be set to the node.
+
+   Example:
+
+   #+begin_src lua
+   vim.api.nvim_create_autocmd("User", {
+     pattern = "OrgRoamNodeEnter",
+     callback = function(args)
+       vim.print(args.data) -- Print node entered
+     end,
+   })
+   #+end_src
+
+** OrgRoamNodeLeave
+
+   Triggered when leaving a buffer or moving a cursor away from an org roam
+   node. Note that this is only triggered when leaving one node for another.
+
+   The =data= argument of the autocmd's callback will be set to the node.
+
+   Example:
+
+   #+begin_src lua
+   vim.api.nvim_create_autocmd("User", {
+     pattern = "OrgRoamNodeLeave",
+     callback = function(args)
+       vim.print(args.data) -- Print node left
+     end,
+   })
+   #+end_src
+
 * User Interface
 
 ** Org Roam Buffer
@@ -2364,34 +2417,6 @@
    local roam = require("org-roam")
    roam.database:save():next(function()
      print("Done!")
-   end)
-   #+end_src
-
-* Events
-
-** On Cursor Node Changed
-
-   roam.events.on_cursor_node_changed({cb})
-
-   Description:
-
-   Register a callback when a cursor move results in the node
-   under the cursor changing. This will also be triggered when
-   the cursor moves to a position where there is no node.
-
-   Parameters:
-
-   - {cb} triggered when the cursor moves to a different node or no node.
-          Takes the node as an argument, or nil if no node.
-
-   Example:
-
-   #+begin_src lua
-   local roam = require("org-roam")
-   roam.events.on_cursor_node_changed(function(node)
-     if node then
-       print("Node under cursor is " .. node.id)
-     end
    end)
    #+end_src
 
