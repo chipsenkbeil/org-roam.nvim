@@ -131,9 +131,9 @@ local function build_template(roam, template_opts, opts)
     local template = Template:new(template_opts)
 
     -- Resolve our general expansions in the target
-    -- and update the target to be relative to our roam directory
+    -- Note: target stays relative here; make_target_expander handles absolutization
     if template.target then
-        template.target = vim.fs.joinpath(roam.config.directory, fill_expansions(roam, template.target))
+        template.target = fill_expansions(roam, template.target)
     end
 
     -- Always include the entire capture contents, not just
