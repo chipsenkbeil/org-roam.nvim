@@ -624,4 +624,32 @@ describe("org-roam.api.node", function()
             "",
         }, utils.read_buffer())
     end)
+
+    it("should store captured node directly in roam directory", function()
+        local roam = setup_roam()
+        roam.database:load():wait()
+
+        local roam_dir = roam.config.directory
+        local one_path = vim.fs.joinpath(roam_dir, "one.org")
+
+        vim.cmd.edit(one_path)
+
+        utils.mock_vim_inputs({
+            confirm = 1,
+            getchar = vim.fn.char2nr("d"),
+            input = "Test Node",
+        })
+
+        local id = roam.api.capture_node()
+        utils.wait()
+        vim.cmd("wq")
+        utils.wait()
+        id = id:wait()
+
+        assert.is_not_nil(id)
+
+        local node = assert(roam.database:get_sync(id), "missing node " .. id)
+        local file_parent = vim.fn.fnamemodify(node.file, ":h")
+        assert.equals(roam_dir, file_parent)
+    end)
 end)
