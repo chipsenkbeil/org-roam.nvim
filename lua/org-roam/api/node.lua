@@ -523,6 +523,9 @@ local function roam_find(roam, opts)
         vim.cmd.edit({ node.file, bang = true })
         vim.cmd.filetype("detect")
 
+        -- Re-trigger user autocmds so window options (number, signcolumn, etc.) are restored
+        vim.cmd("silent doautocmd BufWinEnter")
+
         -- Force ourselves back into normal mode
         vim.cmd.stopinsert()
 
