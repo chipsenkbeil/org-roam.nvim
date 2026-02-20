@@ -41,7 +41,7 @@ local function roam_complete_node_under_cursor(roam, opts)
 
     return require("orgmode.utils.promise").new(function(resolve)
         roam.ui
-            .select_node({ auto_select = true, init_input = input })
+            .select_node({ auto_select = true, init_input = input, cancel_on_no_init_matches = true })
             :on_choice(function(choice)
                 local node = roam.database:get_sync(choice.id)
                 if not node then
