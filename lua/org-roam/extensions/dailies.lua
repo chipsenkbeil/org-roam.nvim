@@ -131,13 +131,49 @@ local function make_dailies_templates(roam, date)
     ---@type org-roam.config.extensions.dailies.Templates
     local templates = vim.deepcopy(roam.config.extensions.dailies.templates)
 
-    ---Formats all date strings within %<{FORMAT}> using the configured date.
+    ---Formats all date strings within %<{FORMAT}> using the configured date,
+    ---and also replaces org-mode template date specifiers (%t, %T, %u, %U).
     ---@param content string
     ---@return string
     local function format_date(content)
         for exp in string.gmatch(content, "%%<[^>]*>") do
             content = string.gsub(content, vim.pesc(exp), os.date(exp:sub(3, -2), date and date.timestamp))
         end
+
+        -- Replace org-mode template date specifiers with the target date.
+        -- These are orgmode capture template codes, not strftime codes:
+        --   %t → inactive date stamp [YYYY-MM-DD Day]
+        --   %T → active date stamp <YYYY-MM-DD Day>
+        --   %u → inactive date+time stamp [YYYY-MM-DD Day HH:MM]
+        --   %U → active date+time stamp <YYYY-MM-DD Day HH:MM>
+        if date then
+            local OrgDate = require("orgmode.objects.date")
+
+            -- %t: inactive date-only
+            local date_only = OrgDate.from_timestamp(date.timestamp)
+            date_only.active = false
+            date_only.date_only = true
+            content = string.gsub(content, "%%t", vim.pesc(date_only:to_wrapped_string(false)))
+
+            -- %T: active date-only
+            local active_date_only = OrgDate.from_timestamp(date.timestamp)
+            active_date_only.active = true
+            active_date_only.date_only = true
+            content = string.gsub(content, "%%T", vim.pesc(active_date_only:to_wrapped_string(true)))
+
+            -- %u: inactive date+time
+            local date_time = OrgDate.from_timestamp(date.timestamp)
+            date_time.active = false
+            date_time.date_only = false
+            content = string.gsub(content, "%%u", vim.pesc(date_time:to_wrapped_string(false)))
+
+            -- %U: active date+time
+            local active_date_time = OrgDate.from_timestamp(date.timestamp)
+            active_date_time.active = true
+            active_date_time.date_only = false
+            content = string.gsub(content, "%%U", vim.pesc(active_date_time:to_wrapped_string(true)))
+        end
+
         return content
     end
 
