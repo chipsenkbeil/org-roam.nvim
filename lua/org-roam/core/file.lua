@@ -117,9 +117,8 @@ function M:from_org_file(file)
         local tags = file:get_filetags()
         table.sort(tags)
 
-        local origin = require("org-roam.core.file.utils").parse_property_value(
-            trim(file:get_property(KEYS.PROP_ORIGIN)) or ""
-        )
+        local origin =
+            require("org-roam.core.file.utils").parse_property_value(trim(file:get_property(KEYS.PROP_ORIGIN)) or "")
         table.insert(
             nodes,
             require("org-roam.core.file.node"):new({
