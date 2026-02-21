@@ -335,16 +335,10 @@ function M:from_org_file(file)
                     for prop_name, prop_value in pairs(hl_props) do
                         if not SKIP_PROPS[prop_name] and string.find(prop_value, "%[%[id:", 1, false) then
                             -- Iterate treesitter children to find the exact property node
-                            for _, child in
-                                ipairs(require("orgmode.utils.treesitter").get_named_children(hl_prop_node))
-                            do
+                            for _, child in ipairs(require("orgmode.utils.treesitter").get_named_children(hl_prop_node)) do
                                 local name_node = child:field("name")[1]
                                 local value_node = child:field("value")[1]
-                                if
-                                    name_node
-                                    and value_node
-                                    and file:get_node_text(name_node):lower() == prop_name
-                                then
+                                if name_node and value_node and file:get_node_text(name_node):lower() == prop_name then
                                     local row, col, offset = value_node:start()
                                     scan_property_value_for_links(prop_value, row, col, offset, hl_node)
                                     break
