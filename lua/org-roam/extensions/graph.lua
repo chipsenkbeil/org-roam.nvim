@@ -22,7 +22,7 @@ local function roam_graph_to_dot(roam, opts)
 
     local lines = {
         "digraph OrgRoam {",
-        '  rankdir=LR;',
+        "  rankdir=LR;",
         '  node [shape=box, style="rounded,filled", fillcolor="#f5f5f5", fontname="sans-serif"];',
         '  edge [color="#888888"];',
         "",
