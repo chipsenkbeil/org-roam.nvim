@@ -469,6 +469,7 @@ local function roam_insert(roam, opts)
                 allow_select_missing = true,
                 auto_select = opts.immediate,
                 init_input = opts.title,
+                cancel_on_no_init_matches = false,
             })
             :on_choice(function(choice)
                 local label = type(choice.value) == "string" and choice.value or choice.label
@@ -541,6 +542,7 @@ local function roam_find(roam, opts)
             .select_node({
                 allow_select_missing = true,
                 init_input = opts.title,
+                cancel_on_no_init_matches = false,
             })
             :on_choice(function(choice)
                 visit_node(choice.id)

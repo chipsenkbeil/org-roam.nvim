@@ -72,6 +72,7 @@ local function roam_select_node(roam, opts)
         format = function(item)
             return item.label
         end,
+        cancel_on_no_init_matches = true,
     }, opts or {})
 
     return require("org-roam.core.ui.select"):new(select_opts)
