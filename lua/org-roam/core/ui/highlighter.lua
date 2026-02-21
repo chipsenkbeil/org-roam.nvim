@@ -161,40 +161,82 @@ local function apply_link_conceal(buffer, ranges, opts)
 
                 if has_desc then
                     -- Conceal [[ at start
-                    vim.api.nvim_buf_set_extmark(buffer, ns, row, link_start - 1, vim.tbl_extend("force", mark_opts, {
-                        end_col = link_start + 1,
-                        conceal = "",
-                    }))
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        link_start - 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = link_start + 1,
+                            conceal = "",
+                        })
+                    )
                     -- Conceal url][ (from after [[ to after ][)
-                    vim.api.nvim_buf_set_extmark(buffer, ns, row, link_start + 1, vim.tbl_extend("force", mark_opts, {
-                        end_col = separator + 1,
-                        conceal = "",
-                    }))
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        link_start + 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = separator + 1,
+                            conceal = "",
+                        })
+                    )
                     -- Highlight desc
-                    vim.api.nvim_buf_set_extmark(buffer, ns, row, separator + 1, vim.tbl_extend("force", mark_opts, {
-                        end_col = link_end - 1,
-                        hl_group = "@org.hyperlink",
-                    }))
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        separator + 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = link_end - 1,
+                            hl_group = "@org.hyperlink",
+                        })
+                    )
                     -- Conceal ]] at end
-                    vim.api.nvim_buf_set_extmark(buffer, ns, row, link_end - 1, vim.tbl_extend("force", mark_opts, {
-                        end_col = link_end + 1,
-                        conceal = "",
-                    }))
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        link_end - 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = link_end + 1,
+                            conceal = "",
+                        })
+                    )
                 else
                     -- [[url]] without description: conceal [[ and ]]
-                    vim.api.nvim_buf_set_extmark(buffer, ns, row, link_start - 1, vim.tbl_extend("force", mark_opts, {
-                        end_col = link_start + 1,
-                        conceal = "",
-                    }))
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        link_start - 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = link_start + 1,
+                            conceal = "",
+                        })
+                    )
                     -- Highlight url
-                    vim.api.nvim_buf_set_extmark(buffer, ns, row, link_start + 1, vim.tbl_extend("force", mark_opts, {
-                        end_col = link_end - 1,
-                        hl_group = "@org.hyperlink",
-                    }))
-                    vim.api.nvim_buf_set_extmark(buffer, ns, row, link_end - 1, vim.tbl_extend("force", mark_opts, {
-                        end_col = link_end + 1,
-                        conceal = "",
-                    }))
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        link_start + 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = link_end - 1,
+                            hl_group = "@org.hyperlink",
+                        })
+                    )
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        link_end - 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = link_end + 1,
+                            conceal = "",
+                        })
+                    )
                 end
 
                 pos = link_end + 2
