@@ -6,6 +6,18 @@
 
 local ORIGIN_PROP_NAME = "ROAM_ORIGIN"
 
+---Writes the list of origin ids as a space-separated property value.
+---If the list is empty, removes the property entirely.
+---@param entry OrgFile|OrgHeadline
+---@param origins string[]
+local function write_origins(entry, origins)
+    if #origins == 0 then
+        entry:set_property(ORIGIN_PROP_NAME, nil)
+    else
+        entry:set_property(ORIGIN_PROP_NAME, table.concat(origins, " "))
+    end
+end
+
 ---@param roam OrgRoam
 ---@param opts? {origin?:string}
 ---@return OrgPromise<boolean>
@@ -29,15 +41,25 @@ local function roam_add_origin(roam, opts)
                     local entry = utils.find_id_match(file, node.id)
 
                     if entry and opts.origin then
-                        entry:set_property(ORIGIN_PROP_NAME, opts.origin)
+                        -- Append to existing origins, avoiding duplicates
+                        local origins = vim.deepcopy(node.origin)
+                        if not vim.tbl_contains(origins, opts.origin) then
+                            table.insert(origins, opts.origin)
+                        end
+                        write_origins(entry, origins)
                         resolve(true)
                     elseif entry then
                         -- If no origin specified, we load up a selection dialog
                         -- to pick a node other than the current one
+                        local exclude = vim.list_extend({ node.id }, node.origin)
                         roam.ui
-                            .select_node({ exclude = { node.id } })
+                            .select_node({ exclude = exclude })
                             :on_choice(function(choice)
-                                entry:set_property(ORIGIN_PROP_NAME, choice.id)
+                                local origins = vim.deepcopy(node.origin)
+                                if not vim.tbl_contains(origins, choice.id) then
+                                    table.insert(origins, choice.id)
+                                end
+                                write_origins(entry, origins)
                                 resolve(true)
                             end)
                             :on_cancel(function()
@@ -77,12 +99,30 @@ local function roam_goto_prev_node(roam, opts)
         end
 
         utils.node_under_cursor(function(node)
-            if not node or not node.origin then
+            if not node or #node.origin == 0 then
                 return resolve(nil)
             end
-            roam.database:get(node.origin):next(goto_node):catch(function()
-                resolve(nil)
-            end)
+
+            -- If only one origin, go directly
+            if #node.origin == 1 then
+                roam.database:get(node.origin[1]):next(goto_node):catch(function()
+                    resolve(nil)
+                end)
+                return
+            end
+
+            -- Multiple origins: show selection dialog
+            roam.ui
+                .select_node({ include = node.origin })
+                :on_choice(function(choice)
+                    roam.database:get(choice.id):next(goto_node):catch(function()
+                        resolve(nil)
+                    end)
+                end)
+                :on_cancel(function()
+                    resolve(nil)
+                end)
+                :open()
         end, { win = winnr })
     end)
 end
@@ -153,27 +193,51 @@ local function roam_remove_origin(roam)
                 return resolve(false)
             end
 
-            roam.database
-                :load_file({ path = node.file })
-                :next(function(results)
-                    -- Get the OrgFile instance
-                    local file = results.file
+            if #node.origin == 0 then
+                return resolve(false)
+            end
 
-                    -- Look for a file or headline that matches our node
-                    local entry = utils.find_id_match(file, node.id)
+            ---@param origin_to_remove string
+            local function do_remove(origin_to_remove)
+                roam.database
+                    :load_file({ path = node.file })
+                    :next(function(results)
+                        local file = results.file
+                        local entry = utils.find_id_match(file, node.id)
 
-                    if entry then
-                        entry:set_property(ORIGIN_PROP_NAME, nil)
-                        resolve(true)
-                    else
+                        if entry then
+                            local origins = vim.tbl_filter(function(o)
+                                return o ~= origin_to_remove
+                            end, node.origin)
+                            write_origins(entry, origins)
+                            resolve(true)
+                        else
+                            resolve(false)
+                        end
+
+                        return file
+                    end)
+                    :catch(function()
                         resolve(false)
-                    end
+                    end)
+            end
 
-                    return file
+            -- If only one origin, remove it directly
+            if #node.origin == 1 then
+                do_remove(node.origin[1])
+                return
+            end
+
+            -- Multiple origins: show selection dialog to pick which to remove
+            roam.ui
+                .select_node({ include = node.origin })
+                :on_choice(function(choice)
+                    do_remove(choice.id)
                 end)
-                :catch(function()
+                :on_cancel(function()
                     resolve(false)
                 end)
+                :open()
         end)
     end)
 end
@@ -185,7 +249,7 @@ return function(roam)
     local M = {}
 
     ---Adds an origin to the node under cursor.
-    ---Will replace the existing origin.
+    ---Appends to existing origins (supports multiple origins).
     ---
     ---If no `origin` is specified, a prompt is provided.
     ---

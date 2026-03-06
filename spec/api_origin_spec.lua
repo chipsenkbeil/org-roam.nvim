@@ -59,7 +59,7 @@ describe("org-roam.api.origin", function()
         }, utils.read_buffer())
     end)
 
-    it("should be able to overwrite the origin for the node under cursor", function()
+    it("should append a new origin to the node under cursor", function()
         local roam = setup_roam()
         local id = utils.random_id()
 
@@ -68,7 +68,7 @@ describe("org-roam.api.origin", function()
             ext = "org",
         })
 
-        -- Create our test file
+        -- Create our test file with an existing origin
         utils.write_to(test_org_file_path, {
             ":PROPERTIES:",
             ":ID: " .. id,
@@ -83,15 +83,53 @@ describe("org-roam.api.origin", function()
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
-        -- Add the origin to the file in the buffer
-        local ok = roam.api.add_origin({ origin = "other test" }):wait()
+        -- Add a second origin to the file in the buffer
+        local ok = roam.api.add_origin({ origin = "other" }):wait()
         assert.is_true(ok)
 
-        -- Review that buffer was updated
+        -- Review that buffer was updated with both origins
         assert.are.same({
             ":PROPERTIES:",
             ":ID: " .. id,
-            ":ROAM_ORIGIN: other test",
+            ":ROAM_ORIGIN: something other",
+            ":END:",
+            "#+TITLE: Test",
+        }, utils.read_buffer())
+    end)
+
+    it("should not add duplicate origin to the node under cursor", function()
+        local roam = setup_roam()
+        local id = utils.random_id()
+
+        local test_org_file_path = utils.make_temp_filename({
+            dir = roam.config.directory,
+            ext = "org",
+        })
+
+        -- Create our test file with an existing origin
+        utils.write_to(test_org_file_path, {
+            ":PROPERTIES:",
+            ":ID: " .. id,
+            ":ROAM_ORIGIN: something",
+            ":END:",
+            "#+TITLE: Test",
+        })
+
+        -- Load files into the database
+        roam.database:load():wait()
+
+        -- Load the file into the buffer
+        vim.cmd.edit(test_org_file_path)
+
+        -- Try to add the same origin again
+        local ok = roam.api.add_origin({ origin = "something" }):wait()
+        assert.is_true(ok)
+
+        -- Review that buffer was not changed (no duplicate)
+        assert.are.same({
+            ":PROPERTIES:",
+            ":ID: " .. id,
+            ":ROAM_ORIGIN: something",
             ":END:",
             "#+TITLE: Test",
         }, utils.read_buffer())
@@ -120,11 +158,11 @@ describe("org-roam.api.origin", function()
         -- Load the file into the buffer
         vim.cmd.edit(test_org_file_path)
 
-        -- Remove the origin from the file in the buffer
+        -- Remove the origin from the file in the buffer (should be false since no origin)
         local ok = roam.api.remove_origin():wait()
-        assert.is_true(ok)
+        assert.is_false(ok)
 
-        -- Review that buffer was updated
+        -- Review that buffer was not changed
         assert.are.same({
             ":PROPERTIES:",
             ":ID: " .. id,
@@ -142,11 +180,11 @@ describe("org-roam.api.origin", function()
             ext = "org",
         })
 
-        -- Create our test file
+        -- Create our test file with a single origin
         utils.write_to(test_org_file_path, {
             ":PROPERTIES:",
             ":ID: " .. id,
-            ":ROAM_ORIGIN: something else",
+            ":ROAM_ORIGIN: something",
             ":END:",
             "#+TITLE: Test",
         })
