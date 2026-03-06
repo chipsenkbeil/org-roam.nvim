@@ -121,6 +121,130 @@ function M.get_extmarks_for_ranges_as_org(buffer, ranges, opts)
     return all_extmarks
 end
 
+---Applies conceal extmarks for org links within the given ranges.
+---
+---Treesitter-based conceal marks (from highlights.scm `#set! conceal`) are
+---ephemeral and not captured by `nvim_buf_get_extmarks`. This function
+---manually applies conceal marks for org links so they render properly
+---in non-org buffers like the node buffer.
+---@param buffer integer
+---@param ranges {[1]:integer, [2]:integer}[]
+---@param opts {ephemeral?:boolean, namespace?:integer}
+local function apply_link_conceal(buffer, ranges, opts)
+    local ns = opts.namespace or vim.api.nvim_create_namespace("org-roam-link-conceal")
+
+    for _, range in ipairs(ranges) do
+        local lines = vim.api.nvim_buf_get_lines(buffer, range[1], range[2], false)
+        for i, line in ipairs(lines) do
+            local row = range[1] + i - 1
+
+            -- Match [[url][desc]] links: conceal [[ ]] ][ parts, highlight url and desc
+            local pos = 1
+            while pos <= #line do
+                -- Find [[ opening
+                local link_start = string.find(line, "%[%[", pos, false)
+                if not link_start then
+                    break
+                end
+
+                -- Find matching ]]
+                local link_end = string.find(line, "%]%]", link_start + 2, false)
+                if not link_end then
+                    break
+                end
+
+                -- Check if this is a [[url][desc]] or [[url]] link
+                local separator = string.find(line, "%]%[", link_start + 2, false)
+                local has_desc = separator and separator < link_end
+
+                local mark_opts = { ephemeral = opts.ephemeral or false }
+
+                if has_desc then
+                    -- Conceal [[ at start
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        link_start - 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = link_start + 1,
+                            conceal = "",
+                        })
+                    )
+                    -- Conceal url][ (from after [[ to after ][)
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        link_start + 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = separator + 1,
+                            conceal = "",
+                        })
+                    )
+                    -- Highlight desc
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        separator + 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = link_end - 1,
+                            hl_group = "@org.hyperlink",
+                        })
+                    )
+                    -- Conceal ]] at end
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        link_end - 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = link_end + 1,
+                            conceal = "",
+                        })
+                    )
+                else
+                    -- [[url]] without description: conceal [[ and ]]
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        link_start - 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = link_start + 1,
+                            conceal = "",
+                        })
+                    )
+                    -- Highlight url
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        link_start + 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = link_end - 1,
+                            hl_group = "@org.hyperlink",
+                        })
+                    )
+                    vim.api.nvim_buf_set_extmark(
+                        buffer,
+                        ns,
+                        row,
+                        link_end - 1,
+                        vim.tbl_extend("force", mark_opts, {
+                            end_col = link_end + 1,
+                            conceal = "",
+                        })
+                    )
+                end
+
+                pos = link_end + 2
+            end
+        end
+    end
+end
+
 ---Highlights range within a buffer using org filetype.
 ---@param buffer integer #buffer number or 0 for current buffer
 ---@param ranges {[1]:integer, [2]:integer}[] #list of ranges containing starting & ending lines (zero-based, end-exclusive)
@@ -146,6 +270,13 @@ function M.highlight_ranges_as_org(buffer, ranges, opts)
             vim.api.nvim_buf_set_extmark(buffer, ns, row, col, details)
         end
     end
+
+    -- Apply link conceal marks manually since treesitter conceal marks
+    -- are ephemeral and not captured by nvim_buf_get_extmarks
+    apply_link_conceal(buffer, ranges, {
+        ephemeral = opts.ephemeral,
+        namespace = opts.namespace,
+    })
 end
 
 ---Clears the cache of text to highlights.
