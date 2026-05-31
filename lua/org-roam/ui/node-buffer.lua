@@ -114,9 +114,10 @@ local function roam_toggle_fixed_buffer(roam, opts)
             -- If we have no window containing the buffer, create one; otherwise,
             -- close all of the windows containing the buffer
             if #windows == 0 then
+                local internal_buffer = buffer:to_internal_buffer()
                 local win = require("org-roam.core.ui.window")
                     :new({
-                        buffer = buffer:to_internal_buffer(),
+                        buffer = internal_buffer,
                         open = roam.config.ui.node_buffer.open,
                     })
                     :open()
@@ -125,7 +126,12 @@ local function roam_toggle_fixed_buffer(roam, opts)
                     vim.api.nvim_set_current_win(win)
                 end
 
-                resolve(win)
+                -- Wait for the initial render before resolving so callers
+                -- (e.g. `:wait()`) observe a populated buffer. The handler
+                -- stays registered, but `resolve` is idempotent.
+                internal_buffer:on_post_render(function()
+                    resolve(win)
+                end)
             else
                 for _, win in ipairs(windows) do
                     vim.api.nvim_win_close(win, true)
