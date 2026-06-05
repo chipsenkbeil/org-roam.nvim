@@ -372,7 +372,7 @@ local function render(roam, this, node, details)
                             })
                             :on_choice(function(winnr)
                                 vim.api.nvim_set_current_win(winnr)
-                                vim.cmd("e " .. backlink_node.file)
+                                vim.cmd.edit(backlink_node.file)
 
                                 -- NOTE: We need to schedule to ensure the file has loaded
                                 --       into the buffer before we try to move the cursor!
