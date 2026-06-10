@@ -104,6 +104,11 @@ local DEFAULT_CONFIG = {
             ---@type string
             directory = "daily",
 
+            ---Format string for daily note filenames (without extension).
+            ---Uses strftime-compatible format codes.
+            ---@type string
+            date_format = "%Y-%m-%d",
+
             ---Bindings associated with org-roam dailies functionality.
             ---@class org-roam.config.extensions.dailies.Bindings
             bindings = {

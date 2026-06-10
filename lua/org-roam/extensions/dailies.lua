@@ -13,12 +13,20 @@ local function roam_dailies_dir(roam)
     return vim.fs.normalize(vim.fs.joinpath(roam.config.directory, roam.config.extensions.dailies.directory))
 end
 
----Converts date to YYYY-MM-DD format.
+---Returns the configured date format string for dailies filenames.
+---@param roam OrgRoam
+---@return string
+local function get_date_format(roam)
+    return roam.config.extensions.dailies.date_format or "%Y-%m-%d"
+end
+
+---Converts date to a formatted string using the configured date format.
+---@param roam OrgRoam
 ---@param date OrgDate
 ---@return string
-local function date_string(date)
+local function date_string(roam, date)
     ---@diagnostic disable-next-line:return-type-mismatch
-    return os.date("%Y-%m-%d", date.timestamp)
+    return os.date(get_date_format(roam), date.timestamp)
 end
 
 ---Converts a date into a full file path.
@@ -26,32 +34,119 @@ end
 ---@param date OrgDate
 ---@return string
 local function date_to_path(roam, date)
-    -- Should produce YYYY-MM-DD.org
-    local filename = date_string(date) .. ".org"
+    local filename = date_string(roam, date) .. ".org"
     return vim.fs.joinpath(roam_dailies_dir(roam), filename)
 end
 
----Converts a path into a date.
+---Builds a Lua pattern from a strftime format string for matching filenames.
+---Replaces known strftime codes with numeric patterns and escapes other chars.
+---@param fmt string
+---@return string pattern
+local function date_format_to_pattern(fmt)
+    -- Map strftime codes to Lua patterns
+    local replacements = {
+        ["%%Y"] = "(%d%d%d%d)", -- 4-digit year
+        ["%%m"] = "(%d%d)", -- 2-digit month
+        ["%%d"] = "(%d%d)", -- 2-digit day
+        ["%%H"] = "(%d%d)", -- 2-digit hour
+        ["%%M"] = "(%d%d)", -- 2-digit minute
+        ["%%S"] = "(%d%d)", -- 2-digit second
+        ["%%y"] = "(%d%d)", -- 2-digit year
+        ["%%j"] = "(%d%d%d)", -- day of year
+        ["%%V"] = "(%d%d)", -- ISO week number
+        ["%%W"] = "(%d%d)", -- week number
+        ["%%U"] = "(%d%d)", -- week number
+    }
+
+    -- Escape the format string for Lua pattern matching
+    local pattern = vim.pesc(fmt)
+
+    -- Replace escaped strftime codes with their patterns
+    for code, pat in pairs(replacements) do
+        pattern = string.gsub(pattern, vim.pesc(code), pat)
+    end
+
+    return "^" .. pattern .. "$"
+end
+
+---Tracks which strftime codes appear in a format string and their order.
+---@param fmt string
+---@return string[] codes ordered list of strftime codes present
+local function date_format_capture_order(fmt)
+    local codes = {}
+    local pos = 1
+    while pos <= #fmt do
+        local s = string.find(fmt, "%%", pos, true)
+        if not s then
+            break
+        end
+        local code = string.sub(fmt, s, s + 1)
+        table.insert(codes, code)
+        pos = s + 2
+    end
+    return codes
+end
+
+---Converts a path into a date using the configured date format.
+---@param roam OrgRoam
 ---@param path string
 ---@return OrgDate|nil
-local function path_to_date(path)
+local function path_to_date(roam, path)
     local filename = vim.fn.fnamemodify(path, ":t:r")
-    return require("orgmode.objects.date").from_string(filename)
+    local fmt = get_date_format(roam)
+
+    -- For the default YYYY-MM-DD format, use orgmode's parser directly
+    if fmt == "%Y-%m-%d" then
+        return require("orgmode.objects.date").from_string(filename)
+    end
+
+    -- For custom formats, parse using pattern matching
+    local pattern = date_format_to_pattern(fmt)
+    local captures = { string.match(filename, pattern) }
+    if #captures == 0 then
+        return nil
+    end
+
+    local codes = date_format_capture_order(fmt)
+    local year, month, day = nil, 1, 1
+    for i, code in ipairs(codes) do
+        local val = tonumber(captures[i])
+        if code == "%Y" then
+            year = val
+        elseif code == "%y" then
+            year = 2000 + val
+        elseif code == "%m" then
+            month = val
+        elseif code == "%d" then
+            day = val
+        end
+    end
+
+    if not year then
+        return nil
+    end
+
+    local date_str = string.format("%04d-%02d-%02d", year, month, day)
+    return require("orgmode.objects.date").from_string(date_str)
 end
 
 ---Converts buffer's name into a date.
+---@param roam OrgRoam
 ---@param buf integer
 ---@return OrgDate|nil
-local function buf_to_date(buf)
+local function buf_to_date(roam, buf)
     local bufname = vim.api.nvim_buf_get_name(buf)
-    return path_to_date(bufname)
+    return path_to_date(roam, bufname)
 end
 
 ---Returns list of file paths representing org files within dailies
----that meet the date format of `YYYY-MM-DD`.
+---that match the configured date format.
 ---@param roam OrgRoam
 ---@return string[]
 local function roam_dailies_files(roam)
+    local fmt = get_date_format(roam)
+    local pattern = date_format_to_pattern(fmt)
+
     return require("org-roam.core.utils.io")
         .walk(roam_dailies_dir(roam))
         :filter(function(entry)
@@ -59,7 +154,12 @@ local function roam_dailies_files(roam)
             local filename = vim.fn.fnamemodify(entry.filename, ":t:r")
             local ext = vim.fn.fnamemodify(entry.filename, ":e")
             local is_org = ext == "org" or ext == "org_archive"
-            local is_date = require("orgmode.objects.date").is_valid_date_string(filename) ~= nil
+            local is_date
+            if fmt == "%Y-%m-%d" then
+                is_date = require("orgmode.objects.date").is_valid_date_string(filename) ~= nil
+            else
+                is_date = string.match(filename, pattern) ~= nil
+            end
             return entry.type == "file" and is_org and is_date
         end)
         :map(function(entry)
@@ -80,6 +180,7 @@ local function roam_dailies_files_sorted(roam)
 end
 
 ---Returns list of pre-existing dates based on dailies filenames.
+---@param roam OrgRoam
 ---@return OrgDate[]
 local function roam_dailies_dates(roam)
     return vim.tbl_filter(
@@ -88,8 +189,7 @@ local function roam_dailies_dates(roam)
             return d ~= nil
         end,
         vim.tbl_map(function(path)
-            local filename = vim.fn.fnamemodify(path, ":t:r")
-            return require("orgmode.objects.date").from_string(filename)
+            return path_to_date(roam, path)
         end, roam_dailies_files(roam))
     )
 end
@@ -104,7 +204,7 @@ local function make_daily_buffer(roam, date, title)
     assert(buf ~= 0, "failed to create daily buffer")
 
     -- Update the filename of the buffer to be `path/to/{DATE}.org`
-    vim.api.nvim_buf_set_name(buf, vim.fs.joinpath(roam_dailies_dir(roam), date_string(date) .. ".org"))
+    vim.api.nvim_buf_set_name(buf, vim.fs.joinpath(roam_dailies_dir(roam), date_string(roam, date) .. ".org"))
 
     -- Set filetype to org
     vim.api.nvim_set_option_value("filetype", "org", { buf = buf })
@@ -114,7 +214,7 @@ local function make_daily_buffer(roam, date, title)
         ":PROPERTIES:",
         ":ID: " .. require("org-roam.core.utils.random").id(),
         ":END:",
-        "#+TITLE: " .. (title or date_string(date)),
+        "#+TITLE: " .. (title or date_string(roam, date)),
         "",
     })
 
@@ -221,7 +321,7 @@ return function(roam)
             if date then
                 return roam.api.capture_node({
                     origin = false,
-                    title = opts.title or date_string(date),
+                    title = opts.title or date_string(roam, date),
                     templates = make_dailies_templates(roam, date),
                 })
             else
@@ -349,7 +449,7 @@ return function(roam)
         local n = opts.n or 1
 
         local win = opts.win or vim.api.nvim_get_current_win()
-        local date = buf_to_date(vim.api.nvim_win_get_buf(win))
+        local date = buf_to_date(roam, vim.api.nvim_win_get_buf(win))
         if not date then
             return require("orgmode.utils.promise").resolve(nil)
         end
@@ -358,7 +458,7 @@ return function(roam)
         -- position using our offset, and resolve as a date
         local files = roam_dailies_files_sorted(roam)
         for i, file in ipairs(files) do
-            local file_date = path_to_date(file)
+            local file_date = path_to_date(roam, file)
 
             -- Use a diff check by day to ensure same date
             if file_date and date:diff(file_date) == 0 then
@@ -379,7 +479,7 @@ return function(roam)
                     return require("orgmode.utils.promise").resolve(nil)
                 end
 
-                local target_date = path_to_date(files[idx])
+                local target_date = path_to_date(roam, files[idx])
                 if not target_date then
                     return require("orgmode.utils.promise").reject("invalid file: " .. vim.inspect(files[idx]))
                 end
