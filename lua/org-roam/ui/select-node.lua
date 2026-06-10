@@ -7,6 +7,7 @@
 ---@class (exact) org-roam.ui.SelectNodeOpts
 ---@field allow_select_missing? boolean
 ---@field auto_select? boolean
+---@field cancel_on_no_init_matches? boolean
 ---@field exclude? string[]
 ---@field include? string[]
 ---@field init_input? string
