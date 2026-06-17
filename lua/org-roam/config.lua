@@ -141,6 +141,13 @@ local DEFAULT_CONFIG = {
                 goto_yesterday = "<prefix>dy",
             },
 
+            ---When navigating to a daily note (goto_date, goto_today, etc.) and
+            ---the file does not exist, use this template key from the dailies
+            ---templates to create the buffer. If nil or the key is not found,
+            ---falls back to the default hardcoded structure.
+            ---@type string|nil
+            default_template_key = nil,
+
             ---Settings tied to org-roam dailies capture templates.
             ---@class org-roam.config.extensions.dailies.Templates
             ---@field [string] OrgCaptureTemplateOpts

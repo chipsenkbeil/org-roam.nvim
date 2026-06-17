@@ -95,6 +95,10 @@ local function roam_dailies_dates(roam)
 end
 
 ---Creates a new buffer representing an org roam daily note.
+---
+---If `extensions.dailies.default_template_key` is set and the corresponding
+---template exists, its content is used to populate the buffer. Otherwise,
+---falls back to the default hardcoded structure.
 ---@param roam OrgRoam
 ---@param date OrgDate
 ---@param title? string
@@ -109,7 +113,44 @@ local function make_daily_buffer(roam, date, title)
     -- Set filetype to org
     vim.api.nvim_set_option_value("filetype", "org", { buf = buf })
 
-    -- Populate the buffer
+    -- Try to use the configured default template if available
+    local template_key = roam.config.extensions.dailies.default_template_key
+    local tmpl_opts = template_key and roam.config.extensions.dailies.templates[template_key]
+
+    if tmpl_opts then
+        -- Use the dailies template system to expand date formats
+        local expanded = make_dailies_templates(roam, date)
+        local tmpl = expanded[template_key]
+        if tmpl then
+            local template = tmpl.template
+            local lines = {}
+            if type(template) == "string" then
+                -- Remove capture cursor placeholder %? from buffer content
+                template = string.gsub(template, "%%?", "")
+                lines = vim.split(template, "\n", { plain = true })
+            elseif type(template) == "table" then
+                for _, line in ipairs(template) do
+                    line = string.gsub(line, "%%?", "")
+                    table.insert(lines, line)
+                end
+            end
+
+            -- Prepend properties and title like a normal capture
+            local content = {
+                ":PROPERTIES:",
+                ":ID: " .. require("org-roam.core.utils.random").id(),
+                ":END:",
+                "#+TITLE: " .. (title or date_string(date)),
+                "",
+            }
+            vim.list_extend(content, lines)
+            vim.api.nvim_buf_set_lines(buf, 0, -1, true, content)
+
+            return buf
+        end
+    end
+
+    -- Fallback: hardcoded default structure
     vim.api.nvim_buf_set_lines(buf, 0, -1, true, {
         ":PROPERTIES:",
         ":ID: " .. require("org-roam.core.utils.random").id(),
