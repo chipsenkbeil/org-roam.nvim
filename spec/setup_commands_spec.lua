@@ -289,14 +289,14 @@ describe("org-roam.setup.commands", function()
         }, utils.read_buffer())
 
         -- Trigger the command and wait a bit
-        vim.cmd("RoamAddOrigin node origin")
+        vim.cmd("RoamAddOrigin test-origin-id")
         utils.wait()
 
         assert.are.same({
             ":PROPERTIES:",
             ":ID: 1",
             ":ROAM_ALIASES: one",
-            ":ROAM_ORIGIN: node origin",
+            ":ROAM_ORIGIN: test-origin-id",
             ":END:",
             "#+FILETAGS: :one:",
             "",

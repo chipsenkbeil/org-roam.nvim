@@ -236,9 +236,9 @@ local function render(roam, this, node, details)
             C.hl(node.title, HL.NODE_TITLE),
         })
 
-        -- If we have an origin for the node, display it next
-        if node.origin then
-            local origin_node = roam.database:get_sync(node.origin)
+        -- If we have origins for the node, display them
+        for _, origin_id in ipairs(node.origin) do
+            local origin_node = roam.database:get_sync(origin_id)
             if origin_node then
                 local function do_open()
                     local win = vim.api.nvim_get_current_win()
