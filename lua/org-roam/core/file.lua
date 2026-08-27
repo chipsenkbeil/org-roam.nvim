@@ -221,6 +221,136 @@ function M:from_org_file(file)
         end
     end
 
+    -- Scan property drawer values for id links (e.g. [[id:xxx][desc]] or [[id:xxx]])
+    -- This enables backlinks from properties like ROAM_REFS or custom properties
+    local SKIP_PROPS = { id = true, roam_aliases = true, roam_origin = true }
+
+    ---Scans a property value string for id links, creating Link objects and
+    ---updating the node's linked table.
+    ---@param prop_value string
+    ---@param prop_row integer zero-indexed row where the property value starts
+    ---@param prop_col integer zero-indexed column where the property value starts
+    ---@param prop_offset integer zero-indexed byte offset where the property value starts
+    ---@param containing_node org-roam.core.file.Node
+    local function scan_property_value_for_links(prop_value, prop_row, prop_col, prop_offset, containing_node)
+        local search_start = 1
+        while true do
+            -- Match [[id:XXX][DESC]] or [[id:XXX]]
+            local link_start, link_end, link_id, desc =
+                string.find(prop_value, "%[%[id:([^%]]+)%]%[([^%]]+)%]%]", search_start)
+            if not link_start then
+                link_start, link_end, link_id = string.find(prop_value, "%[%[id:([^%]]+)%]%]", search_start)
+            end
+            if not link_start then
+                break
+            end
+
+            local col_offset = link_start - 1
+            local roam_range = require("org-roam.core.file.range"):new({
+                row = prop_row,
+                column = prop_col + col_offset,
+                offset = prop_offset + col_offset,
+            }, {
+                row = prop_row,
+                column = prop_col + link_end - 1,
+                offset = prop_offset + link_end - 1,
+            })
+
+            table.insert(
+                links,
+                require("org-roam.core.file.link"):new({
+                    kind = "property",
+                    range = roam_range,
+                    path = "id:" .. link_id,
+                    description = desc,
+                })
+            )
+
+            if not containing_node.linked[link_id] then
+                containing_node.linked[link_id] = {}
+            end
+
+            ---@type org-roam.core.file.Position
+            local pos = vim.deepcopy(roam_range.start)
+            table.insert(containing_node.linked[link_id], pos)
+
+            search_start = link_end + 1
+        end
+    end
+
+    -- Scan file-level property drawer
+    local file_node_id = trim(file:get_property(KEYS.PROP_ID))
+    if file_node_id then
+        -- Find the file-level node (level 0) from our nodes list
+        ---@type org-roam.core.file.Node|nil
+        local file_node
+        for _, n in ipairs(nodes) do
+            if n.id == file_node_id then
+                file_node = n
+                break
+            end
+        end
+
+        if file_node then
+            local file_props, file_prop_ranges, file_prop_drawer = file:get_properties()
+            if file_prop_drawer then
+                for prop_name, prop_value in pairs(file_props) do
+                    if not SKIP_PROPS[prop_name] and string.find(prop_value, "%[%[id:", 1, false) then
+                        local prop_range = file_prop_ranges[prop_name]
+                        if prop_range then
+                            -- prop_range.start_line is 1-indexed
+                            local row = prop_range.start_line - 1
+                            local line = file.lines[prop_range.start_line] or ""
+                            -- Find where the value starts in the line (after ":NAME: ")
+                            local _, val_start = string.find(line, "^%s*:[^:]-:%s*")
+                            val_start = val_start or 0
+                            local col = val_start
+                            local offset = col
+                            for i = 1, row do
+                                offset = offset + string.len(file.lines[i] or "") + 1
+                            end
+                            scan_property_value_for_links(prop_value, row, col, offset, file_node)
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- Build a lookup from node id to node for quick access
+    local nodes_by_id = {}
+    for _, n in ipairs(nodes) do
+        nodes_by_id[n.id] = n
+    end
+
+    -- Scan headline-level property drawers
+    for _, headline in ipairs(file:get_headlines()) do
+        local hl_id = trim(headline:get_property(KEYS.PROP_ID))
+        if hl_id then
+            local hl_node = nodes_by_id[hl_id]
+
+            if hl_node then
+                local hl_props, hl_prop_node = headline:get_own_properties()
+                if hl_prop_node then
+                    for prop_name, prop_value in pairs(hl_props) do
+                        if not SKIP_PROPS[prop_name] and string.find(prop_value, "%[%[id:", 1, false) then
+                            -- Iterate treesitter children to find the exact property node
+                            for _, child in ipairs(require("orgmode.utils.treesitter").get_named_children(hl_prop_node)) do
+                                local name_node = child:field("name")[1]
+                                local value_node = child:field("value")[1]
+                                if name_node and value_node and file:get_node_text(name_node):lower() == prop_name then
+                                    local row, col, offset = value_node:start()
+                                    scan_property_value_for_links(prop_value, row, col, offset, hl_node)
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
     local roam_file = M:new({
         filename = file.filename,
         links = links,

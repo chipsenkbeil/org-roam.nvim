@@ -7,6 +7,7 @@
 ---@alias org-roam.core.file.LinkKind
 ---| "angle"
 ---| "plain"
+---| "property"
 ---| "radio"
 ---| "regular"
 
