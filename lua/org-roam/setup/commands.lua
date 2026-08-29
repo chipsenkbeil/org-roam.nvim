@@ -141,4 +141,18 @@ return function(roam)
     end, {
         desc = "Removes an origin from the current node under cursor",
     })
+
+    vim.api.nvim_create_user_command("RoamGraphExport", function(opts)
+        ---@type string|nil
+        local path = vim.trim(opts.args)
+        if path == "" then
+            path = nil
+        end
+
+        roam.ext.graph.export_to_dot({ path = path })
+    end, {
+        desc = "Exports the org-roam graph as a DOT (Graphviz) file",
+        nargs = "?",
+        complete = "file",
+    })
 end
