@@ -456,7 +456,18 @@ function M:close()
     end
 
     if self.__params.refocus_window then
-        pcall(vim.api.nvim_set_current_win, self.__state.last_win)
+        local last_win = self.__state.last_win
+        pcall(vim.api.nvim_set_current_win, last_win)
+
+        -- Refresh folds in the original window after closing the selection
+        -- dialog, as Neovim does not re-trigger fold computation automatically.
+        vim.schedule(function()
+            if last_win and vim.api.nvim_win_is_valid(last_win) then
+                vim.api.nvim_win_call(last_win, function()
+                    vim.cmd("silent! normal! zx")
+                end)
+            end
+        end)
     end
 end
 
